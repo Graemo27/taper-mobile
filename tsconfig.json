@@ -2,6 +2,11 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // Internal imports carry explicit .ts extensions so the same modules run
+    // unbuilt under `node scripts/*.ts` (Node strips types but will not guess
+    // extensions) as well as through Metro.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "paths": {
       "@/*": [
         "./src/*"
