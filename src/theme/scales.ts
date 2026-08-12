@@ -11,6 +11,7 @@ import type { BoxShadowValue } from 'react-native';
 
 /** Tailwind numeric spacing. Key is the Tailwind step, value is points. */
 export const spacing = {
+  '0': 0,
   '0.5': 2,
   '1': 4,
   '1.5': 6,
@@ -35,6 +36,7 @@ export const spacing = {
 
 /** `3xl` (20) is the card radius; `xl` (12) the search field; `full` every pill. */
 export const radius = {
+  none: 0,
   xs: 2,
   sm: 4,
   md: 6,
@@ -59,6 +61,8 @@ export const fontSize = {
   '5xl': 48,
   '6xl': 60,
   '7xl': 72,
+  '8xl': 96,
+  '9xl': 128,
 } as const;
 
 /** Strings rather than numbers — accepted by every RN version we care about. */
@@ -84,6 +88,8 @@ export const lineHeight = {
   '8': 32,
   '9': 36,
   '10': 40,
+  '11': 44,
+  '12': 48,
 } as const;
 
 /**
