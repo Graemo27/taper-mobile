@@ -15,9 +15,11 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { HighInCard } from '@/components/high-in-card';
 import { BackChevronIcon } from '@/components/icons';
 import { NutritionCard } from '@/components/nutrition-card';
 import { MAX_SERVINGS, MIN_SERVINGS, ServingCard } from '@/components/serving-card';
+import { highIn } from '@/lib/food/claims';
 import { scaleTo } from '@/lib/food/parse';
 import { selectedFood } from '@/lib/food/selection';
 import { colors, fontFamily, fontSize, letterSpacing, spacing, tracking } from '@/theme';
@@ -34,6 +36,10 @@ export default function FoodDetail() {
   // rounding happens once at the end instead of compounding per serving.
   const basisGrams = food?.portion?.grams ?? 100;
   const nutrients = food ? scaleTo(food.per100g, basisGrams * servings) : null;
+
+  // Per 100g, not the displayed portion and not the stepped count. The chips
+  // describe the food; how much of it you logged does not change what it is.
+  const claims = food ? highIn(food.per100g) : [];
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -75,6 +81,8 @@ export default function FoodDetail() {
               setServings(Math.min(MAX_SERVINGS, Math.max(MIN_SERVINGS, next)))
             }
           />
+          {/* Before the figures, as the board has it. */}
+          <HighInCard nutrients={claims} />
           <NutritionCard nutrients={nutrients} />
 
           <View style={styles.captionWrap}>
