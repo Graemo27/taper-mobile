@@ -7,7 +7,7 @@
  * request per row — see `searchWithServings`.
  */
 
-import { fdcFetch } from './client.ts';
+import { FdcError, fdcFetch } from './client.ts';
 import { parseNutrients, parsePortions, pickPortion, scaleTo } from './parse.ts';
 import type { Food, FoodHit } from './types.ts';
 
@@ -72,16 +72,35 @@ export async function getFood(
  * includes portions. Keep `limit` small. DEMO_KEY (30 req/hour) will not
  * survive repeated use; set FDC_API_KEY.
  *
- * Any detail failure rejects the whole lookup rather than being dropped —
- * swallowing them turns a 429 or a bad key into a short or empty list that reads
- * as "no such food". If partial results are ever wanted, return explicit per-row
- * error state instead of silently omitting rows.
+ * Failures are split by kind, because the two obvious policies are both wrong:
+ * dropping everything turns a 429 into a misleading "no such food", while
+ * rejecting on anything lets one bad row kill a good result set.
+ *
+ *  - 404 — FDC's search index lists a food its detail store will not serve.
+ *    A data gap, not a query failure: the row is dropped and counted.
+ *  - everything else — auth, rate limit, network, abort — is systemic and
+ *    rejects the whole lookup.
  */
 export async function searchWithServings(
   query: string,
   limit = 5,
   signal?: AbortSignal,
-): Promise<Food[]> {
+): Promise<{ foods: Food[]; unavailable: number }> {
   const hits = await searchFoods(query, limit, signal);
-  return Promise.all(hits.map((h) => getFood(h.fdcId, signal)));
+  const settled = await Promise.allSettled(
+    hits.map((h) => getFood(h.fdcId, signal)),
+  );
+
+  const systemic = settled.find(
+    (r): r is PromiseRejectedResult =>
+      r.status === 'rejected' &&
+      !(r.reason instanceof FdcError && r.reason.status === 404),
+  );
+  if (systemic) throw systemic.reason;
+
+  const foods = settled
+    .filter((r): r is PromiseFulfilledResult<Food> => r.status === 'fulfilled')
+    .map((r) => r.value);
+
+  return { foods, unavailable: hits.length - foods.length };
 }
