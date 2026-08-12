@@ -130,13 +130,18 @@ function portionLabel(p: Record<string, any>): string {
   const amount: number = typeof raw === 'number' && raw > 0 ? raw : 1;
   const unit = String(p.measureUnit?.name ?? '');
   const modifier = withoutJargon(String(p.modifier ?? '').trim());
-  // "RACC" is the Reference Amount Customarily Consumed. It names a reference
-  // rather than a thing you can picture, and "1 RACC" was reaching readers
-  // verbatim, so it is treated as an unnamed unit like "undetermined" is.
-  const named = unit !== '' && unit !== 'undetermined' && unit.toUpperCase() !== 'RACC';
-  const noun = named ? unit : modifier || 'serving';
+  // "RACC" is the Reference Amount Customarily Consumed — a reference rather
+  // than a thing you can picture, and "1 RACC" was reaching readers verbatim.
+  //
+  // It is not the same as "undetermined", though. Undetermined means FDC
+  // recorded no unit at all, so the modifier has to serve as the noun; RACC
+  // names a serving outright, so the noun is "serving" and any modifier stays
+  // supplementary. Promoting it would read "1 about 4 crackers".
+  const isRacc = unit.toUpperCase() === 'RACC';
+  const named = unit !== '' && unit !== 'undetermined' && !isRacc;
+  const noun = named ? unit : isRacc ? 'serving' : modifier || 'serving';
   // Not repeated as a qualifier when it is already carrying the noun.
-  const qualifier = named && modifier ? ` (${modifier})` : '';
+  const qualifier = (named || isRacc) && modifier ? ` (${modifier})` : '';
   return `${amount} ${noun}${qualifier}`.trim();
 }
 
