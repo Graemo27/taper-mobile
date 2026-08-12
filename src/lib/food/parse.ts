@@ -1,7 +1,9 @@
 /**
  * Normalisation of FoodData Central's raw payloads.
  *
- * Three FDC quirks handled here, all found by probing the live API:
+ * Four FDC quirks handled here, all found by probing the live API:
+ *  0. Portion labels carry labelling jargon — "1 RACC", "1 NLEA serving" —
+ *     which is accurate and unreadable. See `withoutJargon` and `portionLabel`.
  *  1. Search returns nutrients flat (`nutrientName`/`value`), detail nested
  *     (`nutrient.name`/`amount`).
  *  2. Energy is listed twice per food, kcal and kJ — matching on name alone
@@ -85,6 +87,27 @@ export function parseNutrients(raw: unknown[]): Nutrients {
 }
 
 /**
+ * Strips FDC's labelling jargon from a modifier, keeping whatever is left.
+ *
+ * NLEA is the Nutrition Labeling and Education Act, and "1 NLEA serving" means
+ * "one serving as that act defines it" — true, and no use to someone deciding
+ * what they just ate. It comes both alone and bolted onto something real:
+ *
+ *   "1 NLEA serving"                        → ""
+ *   "1 NLEA serving - about 4 crackers"     → "about 4 crackers"
+ *
+ * So the phrase is removed rather than the whole modifier, and the separator it
+ * leaves behind goes with it.
+ */
+function withoutJargon(modifier: string): string {
+  return modifier
+    .replace(/\b\d+(?:\.\d+)?\s*NLEA\s+servings?\b/gi, '')
+    .replace(/^[\s\-–—,;]+/, '')
+    .replace(/[\s\-–—,;]+$/, '')
+    .trim();
+}
+
+/**
  * FDC portion labels come split across `amount`, `measureUnit.name` and `modifier`,
  * and `measureUnit.name` is very often the literal string "undetermined".
  */
@@ -96,9 +119,13 @@ function portionLabel(p: Record<string, any>): string {
   const raw = p.amount;
   const amount: number = typeof raw === 'number' && raw > 0 ? raw : 1;
   const unit = String(p.measureUnit?.name ?? '');
-  const modifier = String(p.modifier ?? '').trim();
-  const named = unit !== '' && unit !== 'undetermined';
+  const modifier = withoutJargon(String(p.modifier ?? '').trim());
+  // "RACC" is the Reference Amount Customarily Consumed. It names a reference
+  // rather than a thing you can picture, and "1 RACC" was reaching readers
+  // verbatim, so it is treated as an unnamed unit like "undetermined" is.
+  const named = unit !== '' && unit !== 'undetermined' && unit.toUpperCase() !== 'RACC';
   const noun = named ? unit : modifier || 'serving';
+  // Not repeated as a qualifier when it is already carrying the noun.
   const qualifier = named && modifier ? ` (${modifier})` : '';
   return `${amount} ${noun}${qualifier}`.trim();
 }
