@@ -103,15 +103,28 @@ async function describe(error: unknown): Promise<FoodSearchError> {
     );
   }
 
-  // functions-js implements `timeout` with an AbortController, and its catch
-  // only attaches `.context` for HTTP and relay errors — so an abort arrives
-  // here looking exactly like being offline. Left alone, giving up at 15s tells
-  // someone their connection is down while they are online.
+  // functions-js implements `timeout` with an AbortController, then wraps the
+  // rejection — `fetch(...).catch(e => { throw new FunctionsFetchError(e) })`.
+  // So the abort never arrives by its own name: what lands here is a
+  // FunctionsFetchError carrying the AbortError on `.context`. Checking the
+  // outer name misses it and a 15s timeout claims the network is down.
+  //
+  // Confirmed against the live function at `timeout: 1`, because the previous
+  // attempt at this checked a shape the SDK does not produce. A real network
+  // failure wraps a TypeError, not an AbortError, so this cannot swallow one.
+  //
+  // The bare check stays as well, in case a later version stops wrapping.
   //
   // Every abort is ours today because `searchFoods` accepts no AbortSignal.
   // When the Search screen starts cancelling a stale request on each keystroke
   // that stops being true, and cancellation will need telling apart from this.
-  if (error instanceof Error && error.name === 'AbortError') {
+  const aborted =
+    (error instanceof Error && error.name === 'AbortError') ||
+    (typeof context === 'object' &&
+      context !== null &&
+      (context as { name?: unknown }).name === 'AbortError');
+
+  if (aborted) {
     return new FoodSearchError('Food search took too long.', 'timeout');
   }
 
