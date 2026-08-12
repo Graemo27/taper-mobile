@@ -16,8 +16,28 @@ import type { Portion } from './types.ts';
  * kernels", not the design's shorter "23 nuts"), because shortening them would
  * mean a synonym table that has to be right about every food in the database.
  */
-export function servingSummary(portion: Portion | null): string {
-  if (!portion) return '100 g';
+/**
+ * "23 whole kernels" at two servings → "46 whole kernels".
+ *
+ * The design's detail line multiplies every quantity in the label, not just the
+ * grams. A segment with no leading number is left exactly as it is, and so are
+ * FDC's nouns — "2 slice" rather than "2 slices". Pluralising would need a rule
+ * about English that is right for every food in the database, and the words are
+ * already FDC's by the decision above.
+ */
+function scaleSegment(segment: string, servings: number): string {
+  if (servings === 1) return segment;
+
+  const match = /^(\d+(?:\.\d+)?)(\s*)(.*)$/.exec(segment.trim());
+  if (!match) return segment;
+
+  // Two decimals then back through Number, so 0.5 × 2 reads "1", not "1.00".
+  const scaled = Number((Number(match[1]) * servings).toFixed(2));
+  return `${scaled}${match[2]}${match[3]}`;
+}
+
+export function servingSummary(portion: Portion | null, servings = 1): string {
+  if (!portion) return `${100 * servings} g`;
 
   const match = /^(.*?)\s*\((.*)\)\s*$/.exec(portion.label);
   // A label opening on its parenthetical gives an empty first group and a
@@ -26,7 +46,12 @@ export function servingSummary(portion: Portion | null): string {
   const parts = (match ? [match[1], match[2]] : [portion.label]).filter(
     (part) => part.trim() !== '',
   );
-  return [...parts, `${Math.round(portion.grams)} g`].join(' · ');
+  // Grams scale from the true weight and round once at the end, so two 28.35 g
+  // servings read 57 g rather than the 56 g that rounding first would give.
+  return [
+    ...parts.map((part) => scaleSegment(part, servings)),
+    `${Math.round(portion.grams * servings)} g`,
+  ].join(' · ');
 }
 
 /** Grams carry a unit, energy does not — the design labels it underneath. */

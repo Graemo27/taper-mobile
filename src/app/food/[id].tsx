@@ -11,12 +11,14 @@
  */
 
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackChevronIcon } from '@/components/icons';
 import { NutritionCard } from '@/components/nutrition-card';
-import { ServingCard } from '@/components/serving-card';
+import { MAX_SERVINGS, MIN_SERVINGS, ServingCard } from '@/components/serving-card';
+import { scaleTo } from '@/lib/food/parse';
 import { selectedFood } from '@/lib/food/selection';
 import { colors, fontFamily, fontSize, letterSpacing, spacing, tracking } from '@/theme';
 
@@ -26,6 +28,12 @@ const CAPTION =
 export default function FoodDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const food = selectedFood(Number(id));
+  const [servings, setServings] = useState(MIN_SERVINGS);
+
+  // Scaled from per-100g rather than by multiplying `perServing`, so the
+  // rounding happens once at the end instead of compounding per serving.
+  const basisGrams = food?.portion?.grams ?? 100;
+  const nutrients = food ? scaleTo(food.per100g, basisGrams * servings) : null;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -47,7 +55,7 @@ export default function FoodDetail() {
         </Pressable>
       </View>
 
-      {food === null ? (
+      {food === null || nutrients === null ? (
         // A cold load with nothing handed over. Naming the cause beats an empty
         // shell that looks like a food with no data in it.
         <View style={styles.content}>
@@ -60,8 +68,14 @@ export default function FoodDetail() {
             <Text style={styles.name}>{food.name}</Text>
           </View>
 
-          <ServingCard portion={food.portion} />
-          <NutritionCard nutrients={food.perServing ?? food.per100g} />
+          <ServingCard
+            portion={food.portion}
+            servings={servings}
+            onChange={(next) =>
+              setServings(Math.min(MAX_SERVINGS, Math.max(MIN_SERVINGS, next)))
+            }
+          />
+          <NutritionCard nutrients={nutrients} />
 
           <View style={styles.captionWrap}>
             <Text style={styles.caption}>{CAPTION}</Text>
