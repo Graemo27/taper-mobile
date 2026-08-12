@@ -8,6 +8,62 @@
 import type { Portion } from './types.ts';
 
 /**
+ * A quantity opening a segment: "2", "0.5", "1/2", or the mixed "1 1/2".
+ *
+ * FDC writes all three. Reading only decimals does not merely miss the others —
+ * it truncates at the slash and multiplies the numerator, turning "3/4 cup"
+ * into "6/4 cup".
+ */
+function leadingQuantity(text: string): { value: number; rest: string } | null {
+  const mixed = /^(\d+)\s+(\d+)\/(\d+)\s*/.exec(text);
+  if (mixed) {
+    const denominator = Number(mixed[3]);
+    if (denominator === 0) return null;
+    return {
+      value: Number(mixed[1]) + Number(mixed[2]) / denominator,
+      rest: text.slice(mixed[0].length),
+    };
+  }
+
+  const fraction = /^(\d+)\/(\d+)\s*/.exec(text);
+  if (fraction) {
+    const denominator = Number(fraction[2]);
+    if (denominator === 0) return null;
+    return { value: Number(fraction[1]) / denominator, rest: text.slice(fraction[0].length) };
+  }
+
+  const decimal = /^(\d+(?:\.\d+)?)\s*/.exec(text);
+  return decimal ? { value: Number(decimal[1]), rest: text.slice(decimal[0].length) } : null;
+}
+
+/**
+ * Quotes, hyphens and slashes are how FDC writes dimensions and ranges —
+ * `3-1/2" to 4" dia` on a bagel. Those describe the food; they are not a count
+ * of it. Two bagels is not one bagel of twice the diameter, so a segment
+ * shaped like that is left exactly as FDC wrote it.
+ */
+const DESCRIBES_RATHER_THAN_COUNTS = /["'\-/]/;
+
+/**
+ * "23 whole kernels" at two servings → "46 whole kernels".
+ *
+ * The design's detail line multiplies every quantity in the label, not just the
+ * grams. FDC's nouns stay as written — "2 slice" rather than "2 slices" —
+ * because pluralising needs a rule about English that holds for every food in
+ * the database.
+ */
+function scaleSegment(segment: string, servings: number): string {
+  if (servings === 1) return segment;
+
+  const quantity = leadingQuantity(segment.trim());
+  if (!quantity || DESCRIBES_RATHER_THAN_COUNTS.test(quantity.rest)) return segment;
+
+  // Two decimals then back through Number, so 0.5 × 2 reads "1", not "1.00".
+  const scaled = Number((quantity.value * servings).toFixed(2));
+  return quantity.rest ? `${scaled} ${quantity.rest}` : String(scaled);
+}
+
+/**
  * "1 oz (23 whole kernels)" + 28.35g → "1 oz · 23 whole kernels · 28 g".
  *
  * The design sets the serving as middle-dot segments, and FDC already supplies
@@ -16,25 +72,6 @@ import type { Portion } from './types.ts';
  * kernels", not the design's shorter "23 nuts"), because shortening them would
  * mean a synonym table that has to be right about every food in the database.
  */
-/**
- * "23 whole kernels" at two servings → "46 whole kernels".
- *
- * The design's detail line multiplies every quantity in the label, not just the
- * grams. A segment with no leading number is left exactly as it is, and so are
- * FDC's nouns — "2 slice" rather than "2 slices". Pluralising would need a rule
- * about English that is right for every food in the database, and the words are
- * already FDC's by the decision above.
- */
-function scaleSegment(segment: string, servings: number): string {
-  if (servings === 1) return segment;
-
-  const match = /^(\d+(?:\.\d+)?)(\s*)(.*)$/.exec(segment.trim());
-  if (!match) return segment;
-
-  // Two decimals then back through Number, so 0.5 × 2 reads "1", not "1.00".
-  const scaled = Number((Number(match[1]) * servings).toFixed(2));
-  return `${scaled}${match[2]}${match[3]}`;
-}
 
 export function servingSummary(portion: Portion | null, servings = 1): string {
   if (!portion) return `${100 * servings} g`;
