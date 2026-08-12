@@ -6,9 +6,11 @@
  * upstream requests. That is why this debounces rather than searching per
  * keystroke, and why a stale reply is dropped instead of rendered.
  *
- * Five outcomes reach the reader: loading, results, no matches, and the two
- * failure shapes. Each is a designed board, and each is chosen here rather than
- * inside a component, so the whole state machine is legible in one place.
+ * Four boards reach the reader: loading, results, no matches, and failure.
+ * Choosing between them happens here rather than inside a component, so the
+ * state machine is legible in one place. Which of the four failure messages
+ * the last board carries is `SearchFailure`'s own decision — the design's two
+ * error boards are one layout, so that choice is copy, not state.
  */
 
 import { router } from 'expo-router';
