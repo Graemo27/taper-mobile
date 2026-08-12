@@ -73,16 +73,23 @@ function scaleSegment(segment: string, servings: number): string {
  * mean a synonym table that has to be right about every food in the database.
  */
 
+/**
+ * FDC restates the serving inside some labels — `1 slice 1 serving`,
+ * `0.99 oz 1 serving`. It is redundant beside the card's own "2 servings"
+ * title, and it is a second count that would go stale the moment the first one
+ * scaled, since it counts servings rather than slices.
+ */
+const RESTATED_SERVING = /\s+\d+(?:\.\d+)?\s+servings?$/i;
+
 export function servingSummary(portion: Portion | null, servings = 1): string {
   if (!portion) return `${100 * servings} g`;
 
-  const match = /^(.*?)\s*\((.*)\)\s*$/.exec(portion.label);
+  const label = portion.label.replace(RESTATED_SERVING, '');
+  const match = /^(.*?)\s*\((.*)\)\s*$/.exec(label);
   // A label opening on its parenthetical gives an empty first group and a
   // leading " · ". `parse.ts` always prefixes an amount so that cannot arrive
   // today, but the `Portion` type promises nothing about the string.
-  const parts = (match ? [match[1], match[2]] : [portion.label]).filter(
-    (part) => part.trim() !== '',
-  );
+  const parts = (match ? [match[1], match[2]] : [label]).filter((part) => part.trim() !== '');
   // Grams scale from the true weight and round once at the end, so two 28.35 g
   // servings read 57 g rather than the 56 g that rounding first would give.
   return [

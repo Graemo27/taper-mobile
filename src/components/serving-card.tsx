@@ -22,6 +22,18 @@ import { colors, elevation, fontFamily, fontSize, radius, spacing } from '@/them
 export const MIN_SERVINGS = 1;
 export const MAX_SERVINGS = 20;
 
+/**
+ * The design draws these at 38, under the 48 Android asks for. The frame stays
+ * 38 and the touch target grows around it: 6 on the outer edge, 4 on the inner,
+ * 5 top and bottom — 48×48 either way.
+ *
+ * Asymmetric on purpose. The gap between the buttons is 8, so 4 and 4 meet
+ * exactly; an even 5 would overlap by 2 and leave a sliver where a tap belongs
+ * to whichever control happens to be on top.
+ */
+const SLOP_MINUS = { top: 5, bottom: 5, left: 6, right: 4 };
+const SLOP_PLUS = { top: 5, bottom: 5, left: 4, right: 6 };
+
 interface ServingCardProps {
   portion: Portion | null;
   servings: number;
@@ -40,6 +52,13 @@ export function ServingCard({ portion, servings, onChange }: ServingCardProps) {
   const atMin = servings <= MIN_SERVINGS;
   const atMax = servings >= MAX_SERVINGS;
 
+  // A step is not always a serving. With no household portion the basis is
+  // 100 g, and the title says so — an announcement of "one serving more" would
+  // contradict the number it just read out. Written as whole phrases rather
+  // than an interpolated noun, which produced "One 100 grams more".
+  const moreLabel = portion ? 'One serving more' : '100 grams more';
+  const fewerLabel = portion ? 'One serving fewer' : '100 grams fewer';
+
   return (
     <View style={styles.card}>
       <View style={styles.text}>
@@ -53,8 +72,9 @@ export function ServingCard({ portion, servings, onChange }: ServingCardProps) {
           disabled={atMin}
           style={({ pressed }) => [styles.minus, pressed && styles.pressed, atMin && styles.spent]}
           accessibilityRole="button"
-          accessibilityLabel="One serving fewer"
+          accessibilityLabel={fewerLabel}
           accessibilityState={{ disabled: atMin }}
+          hitSlop={SLOP_MINUS}
         >
           <MinusIcon />
         </Pressable>
@@ -64,8 +84,9 @@ export function ServingCard({ portion, servings, onChange }: ServingCardProps) {
           disabled={atMax}
           style={({ pressed }) => [styles.plus, pressed && styles.pressed, atMax && styles.spent]}
           accessibilityRole="button"
-          accessibilityLabel="One serving more"
+          accessibilityLabel={moreLabel}
           accessibilityState={{ disabled: atMax }}
+          hitSlop={SLOP_PLUS}
         >
           <PlusIcon />
         </Pressable>
