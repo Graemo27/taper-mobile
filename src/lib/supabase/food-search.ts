@@ -27,27 +27,49 @@ export class FoodSearchError extends Error {
   /** Present when the server assigned one — quote it in a bug report. */
   requestId: string | undefined;
 
-  constructor(message: string, requestId?: string) {
+  /**
+   * HTTP status, or undefined when the request never reached the server.
+   *
+   * The Search screen picks its copy from this: 429 and 502 have their own
+   * designed states, and `undefined` is the offline one.
+   */
+  status: number | undefined;
+
+  constructor(message: string, status?: number, requestId?: string) {
     super(message);
     this.name = 'FoodSearchError';
+    this.status = status;
     this.requestId = requestId;
   }
 }
 
 /** Pulls the function's `{ error, requestId }` body out of a failed invoke. */
 async function describe(error: unknown): Promise<FoodSearchError> {
-  const context: unknown = (error as { context?: unknown }).context;
+  const context: unknown =
+    typeof error === 'object' && error !== null
+      ? (error as { context?: unknown }).context
+      : undefined;
 
   if (context instanceof Response) {
     try {
       const body = (await context.json()) as { error?: string; requestId?: string };
-      if (body.error) return new FoodSearchError(body.error, body.requestId);
+      if (body.error) return new FoodSearchError(body.error, context.status, body.requestId);
     } catch {
-      // Non-JSON body — fall through to the generic message below.
+      // Non-JSON body — a crash before our handler, or a gateway error.
     }
+
+    // A response came back, so the network is fine and this is the server's
+    // fault. Falling through to the connection message here would tell someone
+    // to check their wifi while they are plainly online.
+    //
+    // No requestId: ours travels in the body, and we just failed to read it.
+    // Supabase's gateway `x-request-id` is a different namespace from the one
+    // our logs record, so quoting it would hand over a code that matches
+    // nothing. Better no reference than a wrong one.
+    return new FoodSearchError('Food lookup is unavailable right now.', context.status);
   }
 
-  // Covers the offline case, where invoke rejects before any response exists.
+  // No response at all — invoke rejected before one existed.
   return new FoodSearchError('Could not reach food search. Check your connection.');
 }
 
@@ -64,8 +86,17 @@ export async function searchFoods(query: string, limit = 5): Promise<SearchResul
 
   await ensureSession();
 
+  // Clamped to the range the function accepts. Out of range it answers 400
+  // with "limit must be an integer from 1 to 10." — text written for whoever
+  // calls the API, which has no business being rendered to a user. A caller's
+  // mistake should not become user-facing copy.
+  const rows = Math.min(10, Math.max(1, Math.trunc(limit)));
+
   const { data, error } = await supabase.functions.invoke<SearchResult>('food-search', {
-    body: { query: trimmed, limit },
+    body: { query: trimmed, limit: rows },
+    // Without this a stalled request never settles and the Search screen holds
+    // its loading skeleton forever. Live searches measure 2–3s.
+    timeout: 15_000,
   });
 
   if (error) throw await describe(error);

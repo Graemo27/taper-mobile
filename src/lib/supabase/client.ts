@@ -13,7 +13,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, processLock } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -50,6 +50,12 @@ export const supabase = createClient(url, publishableKey, {
     // No OAuth redirect to parse. Anonymous sign-in is the only entry, and
     // leaving this on makes the client inspect the URL on every web load.
     detectSessionInUrl: false,
+    // Serialises auth-js's own operations over the storage adapter. The
+    // `ensureSession` guard only covers our call site; it does nothing about a
+    // background refresh racing a `getSession`, which the AppState listener
+    // below makes likelier — a foreground event can fire a refresh while a
+    // screen is mid-read.
+    lock: processLock,
   },
 });
 
