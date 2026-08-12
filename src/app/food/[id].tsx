@@ -157,9 +157,11 @@ export default function FoodDetail() {
           {lookup === 'missing' && (
             <>
               <Text style={styles.missing}>That food could not be found.</Text>
-              <Text style={styles.missingBody}>
-                USDA no longer serves it. Search for something else to log instead.
-              </Text>
+              {/* Names no cause, because this state cannot tell them apart: a
+                  food USDA has withdrawn and a hand-typed `/food/abc` both land
+                  here, and "USDA no longer serves it" is a confident wrong
+                  answer for the second. */}
+              <Text style={styles.missingBody}>Search for it again to see its detail.</Text>
             </>
           )}
 
