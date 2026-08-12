@@ -39,6 +39,11 @@ export function FoodListSkeleton() {
       style={[styles.card, { opacity: pulse }]}
       // One announcement for the whole card. Eight separate bars would each be
       // an unlabelled node, and none of them mean anything on their own.
+      //
+      // `accessible` is what does that grouping. A View is not an accessibility
+      // element by default and RN derives nothing from the role — without this,
+      // the label and role sit on an element a screen reader never reaches.
+      accessible
       accessibilityRole="progressbar"
       accessibilityLabel="Searching"
     >
