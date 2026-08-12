@@ -19,6 +19,29 @@ project_id = "food-pad"
 # that claim rather than `auth.role()`, which cannot tell the two apart.
 enable_anonymous_sign_ins = true
 
+# The three blocks below are not choices Food Pad is making — they restate the
+# platform defaults so that pushing this file cannot silently lower them.
+#
+# This is the caveat at the top of the file, learned the hard way: `config push`
+# applied every default for every key this file omitted, which turned email
+# confirmations off, dropped the resend interval from a minute to a second, cut
+# OTP length from 8 to 6, and disabled TOTP enrolment. None of that was
+# intended; all of it followed from the keys being absent. Pin them.
+site_url = "http://localhost:3000"
+additional_redirect_urls = []
+
+[auth.email]
+# Off means anyone can register an address they do not control.
+enable_confirmations = true
+# The only rate limit on confirmation mail. At 1s the endpoint is an email
+# cannon pointed at whatever address the caller names.
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
 [auth.rate_limit]
 # Per IP, per hour. Each anonymous sign-in writes a row to `auth.users`, and the
 # endpoint is unauthenticated by definition, so this is the only thing standing
