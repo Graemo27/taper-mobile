@@ -1,0 +1,34 @@
+# Only the settings Food Pad deliberately chooses. `supabase init` generates 400
+# lines of commented defaults; carrying them makes the handful of real decisions
+# invisible, so they are omitted and the CLI defaults apply.
+#
+# Caveat that matters: `supabase config push` is authoritative. A setting that is
+# absent here is pushed as its *default*, not left alone — so changing something
+# in the dashboard without adding it to this file means the next push silently
+# reverts it. Add the key here first.
+
+project_id = "food-pad"
+
+[auth]
+# Anonymous sign-in gives every user a real JWT — and therefore a real `sub` to
+# hang a journal off later — without a login screen in front of a food lookup.
+# The user can link an email or OAuth identity to the same account afterwards.
+#
+# Anonymous users take the `authenticated` Postgres role, same as permanent
+# users, and carry an `is_anonymous` claim. Any future RLS policy must check
+# that claim rather than `auth.role()`, which cannot tell the two apart.
+enable_anonymous_sign_ins = true
+
+[auth.rate_limit]
+# Per IP, per hour. Each anonymous sign-in writes a row to `auth.users`, and the
+# endpoint is unauthenticated by definition, so this is the only thing standing
+# between the project and someone inflating the user table. Supabase's default;
+# stated explicitly because it is a security control, not an incidental knob.
+anonymous_users = 30
+
+[functions.food-search]
+# The platform verifies the JWT's signature before the function runs. That alone
+# does not mean "a signed-in user" — with legacy keys the anon key is itself a
+# valid JWT and it ships inside the app bundle. The function re-checks the
+# claims; see the comment in its handler.
+verify_jwt = true

@@ -21,5 +21,11 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  // Edge Functions are Deno, not React Native: they resolve `Deno.serve` and
+  // JSR/npm specifiers this compiler knows nothing about. They are typechecked
+  // by `supabase functions deploy`, which runs the Deno toolchain.
+  "exclude": [
+    "supabase/functions"
   ]
 }
