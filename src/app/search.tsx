@@ -6,9 +6,9 @@
  * upstream requests. That is why this debounces rather than searching per
  * keystroke, and why a stale reply is dropped instead of rendered.
  *
- * Failure states are deliberately plain here — the designed no-results, error
- * and timeout screens land next, and building them half-way now would mean
- * writing the copy twice.
+ * Five outcomes reach the reader: loading, results, no matches, and the two
+ * failure shapes. Each is a designed board, and each is chosen here rather than
+ * inside a component, so the whole state machine is legible in one place.
  */
 
 import { router } from 'expo-router';
@@ -18,9 +18,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FoodList } from '@/components/food-list';
 import { FoodListSkeleton } from '@/components/food-list-skeleton';
+import { NoMatches } from '@/components/no-matches';
+import { SearchFailure } from '@/components/search-failure';
 import { SearchField } from '@/components/search-field';
 import type { Food } from '@/lib/food/types';
-import { searchFoods } from '@/lib/supabase/food-search';
+import { FoodSearchError, searchFoods } from '@/lib/supabase/food-search';
 import { colors, fontFamily, fontSize, spacing } from '@/theme';
 
 /** Long enough that "a" doesn't cost six upstream requests. */
@@ -33,7 +35,12 @@ export default function Search() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [foods, setFoods] = useState<Food[]>([]);
-  const [failure, setFailure] = useState('');
+  const [failure, setFailure] = useState<FoodSearchError | null>(null);
+  /** The query the current results or failure belong to, which is not `query`
+   *  once the reader has carried on typing. The no-matches heading quotes it. */
+  const [resolved, setResolved] = useState('');
+  /** Bumped by Try again, so retrying re-runs the effect on an unchanged query. */
+  const [attempt, setAttempt] = useState(0);
 
   // Monotonic id of the newest request. A reply whose id is not current lost a
   // race — the reader has typed on since — so it is discarded rather than shown.
@@ -56,17 +63,25 @@ export default function Search() {
         .then((result) => {
           if (latest.current !== id) return;
           setFoods(result.foods);
+          setResolved(trimmed);
           setStatus('ready');
         })
         .catch((error: unknown) => {
           if (latest.current !== id) return;
-          setFailure(error instanceof Error ? error.message : 'Food lookup failed.');
+          // Anything that is not a FoodSearchError is a bug on this side rather
+          // than a reported failure, and gets the generic server-fault copy.
+          setFailure(
+            error instanceof FoodSearchError
+              ? error
+              : new FoodSearchError('Food lookup failed.', 'http'),
+          );
+          setResolved(trimmed);
           setStatus('failed');
         });
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, attempt]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -80,18 +95,31 @@ export default function Search() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        {status !== 'idle' && <Text style={styles.status}>{statusLine(status, foods.length, failure)}</Text>}
-        {status === 'loading' && <FoodListSkeleton />}
-        {status === 'ready' && foods.length > 0 && <FoodList foods={foods} />}
+        {status === 'loading' && (
+          <>
+            <Text style={styles.status}>Searching…</Text>
+            <FoodListSkeleton />
+          </>
+        )}
+
+        {status === 'ready' &&
+          (foods.length > 0 ? (
+            <>
+              <Text style={styles.status}>
+                {foods.length === 1 ? '1 match' : `${foods.length} matches`}
+              </Text>
+              <FoodList foods={foods} />
+            </>
+          ) : (
+            <NoMatches query={resolved} onTryExample={setQuery} />
+          ))}
+
+        {status === 'failed' && failure && (
+          <SearchFailure error={failure} onRetry={() => setAttempt((n) => n + 1)} />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
-}
-
-function statusLine(status: Status, count: number, failure: string): string {
-  if (status === 'loading') return 'Searching…';
-  if (status === 'failed') return failure;
-  return count === 1 ? '1 match' : `${count} matches`;
 }
 
 const styles = StyleSheet.create({
