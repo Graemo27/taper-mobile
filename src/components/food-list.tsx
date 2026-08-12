@@ -6,35 +6,21 @@
  * are rendered between items instead of as a bottom border on each.
  */
 
+import { router } from 'expo-router';
 import { Fragment } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ChevronIcon } from '@/components/icons';
-import type { Food, Portion } from '@/lib/food/types';
+import { servingSummary } from '@/lib/food/format';
+import { selectFood } from '@/lib/food/selection';
+import type { Food } from '@/lib/food/types';
 import { colors, elevation, fontFamily, fontSize, radius, spacing } from '@/theme';
 
 /**
- * "1 oz (23 whole kernels)" + 28.35g → "1 oz · 23 whole kernels · 28 g".
- *
- * The design sets the serving as middle-dot segments, and FDC already supplies
- * the split — its labels carry the count in a parenthetical. So this is a
- * reformat of real data, not a rewrite of it: the words stay FDC's ("23 whole
- * kernels", not the design's shorter "23 nuts"), because shortening them would
- * mean a synonym table that has to be right about every food in the database.
- */
-function servingSummary(portion: Portion | null): string {
-  if (!portion) return '100 g';
-
-  const match = /^(.*?)\s*\((.*)\)\s*$/.exec(portion.label);
-  const parts = match ? [match[1], match[2]] : [portion.label];
-  return [...parts, `${Math.round(portion.grams)} g`].join(' · ');
-}
-
-/**
- * Not pressable yet — the chevron is the design's, and Food detail is the next
- * screen. A `Pressable` with nowhere to go would either land on `+not-found` or
- * swallow the tap silently, so the row stays inert until the destination exists
- * rather than promising something it cannot do.
+ * Pressable as of Food detail, which the chevron has been promising since the
+ * results card was built. The row hands the resolved food over before pushing,
+ * because the route receives an id and the Edge Function has no fetch-by-id —
+ * see `lib/food/selection.ts`.
  */
 function FoodRow({ food }: { food: Food }) {
   const nutrients = food.perServing ?? food.per100g;
@@ -42,11 +28,20 @@ function FoodRow({ food }: { food: Food }) {
   const serving = servingSummary(food.portion);
 
   return (
-    <View
-      style={styles.row}
+    <Pressable
+      onPress={() => {
+        // The field is autoFocused, and the router marks the screen behind it
+        // aria-hidden on push — leaving focus inside a hidden subtree. Also
+        // just correct on native: the keyboard should not survive the screen
+        // it belongs to.
+        Keyboard.dismiss();
+        selectFood(food);
+        router.push(`/food/${food.fdcId}`);
+      }}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      accessibilityRole="button"
       // Read as one sentence rather than three fragments; the kcal is dropped
       // when FDC has no Energy value, which is common for Foundation foods.
-      accessible
       accessibilityLabel={[food.name, serving, kcal].filter(Boolean).join(', ')}
     >
       <View style={styles.text}>
@@ -62,7 +57,7 @@ function FoodRow({ food }: { food: Food }) {
       <View style={styles.energy}>{kcal && <Text style={styles.energyText}>{kcal}</Text>}</View>
 
       <ChevronIcon />
-    </View>
+    </Pressable>
   );
 }
 
@@ -97,6 +92,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['3.5'],
     paddingHorizontal: spacing['4'],
   },
+  // The card clips, so a pressed row tints to its own edges.
+  rowPressed: { backgroundColor: colors.background },
   text: { flex: 1, gap: spacing['0.5'] },
   name: {
     fontFamily: fontFamily.medium,
