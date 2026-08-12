@@ -72,7 +72,10 @@ export async function getFood(
  * includes portions. Keep `limit` small. DEMO_KEY (30 req/hour) will not
  * survive repeated use; set FDC_API_KEY.
  *
- * A food whose detail fetch fails is dropped rather than shown without figures.
+ * Any detail failure rejects the whole lookup rather than being dropped —
+ * swallowing them turns a 429 or a bad key into a short or empty list that reads
+ * as "no such food". If partial results are ever wanted, return explicit per-row
+ * error state instead of silently omitting rows.
  */
 export async function searchWithServings(
   query: string,
@@ -80,12 +83,5 @@ export async function searchWithServings(
   signal?: AbortSignal,
 ): Promise<Food[]> {
   const hits = await searchFoods(query, limit, signal);
-  const settled = await Promise.allSettled(
-    hits.map((h) => getFood(h.fdcId, signal)),
-  );
-  return settled
-    .filter(
-      (r): r is PromiseFulfilledResult<Food> => r.status === 'fulfilled',
-    )
-    .map((r) => r.value);
+  return Promise.all(hits.map((h) => getFood(h.fdcId, signal)));
 }

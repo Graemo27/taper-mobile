@@ -1,13 +1,13 @@
 /**
  * Normalisation of FoodData Central's raw payloads.
  *
- * Three FDC quirks are handled here, all found by probing the live API:
- *  1. Search and detail return nutrients in *different shapes* — search is flat
- *     (`nutrientName`/`value`), detail is nested (`nutrient.name`/`amount`).
- *  2. Energy is listed twice on most foods, once in kcal and once in kJ. Matching
- *     on name alone silently yields kJ roughly half the time.
- *  3. Foundation foods routinely omit Energy altogether, so kcal must stay nullable
- *     rather than defaulting to 0 — a 0 would read as "this food has no calories".
+ * Three FDC quirks handled here, all found by probing the live API:
+ *  1. Search returns nutrients flat (`nutrientName`/`value`), detail nested
+ *     (`nutrient.name`/`amount`).
+ *  2. Energy is listed twice per food, kcal and kJ — matching on name alone
+ *     silently yields kJ about half the time.
+ *  3. Foundation foods routinely omit Energy, so kcal stays nullable; a 0 would
+ *     read as "this food has no calories".
  */
 
 import type { Nutrients, Portion } from './types.ts';
@@ -69,11 +69,10 @@ function portionLabel(p: Record<string, any>): string {
   const amount: number = typeof p.amount === 'number' ? p.amount : 1;
   const unit = String(p.measureUnit?.name ?? '');
   const modifier = String(p.modifier ?? '').trim();
-  const noun =
-    unit && unit !== 'undetermined' ? unit : modifier || 'serving';
-  const qualifier = unit && unit !== 'undetermined' && modifier ? ` (${modifier})` : '';
-  const count = Number.isInteger(amount) ? String(amount) : String(amount);
-  return `${count} ${noun}${qualifier}`.trim();
+  const named = unit !== '' && unit !== 'undetermined';
+  const noun = named ? unit : modifier || 'serving';
+  const qualifier = named && modifier ? ` (${modifier})` : '';
+  return `${amount} ${noun}${qualifier}`.trim();
 }
 
 export function parsePortions(raw: unknown[]): Portion[] {

@@ -1,8 +1,7 @@
 /**
- * Domain types for food lookup.
- *
- * These are deliberately narrower than USDA FoodData Central's response shape.
- * FDC is the current source, but nothing outside `lib/food` should know that.
+ * Domain types for food lookup. Deliberately narrower than FoodData Central's
+ * response shape — FDC is the current source, but nothing outside `lib/food`
+ * should know that.
  */
 
 /** A household measure for one serving, e.g. "1 oz (23 whole kernels)" at 28.35g. */

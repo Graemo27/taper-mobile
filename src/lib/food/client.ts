@@ -1,10 +1,13 @@
 /**
  * Thin HTTP client for USDA FoodData Central.
  *
- * Key resolution order lets the same module serve both the console harness
- * (FDC_API_KEY) and the Expo runtime (EXPO_PUBLIC_FDC_API_KEY) without a branch.
+ * Reads FDC_API_KEY only — never an EXPO_PUBLIC_* variable, which Expo inlines
+ * into the JS bundle where the key is extractable from any install. USDA
+ * deactivates keys it finds published. So this runs only where a private env var
+ * exists: the harness today, a proxy later. The search screen (PR 3) needs that
+ * proxy decision made first — it cannot call FDC directly.
  *
- * DEMO_KEY works but is limited to 30 requests/hour. Get a free key at
+ * Falls back to DEMO_KEY (30 requests/hour). Free key:
  * https://fdc.nal.usda.gov/api-key-signup.html
  */
 
@@ -21,9 +24,7 @@ export class FdcError extends Error {
 }
 
 function apiKey(): string {
-  return (
-    process.env.EXPO_PUBLIC_FDC_API_KEY ?? process.env.FDC_API_KEY ?? 'DEMO_KEY'
-  );
+  return process.env.FDC_API_KEY ?? 'DEMO_KEY';
 }
 
 export async function fdcFetch<T>(
