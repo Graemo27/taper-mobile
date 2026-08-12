@@ -45,22 +45,164 @@ function leadingQuantity(text: string): { value: number; rest: string } | null {
 const DESCRIBES_RATHER_THAN_COUNTS = /["'\-/]/;
 
 /**
+ * "1/6 of 16 oz cake" — the number is a share of another thing, not a count of
+ * this one, and the slash that would have caught it was eaten by the fraction
+ * parser. Doubling the portion does not make it a third of the cake; it makes
+ * it two pieces, which the segment in front of this one already says.
+ */
+const SHARE_OF_SOMETHING_ELSE = /^of\b/i;
+
+/**
+ * "1 can, 15 oz (303 x 406)" — a can's dimension code, where 303 is a diameter
+ * in thirty-seconds of an inch. Two cans are not one can of 606, and the x has
+ * no plural. It arrives here because the guard above looks for punctuation and
+ * this separator is a letter.
+ */
+const DIMENSION_PAIR = /^x\b/i;
+
+/**
+ * Words that are counted but never pluralised.
+ *
+ * Units, because "2 ozs" is not a thing anyone writes, and the sizes FDC uses
+ * as a portion in their own right — "1 medium" is a whole banana, and two of
+ * them are "2 medium", not "2 mediums".
+ */
+const UNCOUNTED = new Set([
+  'cal',
+  'cm',
+  'fl',
+  'g',
+  'gal',
+  'in',
+  'kcal',
+  'kg',
+  'l',
+  'lb',
+  'mg',
+  'ml',
+  'mm',
+  'oz',
+  'pt',
+  'qt',
+  'tbsp',
+  'tsp',
+  // Sizes, which FDC writes with the noun left out.
+  'extra',
+  'cubic',
+  'each',
+  'jumbo',
+  'large',
+  'medium',
+  'mini',
+  'regular',
+  'small',
+  'thick',
+  'thin',
+]);
+
+/**
+ * The plurals no rule gets right.
+ *
+ * -oes is the trap: potato and tomato take it, and taco, burrito and avocado —
+ * every one of them a word English borrowed — do not. Rather than guess at the
+ * etymology of a noun, the three that take it are named and everything else
+ * ending in o takes a plain s.
+ */
+const IRREGULAR: Record<string, string> = {
+  half: 'halves',
+  leaf: 'leaves',
+  loaf: 'loaves',
+  mango: 'mangoes',
+  potato: 'potatoes',
+  tomato: 'tomatoes',
+};
+
+/**
+ * A rule rather than a list of nouns, because the list was measurably too
+ * short: written against the labels twenty searches returned, it already missed
+ * "1 pita, large" on the next food tried. Foods are not a closed set, and a
+ * dictionary of them would go on being incomplete.
+ *
+ * The lists above are not closed either — each grew when the rule was run over
+ * a hundred and thirty-nine real labels and read back. What makes them workable
+ * is that they hold words about *portions*, of which there are few, rather than
+ * words about *food*, of which there is no end.
+ */
+function plural(word: string): string {
+  const known = IRREGULAR[word];
+  if (known) return known;
+
+  // Sibilants take -es: sandwiches, dishes, boxes. Not -s, which is here
+  // because a label can already be plural — FDC writes "4 slices" — and
+  // "8 sliceses" was what this produced before that turned up in real data.
+  if (/(x|z|ch|sh)$/.test(word)) return `${word}es`;
+  // Consonant then y takes -ies: patties. A vowel first does not: trays.
+  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`;
+  return `${word}s`;
+}
+
+/**
+ * The counted noun, and everything that is not it.
+ *
+ * Usually the first word — "slice, thin" and "cup shredded" both name the thing
+ * before describing it. But FDC also writes the size first and the noun second,
+ * "1 small bagel", where pluralising nothing leaves "2 small bagel" and
+ * pluralising the size gives "2 smalls". So a leading size hands over to the
+ * word behind it, and a size with nothing behind it — "1 small" is a whole
+ * cookie — stays as it is.
+ *
+ * Trailing punctuation is kept: "slice," has to come back as "slices,". Case is
+ * kept too, for the capitalised nouns FDC writes, like "1 Figaroo".
+ */
+function precedesTheNoun(word: string): boolean {
+  const bare = word.replace(/\W+$/, '');
+  // An acronym is a qualifier, never the thing counted: FDC writes "1 NLEA
+  // serving", where the servings are what there are two of, not the NLEAs.
+  return UNCOUNTED.has(bare.toLowerCase()) || (bare.length > 1 && bare === bare.toUpperCase());
+}
+
+function pluralised(rest: string): string {
+  const words = rest.split(' ');
+  const at = words[0] && precedesTheNoun(words[0]) ? 1 : 0;
+
+  const parsed = /^([A-Za-z]+)(\W*)$/.exec(words[at] ?? '');
+  if (!parsed) return rest;
+
+  const word = parsed[1];
+  const lower = word.toLowerCase();
+  // A qualifier in second place is still a qualifier, and a word already plural
+  // is done.
+  if (precedesTheNoun(word) || lower.endsWith('s')) return rest;
+
+  const suffixed = plural(lower);
+  const cased =
+    word[0] === word[0].toUpperCase() ? suffixed[0].toUpperCase() + suffixed.slice(1) : suffixed;
+
+  return words.map((each, index) => (index === at ? cased + parsed[2] : each)).join(' ');
+}
+
+/**
  * "23 whole kernels" at two servings → "46 whole kernels".
  *
  * The design's detail line multiplies every quantity in the label, not just the
- * grams. FDC's nouns stay as written — "2 slice" rather than "2 slices" —
- * because pluralising needs a rule about English that holds for every food in
- * the database.
+ * grams. The noun follows the number: two of a one-slice portion is "2 slices",
+ * and leaving it at "2 slice" was a defect visible on the screen.
  */
 function scaleSegment(segment: string, servings: number): string {
   if (servings === 1) return segment;
 
   const quantity = leadingQuantity(segment.trim());
   if (!quantity || DESCRIBES_RATHER_THAN_COUNTS.test(quantity.rest)) return segment;
+  if (SHARE_OF_SOMETHING_ELSE.test(quantity.rest)) return segment;
+  if (DIMENSION_PAIR.test(quantity.rest)) return segment;
 
   // Two decimals then back through Number, so 0.5 × 2 reads "1", not "1.00".
   const scaled = Number((quantity.value * servings).toFixed(2));
-  return quantity.rest ? `${scaled} ${quantity.rest}` : String(scaled);
+  if (!quantity.rest) return String(scaled);
+
+  // Anything that is not exactly one takes the plural, halves included: "0.5
+  // cups" is what English does, however odd it looks next to "1 cup".
+  return `${scaled} ${scaled === 1 ? quantity.rest : pluralised(quantity.rest)}`;
 }
 
 /**

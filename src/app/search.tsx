@@ -21,10 +21,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FoodList } from '@/components/food-list';
 import { FoodListSkeleton } from '@/components/food-list-skeleton';
 import { NoMatches } from '@/components/no-matches';
+import { RecentFoods } from '@/components/recent-foods';
 import { SearchFailure } from '@/components/search-failure';
 import { SearchField } from '@/components/search-field';
 import type { Food } from '@/lib/food/types';
 import { FoodSearchError, searchFoods } from '@/lib/supabase/food-search';
+import { listRecentFoods, type RecentFood } from '@/lib/supabase/journal';
 import { colors, fontFamily, fontSize, spacing } from '@/theme';
 
 /** Long enough that "a" doesn't cost six upstream requests. */
@@ -43,6 +45,25 @@ export default function Search() {
   const [resolved, setResolved] = useState('');
   /** Bumped by Try again, so retrying re-runs the effect on an unchanged query. */
   const [attempt, setAttempt] = useState(0);
+
+  // Read once, on mount. The list cannot change while this screen is open —
+  // the only way to add to it is to leave, log something, and come back, which
+  // mounts this again.
+  const [recent, setRecent] = useState<RecentFood[]>([]);
+
+  useEffect(() => {
+    let listening = true;
+    listRecentFoods()
+      .then((foods) => listening && setRecent(foods))
+      // Silent on purpose. This is an offer, not an answer to anything the
+      // reader asked for, and an error card in place of it would be a failure
+      // report for a question nobody put.
+      .catch(() => {});
+
+    return () => {
+      listening = false;
+    };
+  }, []);
 
   // Monotonic id of the newest request. A reply whose id is not current lost a
   // race — the reader has typed on since — so it is discarded rather than shown.
@@ -97,6 +118,12 @@ export default function Search() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
+        {/* Nothing else is on this screen before a query, and the reader is
+            three keystrokes from replacing it. No skeleton: an empty journal
+            has nothing to show, and flashing bars at it would promise
+            something that is not coming. */}
+        {status === 'idle' && <RecentFoods foods={recent} />}
+
         {status === 'loading' && (
           <>
             <Text style={styles.status}>Searching…</Text>
