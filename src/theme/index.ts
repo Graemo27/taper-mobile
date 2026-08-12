@@ -3,10 +3,9 @@
  *
  * Import from here, not from the individual modules.
  *
- * Note: `src/constants/theme.ts` is the Expo template's own theme and is a
- * separate, conflicting system — different spacing scale, light/dark colours we
- * do not use. It still backs the template screens, so it stays until those are
- * replaced, at which point it goes.
+ * This is now the only theme in the app. `src/constants/theme.ts` — the Expo
+ * template's competing light/dark palette and spacing scale — went out with the
+ * template screens it backed.
  */
 
 export { amber, black, colors, emerald, green, neutral, red, white } from './colors.ts';
