@@ -23,21 +23,34 @@ export interface SearchResult {
  * `message` is always safe to render: the function returns text written for
  * users, never the FdcError text written for whoever runs the server.
  */
+/**
+ * How the lookup failed. The Search screen picks its state from this.
+ *
+ * A discriminator rather than an absent `status`, because these are three
+ * mutually exclusive outcomes and encoding one of them as "the other field
+ * happens to be undefined" is how a timeout ended up wearing the offline
+ * message.
+ */
+export type FoodSearchFailure = 'http' | 'timeout' | 'offline';
+
 export class FoodSearchError extends Error {
   /** Present when the server assigned one — quote it in a bug report. */
   requestId: string | undefined;
 
-  /**
-   * HTTP status, or undefined when the request never reached the server.
-   *
-   * The Search screen picks its copy from this: 429 and 502 have their own
-   * designed states, and `undefined` is the offline one.
-   */
+  kind: FoodSearchFailure;
+
+  /** Only meaningful when `kind` is `'http'`; the server answered with it. */
   status: number | undefined;
 
-  constructor(message: string, status?: number, requestId?: string) {
+  constructor(
+    message: string,
+    kind: FoodSearchFailure,
+    status?: number,
+    requestId?: string,
+  ) {
     super(message);
     this.name = 'FoodSearchError';
+    this.kind = kind;
     this.status = status;
     this.requestId = requestId;
   }
@@ -52,8 +65,25 @@ async function describe(error: unknown): Promise<FoodSearchError> {
 
   if (context instanceof Response) {
     try {
-      const body = (await context.json()) as { error?: string; requestId?: string };
-      if (body.error) return new FoodSearchError(body.error, context.status, body.requestId);
+      // Parsed as unknown, not asserted into a shape. `as { error?: string }`
+      // is a claim, not a check: a gateway body of `{ error: { message } }` is
+      // truthy, so it would reach the constructor and `super()` would render
+      // the user a literal "[object Object]".
+      const body: unknown = await context.json();
+      if (typeof body === 'object' && body !== null) {
+        const { error: message, requestId } = body as {
+          error?: unknown;
+          requestId?: unknown;
+        };
+        if (typeof message === 'string' && message !== '') {
+          return new FoodSearchError(
+            message,
+            'http',
+            context.status,
+            typeof requestId === 'string' ? requestId : undefined,
+          );
+        }
+      }
     } catch {
       // Non-JSON body — a crash before our handler, or a gateway error.
     }
@@ -66,11 +96,30 @@ async function describe(error: unknown): Promise<FoodSearchError> {
     // Supabase's gateway `x-request-id` is a different namespace from the one
     // our logs record, so quoting it would hand over a code that matches
     // nothing. Better no reference than a wrong one.
-    return new FoodSearchError('Food lookup is unavailable right now.', context.status);
+    return new FoodSearchError(
+      'Food lookup is unavailable right now.',
+      'http',
+      context.status,
+    );
   }
 
-  // No response at all — invoke rejected before one existed.
-  return new FoodSearchError('Could not reach food search. Check your connection.');
+  // functions-js implements `timeout` with an AbortController, and its catch
+  // only attaches `.context` for HTTP and relay errors — so an abort arrives
+  // here looking exactly like being offline. Left alone, giving up at 15s tells
+  // someone their connection is down while they are online.
+  //
+  // Every abort is ours today because `searchFoods` accepts no AbortSignal.
+  // When the Search screen starts cancelling a stale request on each keystroke
+  // that stops being true, and cancellation will need telling apart from this.
+  if (error instanceof Error && error.name === 'AbortError') {
+    return new FoodSearchError('Food search took too long.', 'timeout');
+  }
+
+  // No response, and we did not give up — the request never got out.
+  return new FoodSearchError(
+    'Could not reach food search. Check your connection.',
+    'offline',
+  );
 }
 
 /**
@@ -90,7 +139,10 @@ export async function searchFoods(query: string, limit = 5): Promise<SearchResul
   // with "limit must be an integer from 1 to 10." — text written for whoever
   // calls the API, which has no business being rendered to a user. A caller's
   // mistake should not become user-facing copy.
-  const rows = Math.min(10, Math.max(1, Math.trunc(limit)));
+  // The finite check is not decoration: `Math.trunc(NaN)` is `NaN`, and `NaN`
+  // survives both `Math.max` and `Math.min`, serialises to `null`, and comes
+  // back as the 400 this clamp exists to prevent.
+  const rows = Math.min(10, Math.max(1, Number.isFinite(limit) ? Math.trunc(limit) : 5));
 
   const { data, error } = await supabase.functions.invoke<SearchResult>('food-search', {
     body: { query: trimmed, limit: rows },
@@ -100,7 +152,9 @@ export async function searchFoods(query: string, limit = 5): Promise<SearchResul
   });
 
   if (error) throw await describe(error);
-  if (!data) throw new FoodSearchError('Food search returned nothing.');
+  // A success with no body. Same thing as a 5xx from where the user sits, so it
+  // gets the same words rather than a second phrasing for one condition.
+  if (!data) throw new FoodSearchError('Food lookup is unavailable right now.', 'http');
 
   return data;
 }
