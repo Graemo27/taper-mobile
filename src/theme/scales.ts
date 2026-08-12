@@ -65,7 +65,15 @@ export const fontSize = {
   '9xl': 128,
 } as const;
 
-/** Strings rather than numbers — accepted by every RN version we care about. */
+/**
+ * Strings rather than numbers — accepted by every RN version we care about.
+ *
+ * React Native does **not** synthesise weights the way a browser does. Once a
+ * weight-specific family is set (`fontFamily.semibold`), this is ignored on both
+ * platforms. It stays exported because it is still correct for a web surface,
+ * and because it documents which step a call site means. Set the family, not
+ * this, to get bold text in the app.
+ */
 export const fontWeight = {
   thin: '100',
   extralight: '200',
@@ -148,9 +156,20 @@ export const elevation = {
 } as const;
 
 /**
- * Geist, per the design. The font is not loaded yet — that lands in its own PR —
- * so referencing this today falls back to the system face.
+ * Geist, per the design.
+ *
+ * Keyed by weight rather than a single `sans`, because React Native resolves a
+ * face by family name alone — `fontFamily: 'Geist'` with `fontWeight: '600'`
+ * renders regular, silently. The weight lives in the family name, so a call site
+ * names one thing that cannot disagree with itself.
+ *
+ * Keys mirror `fontWeight` above. Only the four steps the design uses are
+ * loaded; add a step here and in `src/app/_layout.tsx` together, or it resolves
+ * to the system face at runtime with no error.
  */
 export const fontFamily = {
-  sans: 'Geist',
+  normal: 'Geist_400Regular',
+  medium: 'Geist_500Medium',
+  semibold: 'Geist_600SemiBold',
+  bold: 'Geist_700Bold',
 } as const;
