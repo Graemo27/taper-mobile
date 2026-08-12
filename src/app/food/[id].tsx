@@ -11,16 +11,19 @@
  */
 
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HighInCard } from '@/components/high-in-card';
 import { BackChevronIcon } from '@/components/icons';
 import { NutritionCard } from '@/components/nutrition-card';
+import { SaveFooter, type SaveState } from '@/components/save-footer';
 import { MAX_SERVINGS, MIN_SERVINGS, ServingCard } from '@/components/serving-card';
 import { highIn } from '@/lib/food/claims';
+import { servingSummary } from '@/lib/food/format';
 import { scaleTo } from '@/lib/food/parse';
+import { saveEntry } from '@/lib/supabase/journal';
 import { selectedFood } from '@/lib/food/selection';
 import { colors, fontFamily, fontSize, letterSpacing, spacing, tracking } from '@/theme';
 
@@ -40,6 +43,39 @@ export default function FoodDetail() {
   // Per 100g, not the displayed portion and not the stepped count. The chips
   // describe the food; how much of it you logged does not change what it is.
   const claims = food ? highIn(food.per100g) : [];
+
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+
+  // "Saved" is a confirmation, not a resting state — a second helping is a real
+  // thing to log, so the button goes back to offering that.
+  useEffect(() => {
+    if (saveState !== 'saved') return;
+    const timer = setTimeout(() => setSaveState('idle'), 2400);
+    return () => clearTimeout(timer);
+  }, [saveState]);
+
+  async function save() {
+    if (!food || !nutrients) return;
+
+    setSaveState('saving');
+    try {
+      await saveEntry({
+        food,
+        servings,
+        nutrients,
+        // What the reader is looking at, stored as they saw it.
+        servingLabel: food.portion
+          ? servingSummary(food.portion, servings)
+          : `${100 * servings} g`,
+        grams: basisGrams * servings,
+      });
+      setSaveState('saved');
+    } catch {
+      // The wording belongs to the footer. Anything thrown here means the entry
+      // did not land, which is all this needs to know.
+      setSaveState('failed');
+    }
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -89,6 +125,12 @@ export default function FoodDetail() {
             <Text style={styles.caption}>{CAPTION}</Text>
           </View>
         </ScrollView>
+      )}
+
+      {/* Outside the ScrollView, as the board has it — the save stays reachable
+          without scrolling back down to find it. */}
+      {food !== null && nutrients !== null && (
+        <SaveFooter state={saveState} onSave={save} />
       )}
     </SafeAreaView>
   );
