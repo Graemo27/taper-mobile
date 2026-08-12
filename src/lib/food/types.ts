@@ -19,6 +19,14 @@ export interface Nutrients {
   kcal: number | null;
   proteinG: number | null;
   fibreG: number | null;
+  vitaminEMg: number | null;
+  magnesiumMg: number | null;
+  /**
+   * Monounsaturated plus polyunsaturated. FDC reports the two separately and
+   * names neither "unsaturated"; the design's chip is the pair, so the sum is
+   * made here rather than in the component that shows it.
+   */
+  unsaturatedFatG: number | null;
 }
 
 /** A search result. Carries no serving data — FDC's search endpoint returns none. */
