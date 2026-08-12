@@ -49,18 +49,25 @@ export async function fdcFetch<T>(
     res = await fetch(url, { signal });
   } catch (cause) {
     if (cause instanceof Error && cause.name === 'AbortError') throw cause;
-    throw new FdcError(`Network request to FoodData Central failed: ${cause}`);
+    throw new FdcError(
+      `Network request to FoodData Central failed for ${path}: ${cause}`,
+    );
   }
 
+  // Every throw below names `path`. /foods/search and /food/{id} otherwise
+  // produce identical messages, and a failure from either is indistinguishable
+  // in output — an ambiguity that sent two rounds of debugging at the wrong
+  // call. It also separates "the quota was gone before we started" from "the
+  // search worked and only some rows failed" during the N+1 fan-out.
   if (res.status === 429) {
     throw new FdcError(
-      'FoodData Central rate limit reached. DEMO_KEY allows 30 requests/hour — set FDC_API_KEY to a real key.',
+      `FoodData Central rate limit reached for ${path}. DEMO_KEY allows 30 requests/hour — set FDC_API_KEY to a real key.`,
       429,
     );
   }
   if (!res.ok) {
     throw new FdcError(
-      `FoodData Central returned ${res.status} ${res.statusText}`,
+      `FoodData Central returned ${res.status} ${res.statusText} for ${path}`,
       res.status,
     );
   }
@@ -73,7 +80,7 @@ export async function fdcFetch<T>(
   // body would deserialise to `{ foods: undefined }` and read as "no results".
   if (body && typeof body === 'object' && body.error) {
     throw new FdcError(
-      `FoodData Central: ${body.error.message ?? body.error.code ?? 'unknown error'}`,
+      `FoodData Central returned an error for ${path}: ${body.error.message ?? body.error.code ?? 'unknown error'}`,
     );
   }
 
