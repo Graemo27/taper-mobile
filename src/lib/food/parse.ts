@@ -49,6 +49,20 @@ function round1(v: number | null): number | null {
   return v === null ? null : Math.round(v * 10) / 10;
 }
 
+/**
+ * Mono plus poly, which is what "unsaturated fat" means on the design's chip.
+ *
+ * Absent is not zero: a food FDC has no fat data for must stay null, or it
+ * would claim to contain none. But a food with one of the two and not the
+ * other is a real reading, so the sum takes what is there.
+ */
+function unsaturatedFat(nutrients: FlatNutrient[]): number | null {
+  const mono = find(nutrients, 'Fatty acids, total monounsaturated', 'g');
+  const poly = find(nutrients, 'Fatty acids, total polyunsaturated', 'g');
+  if (mono === null && poly === null) return null;
+  return round1((mono ?? 0) + (poly ?? 0));
+}
+
 /** Extracts the nutrient set we care about, per 100g. */
 export function parseNutrients(raw: unknown[]): Nutrients {
   const flat = flatten(raw);
@@ -58,6 +72,11 @@ export function parseNutrients(raw: unknown[]): Nutrients {
     kcal: kcal === null ? null : Math.round(kcal),
     proteinG: round1(find(flat, 'Protein', 'g')),
     fibreG: round1(find(flat, 'Fiber, total dietary', 'g')),
+    // FDC's full name. "Vitamin E" alone also matches added-tocopherol rows on
+    // some foods, which are a different measurement.
+    vitaminEMg: round1(find(flat, 'Vitamin E (alpha-tocopherol)', 'mg')),
+    magnesiumMg: round1(find(flat, 'Magnesium, Mg', 'mg')),
+    unsaturatedFatG: unsaturatedFat(flat),
   };
 }
 
@@ -115,5 +134,8 @@ export function scaleTo(per100g: Nutrients, grams: number): Nutrients {
     kcal: per100g.kcal === null ? null : Math.round(per100g.kcal * factor),
     proteinG: scale(per100g.proteinG),
     fibreG: scale(per100g.fibreG),
+    vitaminEMg: scale(per100g.vitaminEMg),
+    magnesiumMg: scale(per100g.magnesiumMg),
+    unsaturatedFatG: scale(per100g.unsaturatedFatG),
   };
 }
