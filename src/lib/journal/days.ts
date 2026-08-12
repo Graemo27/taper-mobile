@@ -9,7 +9,7 @@
 import type { JournalEntry } from '../supabase/journal.ts';
 
 /** A local calendar date as `YYYY-MM-DD`. `toISOString()` would be UTC. */
-export function localDate(at: Date): string {
+export function localDate(at: Date = new Date()): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
 }

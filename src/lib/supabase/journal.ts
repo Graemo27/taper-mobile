@@ -73,13 +73,25 @@ export interface JournalEntry {
 }
 
 /**
- * A cap rather than paging: 200 rows is roughly two months of eating. History
- * worth paging through is a reflection screen with its own design, not this
- * list silently growing.
+ * How far back the Journal reads: a window of days, not a count of rows.
+ *
+ * A row cap can land inside a day, and a half-fetched day is worse than a
+ * missing one — the heading would still say "5 things" over three of them. A
+ * date bound cannot: a day is either wholly in the window or wholly out.
+ *
+ * History past this is a reflection screen with its own design, not this list
+ * silently growing.
  */
-const RECENT_LIMIT = 200;
+const WINDOW_DAYS = 30;
 
-/** Every recent entry, newest day first and newest entry within the day. */
+/** The oldest day the Journal shows, in the reader's own timezone. */
+function windowStart(): string {
+  const at = new Date();
+  at.setDate(at.getDate() - WINDOW_DAYS);
+  return localDate(at);
+}
+
+/** Every entry in the window, newest day first and newest entry within it. */
 export async function listEntries(): Promise<JournalEntry[]> {
   const userId = await ensureSession();
 
@@ -89,9 +101,13 @@ export async function listEntries(): Promise<JournalEntry[]> {
     // RLS already restricts this to the owner. Naming the user anyway lets the
     // planner use the (user_id, eaten_on desc) index rather than filtering.
     .eq('user_id', userId)
+    .gte('eaten_on', windowStart())
     .order('eaten_on', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(RECENT_LIMIT);
+    // Not the shape of the answer — 30 days of eating is a couple of hundred
+    // rows — but a backstop against an unbounded read if something starts
+    // writing in a loop.
+    .limit(2000);
 
   if (error) throw new JournalError('Could not read your journal.');
 

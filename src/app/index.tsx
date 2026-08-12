@@ -15,10 +15,11 @@
  */
 
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FoodListSkeleton } from '@/components/food-list-skeleton';
 import { RetryIcon } from '@/components/icons';
 import { JournalDay } from '@/components/journal-day';
 import { PlusIcon } from '@/components/plus-icon';
@@ -39,36 +40,49 @@ type Status = 'loading' | 'ready' | 'failed';
 export default function Journal() {
   const [status, setStatus] = useState<Status>('loading');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  /** Bumped by Try again, so a retry re-runs the read without a navigation. */
-  const [attempt, setAttempt] = useState(0);
+
+  // Returning to this screen runs the focus effect several times over — the
+  // navigation state settles across renders and each one re-runs it. Measured
+  // at five reads for one return, and the first attempt at guarding this with a
+  // newest-request-wins id made it worse: each new read invalidated the reply of
+  // the one before, so the screen sat loading after an answer had arrived.
+  //
+  // One read at a time instead. A focus that lands while one is in flight is
+  // dropped rather than queued — it would be asking the same question — and a
+  // focus after it finishes reads again as normal.
+  const reading = useRef(false);
 
   const load = useCallback(() => {
-    // A reply that arrives after the screen has been left belongs to a screen
-    // that is no longer listening, so it is dropped rather than set.
-    let listening = true;
+    if (reading.current) return;
+    reading.current = true;
+    setStatus('loading');
 
     listEntries()
       .then((rows) => {
-        if (!listening) return;
         setEntries(rows);
         setStatus('ready');
       })
-      .catch(() => {
-        if (!listening) return;
-        setStatus('failed');
+      .catch(() => setStatus('failed'))
+      .finally(() => {
+        reading.current = false;
       });
-
-    return () => {
-      listening = false;
-    };
-  }, [attempt]);
+  }, []);
 
   useFocusEffect(load);
 
-  // Read once per render rather than per day, so a list rendering across
-  // midnight cannot label two different dates Today.
-  const today = localDate(new Date());
+  const [today, setToday] = useState(localDate);
   const days = byDay(entries);
+
+  // Midnight has to be waited for, not noticed on the next render. A screen
+  // left open past it would otherwise go on calling yesterday Today — the one
+  // heading here that must never be wrong. Re-armed each day, one second past
+  // the boundary so a fast clock cannot land on the old date.
+  useEffect(() => {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+    const timer = setTimeout(() => setToday(localDate()), midnight.getTime() - now.getTime());
+    return () => clearTimeout(timer);
+  }, [today]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -83,9 +97,12 @@ export default function Journal() {
           />
         ))}
 
-        {/* Both of these speak only when the list is genuinely empty. With rows
-            on screen, a failed refresh must not replace a day someone can still
-            read with an apology about it. */}
+        {/* Only before there is anything to look at. A refresh behind a list
+            already on screen is not worth replacing that list with bars. */}
+        {days.length === 0 && status === 'loading' && (
+          <FoodListSkeleton label="Opening your journal" />
+        )}
+
         {days.length === 0 && status === 'ready' && (
           <View style={styles.block}>
             <Text style={styles.blockHeading}>Nothing written down yet</Text>
@@ -95,19 +112,27 @@ export default function Journal() {
           </View>
         )}
 
-        {days.length === 0 && status === 'failed' && (
+        {/* Shown whether or not days are on screen: a refresh that failed
+            behind a list leaves the reader looking at something they believe is
+            current, and the entry they just saved missing from it. The days
+            stay — the failure is reported beneath them rather than instead of
+            them, and the wording says which of the two happened. */}
+        {status === 'failed' && (
           <View style={styles.block}>
-            <Text style={styles.blockHeading}>Could not open your journal</Text>
+            <Text style={styles.blockHeading}>
+              {days.length === 0 ? 'Could not open your journal' : 'Could not check for new entries'}
+            </Text>
             {/* Names no cause: a refused read, a missing table and a dropped
                 connection all arrive here, and only one of them is a
                 connection. What to do about it is the same either way. */}
-            <Text style={styles.blockBody}>Your entries are still saved. Try again in a moment.</Text>
+            <Text style={styles.blockBody}>
+              {days.length === 0
+                ? 'Your entries are still saved. Try again in a moment.'
+                : 'This is what was here when it last read. Anything saved since may be missing.'}
+            </Text>
 
             <Pressable
-              onPress={() => {
-                setStatus('loading');
-                setAttempt((n) => n + 1);
-              }}
+              onPress={load}
               style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
               accessibilityRole="button"
               accessibilityLabel="Try opening your journal again"
