@@ -63,6 +63,26 @@ export function RetryIcon({ size = 15, color = colors.onBrand }: IconProps) {
   );
 }
 
+/**
+ * Points left, and heavier than the row chevron — this one is a control with a
+ * label beside it, not a hint at the end of a row. Its own path rather than a
+ * rotated `ChevronIcon`, because the design draws it at 2.2 against 2.
+ */
+export function BackChevronIcon({ size = 15, color = colors.brand }: IconProps) {
+  return (
+    <Svg width={(size * 9) / 15} height={size} viewBox="0 0 9 15">
+      <Path
+        d="M8 1L1.5 7.5 8 14"
+        fill="none"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /** Points right. The row affordance, not a control — rows carry their own press. */
 export function ChevronIcon({ size = 14, color = colors.textSecondary }: IconProps) {
   return (
