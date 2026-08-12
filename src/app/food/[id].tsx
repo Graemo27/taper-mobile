@@ -11,7 +11,7 @@
  */
 
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -49,36 +49,45 @@ export default function FoodDetail() {
   // by the fetch: Search has already resolved the whole food, and asking again
   // for what is in memory would put a round trip in front of every tap.
   const handed = selectedFood(fdcId);
-  const [fetched, setFetched] = useState<Food | null>(null);
-  const [lookup, setLookup] = useState<Lookup>(handed ? 'held' : 'looking');
-  const food = handed ?? fetched;
 
-  const looking = useRef(false);
+  // Both carry the id they belong to, and both are read back through it. The
+  // screen can outlive the id in its own URL — the router updates params for a
+  // navigation it can serve from a screen already mounted — and a food fetched
+  // for the previous id is not an answer for this one. Without the key it would
+  // render as though it were, and Save would write it: the wrong food, under
+  // the right heading.
+  //
+  // It also settles the stale reply, which needs no separate guard. A request
+  // in flight when the id changes resolves against the id it asked for, so what
+  // it writes no longer matches what is being read.
+  const [fetched, setFetched] = useState<{ fdcId: number; food: Food } | null>(null);
+  const [lookup, setLookup] = useState<{ fdcId: number; state: Lookup } | null>(null);
+
+  const food = handed ?? (fetched?.fdcId === fdcId ? fetched.food : null);
+  const state: Lookup = handed ? 'held' : lookup?.fdcId === fdcId ? lookup.state : 'looking';
 
   const look = useCallback(() => {
-    if (looking.current) return;
-    looking.current = true;
-    setLookup('looking');
+    setLookup({ fdcId, state: 'looking' });
 
     fetchFood(fdcId)
       .then((result) => {
-        setFetched(result);
-        setLookup('held');
+        setFetched({ fdcId, food: result });
+        setLookup({ fdcId, state: 'held' });
       })
       // A food FDC will not serve is an answer, not an outage, and Try again
       // would ask the same question forever. The two states differ by what
       // they offer, so they are told apart here rather than in the render.
       .catch((error) =>
-        setLookup(error instanceof FoodSearchError && error.status === 404 ? 'missing' : 'failed'),
-      )
-      .finally(() => {
-        looking.current = false;
-      });
+        setLookup({
+          fdcId,
+          state: error instanceof FoodSearchError && error.status === 404 ? 'missing' : 'failed',
+        }),
+      );
   }, [fdcId]);
 
   useEffect(() => {
-    if (!handed && !fetched) look();
-  }, [handed, fetched, look]);
+    if (!handed && !food) look();
+  }, [handed, food, look]);
 
   const [servings, setServings] = useState(MIN_SERVINGS);
 
@@ -92,6 +101,14 @@ export default function FoodDetail() {
   const claims = food ? highIn(food.per100g) : [];
 
   const [saveState, setSaveState] = useState<SaveState>('idle');
+
+  // Also keyed to the id, for the same reason: three servings of one food is
+  // not three of the next, and a "Saved to today" confirmation belongs to the
+  // food it was written for.
+  useEffect(() => {
+    setServings(MIN_SERVINGS);
+    setSaveState('idle');
+  }, [fdcId]);
 
   // Shared with the results list, so a star set here is already showing when
   // you go back. Reading the store is what fills it.
@@ -152,9 +169,9 @@ export default function FoodDetail() {
         // Nothing to render yet, which is now three different situations. Each
         // says which one it is, rather than one shell that could mean any.
         <View style={styles.content}>
-          {lookup === 'looking' && <Text style={styles.missing}>Looking up this food…</Text>}
+          {state === 'looking' && <Text style={styles.missing}>Looking up this food…</Text>}
 
-          {lookup === 'missing' && (
+          {state === 'missing' && (
             <>
               <Text style={styles.missing}>That food could not be found.</Text>
               {/* Names no cause, because this state cannot tell them apart: a
@@ -165,7 +182,7 @@ export default function FoodDetail() {
             </>
           )}
 
-          {lookup === 'failed' && (
+          {state === 'failed' && (
             <>
               <Text style={styles.missing}>Could not open this food.</Text>
               <Text style={styles.missingBody}>Nothing is wrong with your entry. Try again.</Text>
