@@ -3,6 +3,11 @@
 .temp
 
 # dotenvx
+# `.env` is already covered by the root .gitignore — a pattern with no slash
+# matches at every depth. It is repeated here on purpose: this is where the FDC
+# key lands during local `supabase functions serve`, and that protection should
+# not depend on a line in a file three directories up. Not a duplicate to clean.
+.env
 .env.keys
 .env.local
 .env.*.local

@@ -91,6 +91,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'limit must be an integer from 1 to 10.' }, 400);
   }
 
+  // Correlates a user's report with a log line without the log holding what
+  // they typed. Returned on every failure so "it broke" becomes answerable.
+  const requestId = crypto.randomUUID();
+
   try {
     const { foods, unavailable } = await searchWithServings(query, raw);
     return json({ foods, unavailable });
@@ -100,10 +104,22 @@ Deno.serve(async (req: Request) => {
       // "no such food". Everything else becomes 502: the failure is upstream,
       // and echoing FDC's status would imply this function was at fault.
       const status = err.status === 429 ? 429 : 502;
-      console.error(`FDC lookup failed for "${query}": ${err.message}`);
-      return json({ error: err.message }, status);
+      console.error(`[${requestId}] FDC lookup failed, upstream ${err.status ?? 'none'}: ${err.message}`);
+      return json(
+        {
+          // Not `err.message`. FdcError is written for whoever runs the server —
+          // it names the FDC endpoint and tells the reader to set FDC_API_KEY.
+          // That is operator advice, and it has no business inside a food app.
+          error:
+            status === 429
+              ? 'Too many lookups right now. Try again shortly.'
+              : 'Food lookup is unavailable right now.',
+          requestId,
+        },
+        status,
+      );
     }
-    console.error(`Unexpected failure for "${query}":`, err);
-    return json({ error: 'Lookup failed.' }, 500);
+    console.error(`[${requestId}] Unexpected failure:`, err);
+    return json({ error: 'Lookup failed.', requestId }, 500);
   }
 });

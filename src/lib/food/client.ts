@@ -84,9 +84,18 @@ export async function fdcFetch<T>(
     );
   }
 
-  const body = (await res.json()) as T & {
-    error?: { code?: string; message?: string };
-  };
+  // A 200 is not a promise of JSON — a gateway between here and FDC can answer
+  // with an HTML error page. Left bare, the SyntaxError sails past every
+  // FdcError handler: the Edge Function would answer 500 for what is plainly an
+  // upstream fault, and the Node harness would print a raw stack trace.
+  let body: T & { error?: { code?: string; message?: string } };
+  try {
+    body = await res.json();
+  } catch (cause) {
+    throw new FdcError(
+      `FoodData Central returned invalid JSON for ${path}: ${cause}`,
+    );
+  }
 
   // FDC has been observed returning an `error` envelope; without this an error
   // body would deserialise to `{ foods: undefined }` and read as "no results".
