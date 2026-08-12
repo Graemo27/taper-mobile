@@ -5,10 +5,9 @@
  *   npm run food -- "greek yogurt" 3
  *
  * Node 22.18+ strips TypeScript without a flag, so this needs no build step and
- * no dev dependency. See engines.node in package.json.
- *
- * Put FDC_API_KEY in .env to avoid DEMO_KEY's 30 req/hour limit. Node does not
- * read .env on its own, hence the explicit load below.
+ * no dev dependency (see engines.node). Put FDC_API_KEY in .env to avoid
+ * DEMO_KEY's 30 req/hour limit — Node does not read .env on its own, hence the
+ * explicit load below.
  */
 
 import { FdcError, searchWithServings } from '../src/lib/food/index.ts';
@@ -16,8 +15,12 @@ import { FdcError, searchWithServings } from '../src/lib/food/index.ts';
 try {
   process.loadEnvFile();
 } catch {
-  // No .env — fall through to DEMO_KEY.
+  // No .env file. DEMO_KEY below still allows a zero-setup try.
 }
+
+// This harness is the one place the demo key is allowed; the client refuses it
+// everywhere else so a future proxy cannot silently run without its secret.
+process.env.FDC_ALLOW_DEMO_KEY ??= '1';
 
 const [, , query, limitArg] = process.argv;
 

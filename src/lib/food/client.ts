@@ -1,14 +1,11 @@
 /**
  * Thin HTTP client for USDA FoodData Central.
  *
- * Reads FDC_API_KEY only — never an EXPO_PUBLIC_* variable, which Expo inlines
- * into the JS bundle where the key is extractable from any install. USDA
- * deactivates keys it finds published. So this runs only where a private env var
- * exists: the harness today, a proxy later. The search screen (PR 3) needs that
- * proxy decision made first — it cannot call FDC directly.
- *
- * Falls back to DEMO_KEY (30 requests/hour). Free key:
- * https://fdc.nal.usda.gov/api-key-signup.html
+ * Reads FDC_API_KEY only — never EXPO_PUBLIC_*, which Expo inlines into the JS
+ * bundle where the key is extractable from any install, and USDA deactivates
+ * keys it finds published. So this runs only where a private key exists: the
+ * harness today, a proxy later. PR 3 needs that proxy decision before the search
+ * screen can call FDC.
  */
 
 const BASE = 'https://api.nal.usda.gov/fdc/v1';
@@ -24,7 +21,16 @@ export class FdcError extends Error {
 }
 
 function apiKey(): string {
-  return process.env.FDC_API_KEY ?? 'DEMO_KEY';
+  // Trimmed: `.env.example` ships `FDC_API_KEY=`, and an empty string is not
+  // nullish, so it would sail past `??` and reach FDC as an unexplained 403.
+  const key = process.env.FDC_API_KEY?.trim();
+  if (key) return key;
+  // Opt-in, never silent — a proxy missing its secret must fail rather than
+  // quietly burn the shared demo quota. Only the local harness sets this.
+  if (process.env.FDC_ALLOW_DEMO_KEY === '1') return 'DEMO_KEY';
+  throw new FdcError(
+    'FDC_API_KEY is missing or blank. Copy .env.example to .env and add a free key from https://fdc.nal.usda.gov/api-key-signup.html',
+  );
 }
 
 export async function fdcFetch<T>(
