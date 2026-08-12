@@ -23,6 +23,7 @@ import { MAX_SERVINGS, MIN_SERVINGS, ServingCard } from '@/components/serving-ca
 import { highIn } from '@/lib/food/claims';
 import { servingSummary } from '@/lib/food/format';
 import { scaleTo } from '@/lib/food/parse';
+import { toggleFavourite, useFavourites } from '@/lib/supabase/favourites';
 import { saveEntry } from '@/lib/supabase/journal';
 import { selectedFood } from '@/lib/food/selection';
 import { colors, fontFamily, fontSize, letterSpacing, spacing, tracking } from '@/theme';
@@ -45,6 +46,10 @@ export default function FoodDetail() {
   const claims = food ? highIn(food.per100g) : [];
 
   const [saveState, setSaveState] = useState<SaveState>('idle');
+
+  // Shared with the results list, so a star set here is already showing when
+  // you go back. Reading the store is what fills it.
+  const favourites = useFavourites();
 
   // "Saved" is a confirmation, not a resting state — a second helping is a real
   // thing to log, so the button goes back to offering that.
@@ -135,7 +140,12 @@ export default function FoodDetail() {
       {/* Outside the ScrollView, as the board has it — the save stays reachable
           without scrolling back down to find it. */}
       {food !== null && nutrients !== null && (
-        <SaveFooter state={saveState} onSave={save} />
+        <SaveFooter
+          state={saveState}
+          onSave={save}
+          favourite={favourites.has(food.fdcId)}
+          onToggleFavourite={() => void toggleFavourite(food.fdcId)}
+        />
       )}
     </SafeAreaView>
   );
