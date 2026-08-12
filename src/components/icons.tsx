@@ -85,6 +85,27 @@ export function BackChevronIcon({ size = 15, color = colors.brand }: IconProps) 
   );
 }
 
+/**
+ * The stepper pair. Both are drawn so the round caps land exactly on the
+ * viewBox edge at stroke 2 — the geometry `BackChevronIcon` had to be corrected
+ * to, checked here before it could go wrong again.
+ */
+export function MinusIcon({ size = 14, color = colors.textPrimary }: IconProps) {
+  return (
+    <Svg width={size} height={(size * 2) / 14} viewBox="0 0 14 2">
+      <Path d="M1 1h12" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function PlusIcon({ size = 14, color = colors.onBrand }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 14 14">
+      <Path d="M7 1v12M1 7h12" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 /** Points right. The row affordance, not a control — rows carry their own press. */
 export function ChevronIcon({ size = 14, color = colors.textSecondary }: IconProps) {
   return (

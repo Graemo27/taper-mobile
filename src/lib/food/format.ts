@@ -8,6 +8,62 @@
 import type { Portion } from './types.ts';
 
 /**
+ * A quantity opening a segment: "2", "0.5", "1/2", or the mixed "1 1/2".
+ *
+ * FDC writes all three. Reading only decimals does not merely miss the others —
+ * it truncates at the slash and multiplies the numerator, turning "3/4 cup"
+ * into "6/4 cup".
+ */
+function leadingQuantity(text: string): { value: number; rest: string } | null {
+  const mixed = /^(\d+)\s+(\d+)\/(\d+)\s*/.exec(text);
+  if (mixed) {
+    const denominator = Number(mixed[3]);
+    if (denominator === 0) return null;
+    return {
+      value: Number(mixed[1]) + Number(mixed[2]) / denominator,
+      rest: text.slice(mixed[0].length),
+    };
+  }
+
+  const fraction = /^(\d+)\/(\d+)\s*/.exec(text);
+  if (fraction) {
+    const denominator = Number(fraction[2]);
+    if (denominator === 0) return null;
+    return { value: Number(fraction[1]) / denominator, rest: text.slice(fraction[0].length) };
+  }
+
+  const decimal = /^(\d+(?:\.\d+)?)\s*/.exec(text);
+  return decimal ? { value: Number(decimal[1]), rest: text.slice(decimal[0].length) } : null;
+}
+
+/**
+ * Quotes, hyphens and slashes are how FDC writes dimensions and ranges —
+ * `3-1/2" to 4" dia` on a bagel. Those describe the food; they are not a count
+ * of it. Two bagels is not one bagel of twice the diameter, so a segment
+ * shaped like that is left exactly as FDC wrote it.
+ */
+const DESCRIBES_RATHER_THAN_COUNTS = /["'\-/]/;
+
+/**
+ * "23 whole kernels" at two servings → "46 whole kernels".
+ *
+ * The design's detail line multiplies every quantity in the label, not just the
+ * grams. FDC's nouns stay as written — "2 slice" rather than "2 slices" —
+ * because pluralising needs a rule about English that holds for every food in
+ * the database.
+ */
+function scaleSegment(segment: string, servings: number): string {
+  if (servings === 1) return segment;
+
+  const quantity = leadingQuantity(segment.trim());
+  if (!quantity || DESCRIBES_RATHER_THAN_COUNTS.test(quantity.rest)) return segment;
+
+  // Two decimals then back through Number, so 0.5 × 2 reads "1", not "1.00".
+  const scaled = Number((quantity.value * servings).toFixed(2));
+  return quantity.rest ? `${scaled} ${quantity.rest}` : String(scaled);
+}
+
+/**
  * "1 oz (23 whole kernels)" + 28.35g → "1 oz · 23 whole kernels · 28 g".
  *
  * The design sets the serving as middle-dot segments, and FDC already supplies
@@ -16,17 +72,30 @@ import type { Portion } from './types.ts';
  * kernels", not the design's shorter "23 nuts"), because shortening them would
  * mean a synonym table that has to be right about every food in the database.
  */
-export function servingSummary(portion: Portion | null): string {
-  if (!portion) return '100 g';
 
-  const match = /^(.*?)\s*\((.*)\)\s*$/.exec(portion.label);
+/**
+ * FDC restates the serving inside some labels — `1 slice 1 serving`,
+ * `0.99 oz 1 serving`. It is redundant beside the card's own "2 servings"
+ * title, and it is a second count that would go stale the moment the first one
+ * scaled, since it counts servings rather than slices.
+ */
+const RESTATED_SERVING = /\s+\d+(?:\.\d+)?\s+servings?$/i;
+
+export function servingSummary(portion: Portion | null, servings = 1): string {
+  if (!portion) return `${100 * servings} g`;
+
+  const label = portion.label.replace(RESTATED_SERVING, '');
+  const match = /^(.*?)\s*\((.*)\)\s*$/.exec(label);
   // A label opening on its parenthetical gives an empty first group and a
   // leading " · ". `parse.ts` always prefixes an amount so that cannot arrive
   // today, but the `Portion` type promises nothing about the string.
-  const parts = (match ? [match[1], match[2]] : [portion.label]).filter(
-    (part) => part.trim() !== '',
-  );
-  return [...parts, `${Math.round(portion.grams)} g`].join(' · ');
+  const parts = (match ? [match[1], match[2]] : [label]).filter((part) => part.trim() !== '');
+  // Grams scale from the true weight and round once at the end, so two 28.35 g
+  // servings read 57 g rather than the 56 g that rounding first would give.
+  return [
+    ...parts.map((part) => scaleSegment(part, servings)),
+    `${Math.round(portion.grams * servings)} g`,
+  ].join(' · ');
 }
 
 /** Grams carry a unit, energy does not — the design labels it underneath. */
