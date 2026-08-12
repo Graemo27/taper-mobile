@@ -40,20 +40,24 @@ function fmt(value: number | null, unit: string): string {
   return value === null ? '—' : `${value}${unit}`;
 }
 
-const foods = await searchWithServings(query, limit).catch((err: unknown) => {
-  if (err instanceof FdcError) {
-    console.error(`\n  ${err.message}\n`);
-    process.exit(1);
-  }
-  throw err;
-});
+const { foods, unavailable } = await searchWithServings(query, limit).catch(
+  (err: unknown) => {
+    if (err instanceof FdcError) {
+      console.error(`\n  ${err.message}\n`);
+      process.exit(1);
+    }
+    throw err;
+  },
+);
+
+const dropped = unavailable > 0 ? ` (${unavailable} unavailable in FDC)` : '';
 
 if (foods.length === 0) {
-  console.log(`\n  No results for "${query}".\n`);
+  console.log(`\n  No results for "${query}"${dropped}.\n`);
   process.exit(0);
 }
 
-console.log(`\n  ${foods.length} match(es) for "${query}"\n`);
+console.log(`\n  ${foods.length} match(es) for "${query}"${dropped}\n`);
 
 for (const food of foods) {
   const serving = food.portion
