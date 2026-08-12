@@ -20,7 +20,12 @@ const ROWS: readonly (readonly [number, number, number])[] = [
   [146, 126, 48],
 ];
 
-export function FoodListSkeleton() {
+/**
+ * `label` because the Journal borrows this card while it opens, and a
+ * progressbar announced as "Searching" there would be a lie about what is
+ * happening. The bars are the same either way — a row of food is a row of food.
+ */
+export function FoodListSkeleton({ label = 'Searching' }: { label?: string }) {
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -45,7 +50,7 @@ export function FoodListSkeleton() {
       // the label and role sit on an element a screen reader never reaches.
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel="Searching"
+      accessibilityLabel={label}
     >
       {ROWS.map(([name, serving, energy], index) => (
         <View key={index}>
