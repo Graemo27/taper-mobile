@@ -66,7 +66,12 @@ export function parseNutrients(raw: unknown[]): Nutrients {
  * and `measureUnit.name` is very often the literal string "undetermined".
  */
 function portionLabel(p: Record<string, any>): string {
-  const amount: number = typeof p.amount === 'number' ? p.amount : 1;
+  // FDC sometimes reports amount 0 alongside a real gramWeight — fdcId 171300
+  // lists `amount: 0.0, modifier: "container (4 oz)", gramWeight: 113`, which
+  // rendered as "0 container (4 oz)". Zero is a number, so a typeof-only guard
+  // let it through. A portion that weighs something is at least one of itself.
+  const raw = p.amount;
+  const amount: number = typeof raw === 'number' && raw > 0 ? raw : 1;
   const unit = String(p.measureUnit?.name ?? '');
   const modifier = String(p.modifier ?? '').trim();
   const named = unit !== '' && unit !== 'undetermined';
