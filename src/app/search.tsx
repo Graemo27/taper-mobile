@@ -13,8 +13,8 @@
  * error boards are one layout, so that choice is copy, not state.
  */
 
-import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -46,24 +46,32 @@ export default function Search() {
   /** Bumped by Try again, so retrying re-runs the effect on an unchanged query. */
   const [attempt, setAttempt] = useState(0);
 
-  // Read once, on mount. The list cannot change while this screen is open —
-  // the only way to add to it is to leave, log something, and come back, which
-  // mounts this again.
+  // Read on focus, not on mount. Pushing Food detail leaves this screen mounted
+  // underneath, so coming back from saving something runs no effect at all —
+  // measured: the entry was in the database and the list still did not have it.
+  //
+  // Guarded like the Journal's read, and for the same measured reason: settling
+  // navigation re-runs a focus effect several times, and one read per return is
+  // the point.
   const [recent, setRecent] = useState<RecentFood[]>([]);
+  const reading = useRef(false);
 
-  useEffect(() => {
-    let listening = true;
+  const readRecent = useCallback(() => {
+    if (reading.current) return;
+    reading.current = true;
+
     listRecentFoods()
-      .then((foods) => listening && setRecent(foods))
+      .then(setRecent)
       // Silent on purpose. This is an offer, not an answer to anything the
       // reader asked for, and an error card in place of it would be a failure
-      // report for a question nobody put.
-      .catch(() => {});
-
-    return () => {
-      listening = false;
-    };
+      // report for a question nobody put. The list on screen stays as it was.
+      .catch(() => {})
+      .finally(() => {
+        reading.current = false;
+      });
   }, []);
+
+  useFocusEffect(readRecent);
 
   // Monotonic id of the newest request. A reply whose id is not current lost a
   // race — the reader has typed on since — so it is discarded rather than shown.
