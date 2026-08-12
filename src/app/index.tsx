@@ -1,98 +1,79 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+/**
+ * Journal — the home screen.
+ *
+ * A shell for now: the chrome and the one action, with no entries. The store
+ * that would fill it does not exist yet, and neither does a designed empty
+ * state, so the content area is deliberately blank rather than filled with
+ * invented copy.
+ *
+ * What is here is what the design settles: no daily total, no goal, no streak.
+ * The research this product follows found that feedback which evaluates rather
+ * than informs gets people to stop recording, so there is deliberately nothing
+ * here to be measured against.
+ */
+
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { PlusIcon } from '@/components/plus-icon';
+import { colors, fontFamily, fontSize, radius, spacing } from '@/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+export default function Journal() {
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <View style={styles.content} />
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+      <View style={styles.footer}>
+        <Pressable
+          style={({ pressed }) => [styles.add, pressed && styles.addPressed]}
+          accessibilityRole="button"
+          // Says what happens, not what the control is — a screen reader
+          // announces the role already.
+          accessibilityLabel="Add something you ate"
+        >
+          <PlusIcon color={colors.onBrand} />
+          <Text style={styles.addLabel}>Add something you ate</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+  content: {
+    flexGrow: 1,
+    flexBasis: 0,
+    paddingTop: spacing['4'],
+    paddingHorizontal: spacing['4'],
+    gap: spacing['3'],
+  },
+  footer: {
+    // The design's 32pt bottom padding sits above the home indicator, which
+    // SafeAreaView already accounts for, so this is spacing rather than inset.
+    paddingTop: spacing['3.5'],
+    paddingBottom: spacing['8'],
+    paddingHorizontal: spacing['4'],
+  },
+  add: {
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    gap: spacing['2'],
+    padding: spacing['4'],
+    borderRadius: radius.full,
+    backgroundColor: colors.brand,
   },
-  title: {
-    textAlign: 'center',
+  addPressed: {
+    opacity: 0.9,
   },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  addLabel: {
+    fontFamily: fontFamily.semibold,
+    fontSize: fontSize.base,
+    lineHeight: 20,
+    color: colors.onBrand,
   },
 });
