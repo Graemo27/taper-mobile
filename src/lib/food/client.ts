@@ -49,7 +49,9 @@ export async function fdcFetch<T>(
     res = await fetch(url, { signal });
   } catch (cause) {
     if (cause instanceof Error && cause.name === 'AbortError') throw cause;
-    throw new FdcError(`Network request to FoodData Central failed: ${cause}`);
+    throw new FdcError(
+      `Network request to FoodData Central failed for ${path}: ${cause}`,
+    );
   }
 
   if (res.status === 429) {
@@ -59,8 +61,11 @@ export async function fdcFetch<T>(
     );
   }
   if (!res.ok) {
+    // The path matters: /foods/search and /food/{id} otherwise produce an
+    // identical message, and a 404 from either is indistinguishable in output.
+    // That ambiguity sent two rounds of debugging at the wrong call.
     throw new FdcError(
-      `FoodData Central returned ${res.status} ${res.statusText}`,
+      `FoodData Central returned ${res.status} ${res.statusText} for ${path}`,
       res.status,
     );
   }
