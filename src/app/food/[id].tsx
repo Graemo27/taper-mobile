@@ -113,9 +113,14 @@ export default function FoodDetail() {
           <ServingCard
             portion={food.portion}
             servings={servings}
-            onChange={(next) =>
-              setServings(Math.min(MAX_SERVINGS, Math.max(MIN_SERVINGS, next)))
-            }
+            disabled={saveState === 'saving'}
+            onChange={(next) => {
+              setServings(Math.min(MAX_SERVINGS, Math.max(MIN_SERVINGS, next)));
+              // A confirmation belongs to the amount that was saved. Once the
+              // count moves it is describing something that never happened, so
+              // it goes rather than sitting there next to a different number.
+              setSaveState('idle');
+            }}
           />
           {/* Before the figures, as the board has it. */}
           <HighInCard nutrients={claims} />

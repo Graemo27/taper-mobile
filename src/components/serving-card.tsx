@@ -38,9 +38,15 @@ interface ServingCardProps {
   portion: Portion | null;
   servings: number;
   onChange: (servings: number) => void;
+  /**
+   * Held still while a save is in flight. The insert carries the count as it
+   * was when the button was pressed, so letting it move mid-request would
+   * confirm one amount while the screen showed another.
+   */
+  disabled?: boolean;
 }
 
-export function ServingCard({ portion, servings, onChange }: ServingCardProps) {
+export function ServingCard({ portion, servings, onChange, disabled = false }: ServingCardProps) {
   // FDC lists no household portion for a fair number of foods. The design
   // assumes one exists; saying "1 serving" when the figures are really per
   // 100 g would be a quiet lie, so the basis is named for what it is.
@@ -49,8 +55,8 @@ export function ServingCard({ portion, servings, onChange }: ServingCardProps) {
     : `${100 * servings} g`;
   const detail = portion ? servingSummary(portion, servings) : 'No household serving listed';
 
-  const atMin = servings <= MIN_SERVINGS;
-  const atMax = servings >= MAX_SERVINGS;
+  const atMin = disabled || servings <= MIN_SERVINGS;
+  const atMax = disabled || servings >= MAX_SERVINGS;
 
   // A step is not always a serving. With no household portion the basis is
   // 100 g, and the title says so — an announcement of "one serving more" would
