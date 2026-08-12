@@ -37,9 +37,9 @@ export default function FoodDetail() {
   const basisGrams = food?.portion?.grams ?? 100;
   const nutrients = food ? scaleTo(food.per100g, basisGrams * servings) : null;
 
-  // One serving, not `servings`. The chips describe the food; stepping the
-  // count changes how much of it you logged, not what it is.
-  const claims = food ? highIn(scaleTo(food.per100g, basisGrams)) : [];
+  // Per 100g, not the displayed portion and not the stepped count. The chips
+  // describe the food; how much of it you logged does not change what it is.
+  const claims = food ? highIn(food.per100g) : [];
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
