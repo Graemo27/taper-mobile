@@ -52,15 +52,19 @@ function round1(v: number | null): number | null {
 /**
  * Mono plus poly, which is what "unsaturated fat" means on the design's chip.
  *
- * Absent is not zero: a food FDC has no fat data for must stay null, or it
- * would claim to contain none. But a food with one of the two and not the
- * other is a real reading, so the sum takes what is there.
+ * Both halves or nothing. Absent is not zero, and half an answer is worse than
+ * none: fdcId 2647443 (Cheese, cotija) is a real Foundation record listing
+ * monounsaturated with no polyunsaturated row, so counting the missing half as
+ * zero would publish a lower bound as though it were the total.
+ *
+ * A row that reports 0 is a reading rather than a gap — `find` returns null
+ * only when the row is absent — so genuine zeroes still come through.
  */
 function unsaturatedFat(nutrients: FlatNutrient[]): number | null {
   const mono = find(nutrients, 'Fatty acids, total monounsaturated', 'g');
   const poly = find(nutrients, 'Fatty acids, total polyunsaturated', 'g');
-  if (mono === null && poly === null) return null;
-  return round1((mono ?? 0) + (poly ?? 0));
+  if (mono === null || poly === null) return null;
+  return round1(mono + poly);
 }
 
 /** Extracts the nutrient set we care about, per 100g. */
