@@ -20,7 +20,12 @@ export function servingSummary(portion: Portion | null): string {
   if (!portion) return '100 g';
 
   const match = /^(.*?)\s*\((.*)\)\s*$/.exec(portion.label);
-  const parts = match ? [match[1], match[2]] : [portion.label];
+  // A label opening on its parenthetical gives an empty first group and a
+  // leading " · ". `parse.ts` always prefixes an amount so that cannot arrive
+  // today, but the `Portion` type promises nothing about the string.
+  const parts = (match ? [match[1], match[2]] : [portion.label]).filter(
+    (part) => part.trim() !== '',
+  );
   return [...parts, `${Math.round(portion.grams)} g`].join(' · ');
 }
 

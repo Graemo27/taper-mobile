@@ -72,7 +72,9 @@ export function BackChevronIcon({ size = 15, color = colors.brand }: IconProps) 
   return (
     <Svg width={(size * 9) / 15} height={size} viewBox="0 0 9 15">
       <Path
-        d="M8 1L1.5 7.5 8 14"
+        // Ends inset 0.1 from the design's 8/1/14: at stroke 2.2 the round caps
+        // reach 1.1 further and clipped flat. Elbow stays, so the angle does.
+        d="M7.9 1.1L1.5 7.5 7.9 13.9"
         fill="none"
         stroke={color}
         strokeWidth="2.2"
