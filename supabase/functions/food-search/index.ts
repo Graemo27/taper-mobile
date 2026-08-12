@@ -16,7 +16,7 @@
  * this serves.
  */
 
-import { FdcError, searchWithServings } from '../../../src/lib/food/index.ts';
+import { FdcError, getFood, searchWithServings } from '../../../src/lib/food/index.ts';
 
 /** Expo also targets web, where a browser will preflight this. */
 const CORS = {
@@ -66,6 +66,43 @@ function userId(req: Request): string | null {
   }
 }
 
+/**
+ * Turns a thrown lookup into the response the app reads.
+ *
+ * Shared by both routes: a food that FDC will not serve fails the same way
+ * whether it was reached by name or by id, and two copies of this would drift.
+ */
+function failure(err: unknown, requestId: string): Response {
+  if (err instanceof FdcError) {
+    // A by-id lookup can genuinely ask for a food that is not there — a stale
+    // journal row, a hand-typed URL — and that is the caller's answer, not an
+    // outage. 429 is forwarded so the app can say "try again shortly" rather
+    // than "no such food". Everything else becomes 502: the failure is
+    // upstream, and echoing FDC's status would imply this function was at
+    // fault.
+    const status = err.status === 404 ? 404 : err.status === 429 ? 429 : 502;
+    console.error(`[${requestId}] FDC lookup failed, upstream ${err.status ?? 'none'}: ${err.message}`);
+    return json(
+      {
+        // Not `err.message`. FdcError is written for whoever runs the server —
+        // it names the FDC endpoint and tells the reader to set FDC_API_KEY.
+        // That is operator advice, and it has no business inside a food app.
+        error:
+          status === 404
+            ? 'That food is no longer in the USDA database.'
+            : status === 429
+              ? 'Too many lookups right now. Try again shortly.'
+              : 'Food lookup is unavailable right now.',
+        requestId,
+      },
+      status,
+    );
+  }
+
+  console.error(`[${requestId}] Unexpected failure:`, err);
+  return json({ error: 'Lookup failed.', requestId }, 500);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Use POST.' }, 405);
@@ -74,11 +111,34 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Sign in required.' }, 401);
   }
 
-  let body: { query?: unknown; limit?: unknown };
+  let body: { query?: unknown; limit?: unknown; fdcId?: unknown };
   try {
     body = await req.json();
   } catch {
     return json({ error: 'Body must be JSON.' }, 400);
+  }
+
+  // Correlates a user's report with a log line without the log holding what
+  // they typed. Returned on every failure so "it broke" becomes answerable.
+  const requestId = crypto.randomUUID();
+
+  // One food, by id. What the app has when it holds a reference to a food but
+  // not the food itself: a journal row it wants to reopen, or a `/food/123`
+  // route reached by a reload, where search has never run.
+  //
+  // Checked before `query` rather than after, so a body carrying both is not
+  // silently searched — a caller sending both means one of them is a mistake.
+  if (body.fdcId !== undefined) {
+    const fdcId = Number(body.fdcId);
+    if (!Number.isSafeInteger(fdcId) || fdcId <= 0) {
+      return json({ error: 'fdcId must be a positive integer.' }, 400);
+    }
+
+    try {
+      return json({ food: await getFood(fdcId) });
+    } catch (err) {
+      return failure(err, requestId);
+    }
   }
 
   const query = typeof body.query === 'string' ? body.query.trim() : '';
@@ -91,35 +151,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'limit must be an integer from 1 to 10.' }, 400);
   }
 
-  // Correlates a user's report with a log line without the log holding what
-  // they typed. Returned on every failure so "it broke" becomes answerable.
-  const requestId = crypto.randomUUID();
-
   try {
     const { foods, unavailable } = await searchWithServings(query, raw);
     return json({ foods, unavailable });
   } catch (err) {
-    if (err instanceof FdcError) {
-      // 429 is forwarded so the app can say "try again shortly" rather than
-      // "no such food". Everything else becomes 502: the failure is upstream,
-      // and echoing FDC's status would imply this function was at fault.
-      const status = err.status === 429 ? 429 : 502;
-      console.error(`[${requestId}] FDC lookup failed, upstream ${err.status ?? 'none'}: ${err.message}`);
-      return json(
-        {
-          // Not `err.message`. FdcError is written for whoever runs the server —
-          // it names the FDC endpoint and tells the reader to set FDC_API_KEY.
-          // That is operator advice, and it has no business inside a food app.
-          error:
-            status === 429
-              ? 'Too many lookups right now. Try again shortly.'
-              : 'Food lookup is unavailable right now.',
-          requestId,
-        },
-        status,
-      );
-    }
-    console.error(`[${requestId}] Unexpected failure:`, err);
-    return json({ error: 'Lookup failed.', requestId }, 500);
+    return failure(err, requestId);
   }
 });

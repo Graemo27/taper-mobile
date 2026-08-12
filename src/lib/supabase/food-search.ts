@@ -171,3 +171,38 @@ export async function searchFoods(query: string, limit = 5): Promise<SearchResul
 
   return data;
 }
+
+/**
+ * One food, by id, for the screens that hold a reference rather than the food.
+ *
+ * A `/food/123` route reached by a reload has no hand-off to read — see
+ * `lib/food/selection.ts` — and a journal row records an fdcId, not a nutrient
+ * table. Both need this.
+ *
+ * A 404 arrives as a `FoodSearchError` with `status: 404` and the server's own
+ * wording, which callers can tell apart from an outage: a food that is not
+ * there is an answer, and offering Try again for it would be a loop.
+ */
+export async function fetchFood(fdcId: number): Promise<Food> {
+  // The function answers 400 for anything else, in text written for whoever
+  // calls the API — the same reason `limit` is clamped above rather than sent
+  // as given. Here it cannot be clamped into something sensible, so it is
+  // refused in the shape callers already handle.
+  if (!Number.isSafeInteger(fdcId) || fdcId <= 0) {
+    throw new FoodSearchError('That food could not be found.', 'http', 404);
+  }
+
+  await ensureSession();
+
+  const { data, error } = await supabase.functions.invoke<{ food: Food }>('food-search', {
+    body: { fdcId },
+    // One FDC request rather than the search path's six, but the same ceiling:
+    // what it guards against is a request that never settles, not a slow one.
+    timeout: 15_000,
+  });
+
+  if (error) throw await describe(error);
+  if (!data?.food) throw new FoodSearchError('Food lookup is unavailable right now.', 'http');
+
+  return data.food;
+}
