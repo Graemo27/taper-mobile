@@ -73,6 +73,68 @@ export interface JournalEntry {
 }
 
 /**
+ * A food worth offering again, as the entry recorded it.
+ *
+ * Not a `Food`: an entry stores what was on screen, not the nutrient table
+ * behind it. The fdcId is what makes the row openable — Food detail fetches by
+ * it — and is why the row carries an id at all.
+ */
+export interface RecentFood {
+  fdcId: number;
+  name: string;
+  servingLabel: string | null;
+  kcal: number | null;
+}
+
+/**
+ * How many entries are read to find the recent foods.
+ *
+ * Postgres has DISTINCT ON for this and PostgREST does not expose it, so the
+ * duplicates are dropped here instead. The number is the span this can see
+ * back over: someone who ate the same three things for a fortnight has fewer
+ * than three distinct foods in their last fifty entries, and gets what there is.
+ */
+const RECENT_SCAN = 50;
+
+/** The last few distinct foods, newest first. */
+export async function listRecentFoods(limit = 3): Promise<RecentFood[]> {
+  const userId = await ensureSession();
+
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('fdc_id, name, serving_label, kcal')
+    .eq('user_id', userId)
+    .order('eaten_on', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(RECENT_SCAN);
+
+  if (error) throw new JournalError('Could not read your journal.');
+
+  const seen = new Set<number>();
+  const foods: RecentFood[] = [];
+
+  for (const row of data ?? []) {
+    const fdcId = row.fdc_id as number;
+    // The newest entry for a food wins, which is the first one seen here. A
+    // later helping may have been a different size, and the size shown should
+    // be the one most recently chosen.
+    if (seen.has(fdcId)) continue;
+    seen.add(fdcId);
+
+    foods.push({
+      fdcId,
+      name: row.name as string,
+      servingLabel: row.serving_label as string | null,
+      kcal: row.kcal as number | null,
+    });
+
+    if (foods.length === limit) break;
+  }
+
+  return foods;
+}
+
+/**
  * How far back the Journal reads: a window of days, not a count of rows.
  *
  * A row cap can land inside a day, and a half-fetched day is worse than a

@@ -13,18 +13,20 @@
  * error boards are one layout, so that choice is copy, not state.
  */
 
-import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FoodList } from '@/components/food-list';
 import { FoodListSkeleton } from '@/components/food-list-skeleton';
 import { NoMatches } from '@/components/no-matches';
+import { RecentFoods } from '@/components/recent-foods';
 import { SearchFailure } from '@/components/search-failure';
 import { SearchField } from '@/components/search-field';
 import type { Food } from '@/lib/food/types';
 import { FoodSearchError, searchFoods } from '@/lib/supabase/food-search';
+import { listRecentFoods, type RecentFood } from '@/lib/supabase/journal';
 import { colors, fontFamily, fontSize, spacing } from '@/theme';
 
 /** Long enough that "a" doesn't cost six upstream requests. */
@@ -43,6 +45,33 @@ export default function Search() {
   const [resolved, setResolved] = useState('');
   /** Bumped by Try again, so retrying re-runs the effect on an unchanged query. */
   const [attempt, setAttempt] = useState(0);
+
+  // Read on focus, not on mount. Pushing Food detail leaves this screen mounted
+  // underneath, so coming back from saving something runs no effect at all —
+  // measured: the entry was in the database and the list still did not have it.
+  //
+  // Guarded like the Journal's read, and for the same measured reason: settling
+  // navigation re-runs a focus effect several times, and one read per return is
+  // the point.
+  const [recent, setRecent] = useState<RecentFood[]>([]);
+  const reading = useRef(false);
+
+  const readRecent = useCallback(() => {
+    if (reading.current) return;
+    reading.current = true;
+
+    listRecentFoods()
+      .then(setRecent)
+      // Silent on purpose. This is an offer, not an answer to anything the
+      // reader asked for, and an error card in place of it would be a failure
+      // report for a question nobody put. The list on screen stays as it was.
+      .catch(() => {})
+      .finally(() => {
+        reading.current = false;
+      });
+  }, []);
+
+  useFocusEffect(readRecent);
 
   // Monotonic id of the newest request. A reply whose id is not current lost a
   // race — the reader has typed on since — so it is discarded rather than shown.
@@ -97,6 +126,12 @@ export default function Search() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
+        {/* Nothing else is on this screen before a query, and the reader is
+            three keystrokes from replacing it. No skeleton: an empty journal
+            has nothing to show, and flashing bars at it would promise
+            something that is not coming. */}
+        {status === 'idle' && <RecentFoods foods={recent} />}
+
         {status === 'loading' && (
           <>
             <Text style={styles.status}>Searching…</Text>
