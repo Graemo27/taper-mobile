@@ -106,6 +106,31 @@ export function PlusIcon({ size = 14, color = colors.onBrand }: IconProps) {
   );
 }
 
+/**
+ * The favourite mark, drawn to the board's path.
+ *
+ * Outlined when off and filled when on, so the state reads without colour
+ * alone — the same star in gold and in grey would be one cue doing two jobs.
+ */
+export function StarIcon({
+  size = 21,
+  color = colors.textPrimary,
+  filled = false,
+}: IconProps & { filled?: boolean }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d="M12 2.5l2.95 5.98 6.6.96-4.77 4.65 1.13 6.57L12 17.55l-5.91 3.11 1.13-6.57L2.45 9.44l6.6-.96z"
+        fill={filled ? color : 'none'}
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /** Points right. The row affordance, not a control — rows carry their own press. */
 export function ChevronIcon({ size = 14, color = colors.textSecondary }: IconProps) {
   return (

@@ -10,9 +10,10 @@ import { router } from 'expo-router';
 import { Fragment } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ChevronIcon } from '@/components/icons';
+import { ChevronIcon, StarIcon } from '@/components/icons';
 import { servingSummary } from '@/lib/food/format';
 import { selectFood } from '@/lib/food/selection';
+import { useFavourites } from '@/lib/supabase/favourites';
 import type { Food } from '@/lib/food/types';
 import { colors, elevation, fontFamily, fontSize, radius, spacing } from '@/theme';
 
@@ -22,7 +23,7 @@ import { colors, elevation, fontFamily, fontSize, radius, spacing } from '@/them
  * because the route receives an id and the Edge Function has no fetch-by-id —
  * see `lib/food/selection.ts`.
  */
-function FoodRow({ food }: { food: Food }) {
+function FoodRow({ food, favourite }: { food: Food; favourite: boolean }) {
   const nutrients = food.perServing ?? food.per100g;
   const kcal = nutrients.kcal === null ? null : `${Math.round(nutrients.kcal)} kcal`;
   const serving = servingSummary(food.portion);
@@ -42,7 +43,9 @@ function FoodRow({ food }: { food: Food }) {
       accessibilityRole="button"
       // Read as one sentence rather than three fragments; the kcal is dropped
       // when FDC has no Energy value, which is common for Foundation foods.
-      accessibilityLabel={[food.name, serving, kcal].filter(Boolean).join(', ')}
+      accessibilityLabel={[food.name, serving, kcal, favourite && 'favourite']
+        .filter(Boolean)
+        .join(', ')}
     >
       <View style={styles.text}>
         <Text style={styles.name} numberOfLines={1}>
@@ -51,6 +54,12 @@ function FoodRow({ food }: { food: Food }) {
         <Text style={styles.serving} numberOfLines={1}>
           {serving}
         </Text>
+      </View>
+
+      {/* Its own fixed slot, so the kcal lane does not shift by a star's width
+          between a favourited row and its neighbour. */}
+      <View style={styles.starSlot}>
+        {favourite && <StarIcon size={13} color={colors.favourite} filled />}
       </View>
 
       {/* Fixed width even when empty, so kcal and chevrons hold their lanes. */}
@@ -62,6 +71,8 @@ function FoodRow({ food }: { food: Food }) {
 }
 
 export function FoodList({ foods }: { foods: Food[] }) {
+  const favourites = useFavourites();
+
   return (
     <View style={styles.card}>
       {foods.map((food, index) => (
@@ -71,7 +82,7 @@ export function FoodList({ foods }: { foods: Food[] }) {
               <View style={styles.divider} />
             </View>
           )}
-          <FoodRow food={food} />
+          <FoodRow food={food} favourite={favourites.has(food.fdcId)} />
         </Fragment>
       ))}
     </View>
@@ -107,6 +118,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: colors.textSecondary,
   },
+  starSlot: { width: 13, alignItems: 'center' },
   energy: { width: 62, alignItems: 'flex-end' },
   energyText: {
     fontFamily: fontFamily.medium,

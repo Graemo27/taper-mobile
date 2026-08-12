@@ -121,6 +121,21 @@ export const colors = {
   success: green[700],
   successSubtle: green[50],
   onSuccess: white,
+
+  /**
+   * The favourite star, and nothing else.
+   *
+   * Gold, and deliberately not one of the status colours above. It says "you
+   * marked this", not "this food is a caution" — a bookmark someone set
+   * themselves makes no claim about the food, which is what the rule is
+   * protecting against. Its own token so the exception stays legible and
+   * cannot quietly drift into meaning warning.
+   *
+   * `amber[400]` is the gold the existing ramps can offer. A truer gold leaf
+   * (#FFD700) would mean a one-off primitive outside the Tailwind ramps every
+   * other colour here comes from, which costs more than the half-step it buys.
+   */
+  favourite: amber[400],
 } as const;
 
 export type ColorToken = keyof typeof colors;
