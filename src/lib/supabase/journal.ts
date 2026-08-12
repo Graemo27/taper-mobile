@@ -117,6 +117,11 @@ export async function listEntries(): Promise<JournalEntry[]> {
     // RLS already restricts this to the owner. Naming the user anyway lets the
     // planner use the (user_id, eaten_on desc) index rather than filtering.
     .eq('user_id', userId)
+    // Bounded at the old end only. `eaten_on` comes from the device clock, so a
+    // phone set ahead writes a row dated tomorrow — and an upper bound would
+    // hide it, permanently, with no history screen or delete to reach it by. A
+    // day heading in front of Today at least says what happened; a saved entry
+    // that never appears reads as the save having failed.
     .gte('eaten_on', windowStart())
     .order('eaten_on', { ascending: false })
     .order('created_at', { ascending: false })
