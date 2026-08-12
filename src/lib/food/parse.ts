@@ -91,17 +91,27 @@ export function parseNutrients(raw: unknown[]): Nutrients {
  *
  * NLEA is the Nutrition Labeling and Education Act, and "1 NLEA serving" means
  * "one serving as that act defines it" — true, and no use to someone deciding
- * what they just ate. It comes both alone and bolted onto something real:
+ * what they just ate.
  *
- *   "1 NLEA serving"                        → ""
- *   "1 NLEA serving - about 4 crackers"     → "about 4 crackers"
+ * FDC nests it inside the modifier's own parentheses, sometimes alongside
+ * something worth keeping, so deleting the phrase alone leaves the brackets and
+ * the separator behind:
  *
- * So the phrase is removed rather than the whole modifier, and the separator it
- * leaves behind goes with it.
+ *   "cup (1 NLEA serving)"                        → "cup"
+ *   "serving (1 NLEA serving - about 4 crackers)" → "serving (about 4 crackers)"
+ *
+ * Hence the tidy-up passes: a parenthetical emptied by the removal goes with it,
+ * and a separator left dangling against a bracket goes too.
  */
 function withoutJargon(modifier: string): string {
   return modifier
-    .replace(/\b\d+(?:\.\d+)?\s*NLEA\s+servings?\b/gi, '')
+    .replace(/\d+(?:\.\d+)?\s*NLEA\s+servings?/gi, '')
+    // A separator now leaning on either bracket belonged to the phrase.
+    .replace(/\(\s*[-–—,;]*\s*/g, '(')
+    .replace(/\s*[-–—,;]*\s*\)/g, ')')
+    // Whatever that leaves empty was only ever holding the phrase.
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s{2,}/g, ' ')
     .replace(/^[\s\-–—,;]+/, '')
     .replace(/[\s\-–—,;]+$/, '')
     .trim();
