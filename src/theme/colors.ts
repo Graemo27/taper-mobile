@@ -7,8 +7,8 @@
  * so there is a sanctioned value to reach for.
  *
  * Light only. The Paper design has no dark palette, and inventing one is real
- * design work rather than a port. The scaffold's light/dark `Colors` in
- * `constants/theme.ts` is separate and goes away with the Expo template.
+ * design work rather than a port — which is why the root layout no longer wraps
+ * the app in a ThemeProvider that would switch to one that does not exist.
  */
 
 /**
