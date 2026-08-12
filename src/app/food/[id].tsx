@@ -100,14 +100,18 @@ export default function FoodDetail() {
   // describe the food; how much of it you logged does not change what it is.
   const claims = food ? highIn(food.per100g) : [];
 
-  const [saveState, setSaveState] = useState<SaveState>('idle');
+  // Keyed like the food above, and for a sharper reason: a save is in flight
+  // across the moment the id can change, so its continuation can land on a
+  // screen now showing something else. Read back through the id, "Saved to
+  // today" can only appear over the food it was written for — an unkeyed reset
+  // does not do this, because the continuation arrives after the reset.
+  const [saved, setSaved] = useState<{ fdcId: number; state: SaveState } | null>(null);
+  const saveState: SaveState = saved?.fdcId === fdcId ? saved.state : 'idle';
 
-  // Also keyed to the id, for the same reason: three servings of one food is
-  // not three of the next, and a "Saved to today" confirmation belongs to the
-  // food it was written for.
+  // Servings need only the reset: nothing lands on them asynchronously. Two
+  // servings of one food is still not two of the next.
   useEffect(() => {
     setServings(MIN_SERVINGS);
-    setSaveState('idle');
   }, [fdcId]);
 
   // Shared with the results list, so a star set here is already showing when
@@ -118,14 +122,14 @@ export default function FoodDetail() {
   // thing to log, so the button goes back to offering that.
   useEffect(() => {
     if (saveState !== 'saved') return;
-    const timer = setTimeout(() => setSaveState('idle'), 2400);
+    const timer = setTimeout(() => setSaved({ fdcId, state: 'idle' }), 2400);
     return () => clearTimeout(timer);
-  }, [saveState]);
+  }, [saveState, fdcId]);
 
   async function save() {
     if (!food || !nutrients) return;
 
-    setSaveState('saving');
+    setSaved({ fdcId, state: 'saving' });
     try {
       await saveEntry({
         food,
@@ -137,11 +141,11 @@ export default function FoodDetail() {
           : `${100 * servings} g`,
         grams: basisGrams * servings,
       });
-      setSaveState('saved');
+      setSaved({ fdcId, state: 'saved' });
     } catch {
       // The wording belongs to the footer. Anything thrown here means the entry
       // did not land, which is all this needs to know.
-      setSaveState('failed');
+      setSaved({ fdcId, state: 'failed' });
     }
   }
 
@@ -214,7 +218,7 @@ export default function FoodDetail() {
               // A confirmation belongs to the amount that was saved. Once the
               // count moves it is describing something that never happened, so
               // it goes rather than sitting there next to a different number.
-              setSaveState('idle');
+              setSaved({ fdcId, state: 'idle' });
             }}
           />
           {/* Before the figures, as the board has it. */}
