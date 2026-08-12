@@ -47,8 +47,12 @@ export function SaveFooter({ state, onSave }: SaveFooterProps) {
         <Text style={styles.label}>{LABEL[state]}</Text>
       </Pressable>
 
+      {/* Names no cause, because this state cannot tell them apart. A missing
+          table, an RLS refusal and a dropped connection all arrive here, and
+          "check your connection" would be a confident wrong answer for two of
+          the three. What the reader can act on is the same either way. */}
       {state === 'failed' && (
-        <Text style={styles.error}>Your entry was not saved. Check your connection.</Text>
+        <Text style={styles.error}>Your entry was not saved. Try again in a moment.</Text>
       )}
     </View>
   );
