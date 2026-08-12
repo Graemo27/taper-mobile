@@ -84,34 +84,64 @@ export interface JournalEntry {
  */
 const WINDOW_DAYS = 30;
 
-/** The oldest day the Journal shows, in the reader's own timezone. */
+/**
+ * The oldest day the Journal shows, in the reader's own timezone.
+ *
+ * `WINDOW_DAYS - 1` because the bound is inclusive and today is one of the
+ * thirty. Subtracting the full thirty returns thirty-one dates, which is not
+ * what the constant above says.
+ */
 function windowStart(): string {
   const at = new Date();
-  at.setDate(at.getDate() - WINDOW_DAYS);
+  at.setDate(at.getDate() - (WINDOW_DAYS - 1));
   return localDate(at);
 }
+
+/**
+ * A backstop against an unbounded read, not the shape of the answer — thirty
+ * days of eating is a couple of hundred rows. The server has its own ceiling
+ * (`db-max-rows`) and the lower of the two wins, which is why nothing below
+ * infers anything from this number.
+ */
+const READ_CAP = 2000;
 
 /** Every entry in the window, newest day first and newest entry within it. */
 export async function listEntries(): Promise<JournalEntry[]> {
   const userId = await ensureSession();
 
-  const { data, error } = await supabase
+  // `count` is what makes truncation detectable: it is the number of rows that
+  // matched, not the number sent back.
+  const { data, error, count } = await supabase
     .from('journal_entries')
-    .select('id, eaten_on, name, serving_label, kcal')
+    .select('id, eaten_on, name, serving_label, kcal', { count: 'exact' })
     // RLS already restricts this to the owner. Naming the user anyway lets the
     // planner use the (user_id, eaten_on desc) index rather than filtering.
     .eq('user_id', userId)
     .gte('eaten_on', windowStart())
     .order('eaten_on', { ascending: false })
     .order('created_at', { ascending: false })
-    // Not the shape of the answer — 30 days of eating is a couple of hundred
-    // rows — but a backstop against an unbounded read if something starts
-    // writing in a loop.
-    .limit(2000);
+    .limit(READ_CAP);
 
   if (error) throw new JournalError('Could not read your journal.');
 
-  return (data ?? []).map((row) => ({
+  const rows = data ?? [];
+
+  // The rows a cap drops are the oldest, so the oldest day that did arrive may
+  // be a fraction of itself — and its heading would confidently count that
+  // fraction. Dropping the day is the honest end to a truncated read: a day
+  // missing from the bottom of a month reads as the window ending, which it is.
+  //
+  // Comparing against `count` rather than against READ_CAP because the cap that
+  // actually applied may have been the server's. Unless every row that arrived
+  // is one day, where dropping it would leave the reader with an empty journal
+  // and no idea why — a possibly short count beats that.
+  const oldest = rows.length > 0 ? rows[rows.length - 1].eaten_on : null;
+  const partial = count !== null && count > rows.length;
+  const whole = partial && rows.some((row) => row.eaten_on !== oldest)
+    ? rows.filter((row) => row.eaten_on !== oldest)
+    : rows;
+
+  return whole.map((row) => ({
     id: row.id as number,
     eatenOn: row.eaten_on as string,
     name: row.name as string,
