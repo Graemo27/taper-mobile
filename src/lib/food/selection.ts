@@ -2,16 +2,13 @@
  * The hand-off between Search and Food detail.
  *
  * Search has already resolved the whole `Food` — name, portions, nutrients —
- * and the Edge Function exposes one route, `POST {query, limit}`, with no
- * fetch-by-id. So detail either re-fetches through a route that does not exist
- * yet, or it is handed the object the previous screen already holds. This is
- * the second.
+ * so handing it over saves a round trip in front of a tap that has nothing left
+ * to fetch. That is all this is now: an optimisation, not the only route.
  *
- * The cost is deliberate and bounded: a cold load of `/food/123` — a reload, or
- * a link from outside the app — has no object to find, and the screen says so
- * rather than rendering an empty shell. Nothing links into this route yet, so
- * the only way to reach that state today is a manual refresh. When deep links
- * matter, the fix is a get-by-id route on the function, not a bigger cache.
+ * A miss is no longer a dead end. `POST {fdcId}` on the function fetches the
+ * food, and Food detail falls through to it — a reload, a link from outside the
+ * app, or a screen that holds an id rather than a food. This stays because the
+ * common path should not pay for the uncommon one.
  *
  * Route params cannot carry this instead: they are strings, and serialising a
  * `Food` through the URL would put a nutrient table in the address bar.

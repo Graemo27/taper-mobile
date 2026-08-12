@@ -11,29 +11,84 @@
  */
 
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HighInCard } from '@/components/high-in-card';
-import { BackChevronIcon } from '@/components/icons';
+import { BackChevronIcon, RetryIcon } from '@/components/icons';
 import { NutritionCard } from '@/components/nutrition-card';
 import { SaveFooter, type SaveState } from '@/components/save-footer';
 import { MAX_SERVINGS, MIN_SERVINGS, ServingCard } from '@/components/serving-card';
 import { highIn } from '@/lib/food/claims';
 import { servingSummary } from '@/lib/food/format';
 import { scaleTo } from '@/lib/food/parse';
+import { fetchFood, FoodSearchError } from '@/lib/supabase/food-search';
 import { toggleFavourite, useFavourites } from '@/lib/supabase/favourites';
 import { saveEntry } from '@/lib/supabase/journal';
 import { selectedFood } from '@/lib/food/selection';
-import { colors, fontFamily, fontSize, letterSpacing, spacing, tracking } from '@/theme';
+import type { Food } from '@/lib/food/types';
+import { colors, fontFamily, fontSize, letterSpacing, radius, spacing, tracking } from '@/theme';
 
 const CAPTION =
   'USDA values, scaled from one standard serving. What you actually ate will vary — this is the shape of the thing, not a measurement.';
 
+/**
+ * Where the food came from. `held` covers both hand-off and a finished lookup —
+ * by then they are the same object from the same source, and the screen has no
+ * reason to render them differently.
+ */
+type Lookup = 'held' | 'looking' | 'missing' | 'failed';
+
 export default function FoodDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const food = selectedFood(Number(id));
+  const fdcId = Number(id);
+
+  // Handed over by Search when it is there, fetched when it is not — a reload,
+  // or a link from outside the app. The hand-off is kept rather than replaced
+  // by the fetch: Search has already resolved the whole food, and asking again
+  // for what is in memory would put a round trip in front of every tap.
+  const handed = selectedFood(fdcId);
+
+  // Both carry the id they belong to, and both are read back through it. The
+  // screen can outlive the id in its own URL — the router updates params for a
+  // navigation it can serve from a screen already mounted — and a food fetched
+  // for the previous id is not an answer for this one. Without the key it would
+  // render as though it were, and Save would write it: the wrong food, under
+  // the right heading.
+  //
+  // It also settles the stale reply, which needs no separate guard. A request
+  // in flight when the id changes resolves against the id it asked for, so what
+  // it writes no longer matches what is being read.
+  const [fetched, setFetched] = useState<{ fdcId: number; food: Food } | null>(null);
+  const [lookup, setLookup] = useState<{ fdcId: number; state: Lookup } | null>(null);
+
+  const food = handed ?? (fetched?.fdcId === fdcId ? fetched.food : null);
+  const state: Lookup = handed ? 'held' : lookup?.fdcId === fdcId ? lookup.state : 'looking';
+
+  const look = useCallback(() => {
+    setLookup({ fdcId, state: 'looking' });
+
+    fetchFood(fdcId)
+      .then((result) => {
+        setFetched({ fdcId, food: result });
+        setLookup({ fdcId, state: 'held' });
+      })
+      // A food FDC will not serve is an answer, not an outage, and Try again
+      // would ask the same question forever. The two states differ by what
+      // they offer, so they are told apart here rather than in the render.
+      .catch((error) =>
+        setLookup({
+          fdcId,
+          state: error instanceof FoodSearchError && error.status === 404 ? 'missing' : 'failed',
+        }),
+      );
+  }, [fdcId]);
+
+  useEffect(() => {
+    if (!handed && !food) look();
+  }, [handed, food, look]);
+
   const [servings, setServings] = useState(MIN_SERVINGS);
 
   // Scaled from per-100g rather than by multiplying `perServing`, so the
@@ -45,7 +100,19 @@ export default function FoodDetail() {
   // describe the food; how much of it you logged does not change what it is.
   const claims = food ? highIn(food.per100g) : [];
 
-  const [saveState, setSaveState] = useState<SaveState>('idle');
+  // Keyed like the food above, and for a sharper reason: a save is in flight
+  // across the moment the id can change, so its continuation can land on a
+  // screen now showing something else. Read back through the id, "Saved to
+  // today" can only appear over the food it was written for — an unkeyed reset
+  // does not do this, because the continuation arrives after the reset.
+  const [saved, setSaved] = useState<{ fdcId: number; state: SaveState } | null>(null);
+  const saveState: SaveState = saved?.fdcId === fdcId ? saved.state : 'idle';
+
+  // Servings need only the reset: nothing lands on them asynchronously. Two
+  // servings of one food is still not two of the next.
+  useEffect(() => {
+    setServings(MIN_SERVINGS);
+  }, [fdcId]);
 
   // Shared with the results list, so a star set here is already showing when
   // you go back. Reading the store is what fills it.
@@ -55,14 +122,14 @@ export default function FoodDetail() {
   // thing to log, so the button goes back to offering that.
   useEffect(() => {
     if (saveState !== 'saved') return;
-    const timer = setTimeout(() => setSaveState('idle'), 2400);
+    const timer = setTimeout(() => setSaved({ fdcId, state: 'idle' }), 2400);
     return () => clearTimeout(timer);
-  }, [saveState]);
+  }, [saveState, fdcId]);
 
   async function save() {
     if (!food || !nutrients) return;
 
-    setSaveState('saving');
+    setSaved({ fdcId, state: 'saving' });
     try {
       await saveEntry({
         food,
@@ -74,11 +141,11 @@ export default function FoodDetail() {
           : `${100 * servings} g`,
         grams: basisGrams * servings,
       });
-      setSaveState('saved');
+      setSaved({ fdcId, state: 'saved' });
     } catch {
       // The wording belongs to the footer. Anything thrown here means the entry
       // did not land, which is all this needs to know.
-      setSaveState('failed');
+      setSaved({ fdcId, state: 'failed' });
     }
   }
 
@@ -103,11 +170,38 @@ export default function FoodDetail() {
       </View>
 
       {food === null || nutrients === null ? (
-        // A cold load with nothing handed over. Naming the cause beats an empty
-        // shell that looks like a food with no data in it.
+        // Nothing to render yet, which is now three different situations. Each
+        // says which one it is, rather than one shell that could mean any.
         <View style={styles.content}>
-          <Text style={styles.missing}>This food is no longer loaded.</Text>
-          <Text style={styles.missingBody}>Search for it again to see its detail.</Text>
+          {state === 'looking' && <Text style={styles.missing}>Looking up this food…</Text>}
+
+          {state === 'missing' && (
+            <>
+              <Text style={styles.missing}>That food could not be found.</Text>
+              {/* Names no cause, because this state cannot tell them apart: a
+                  food USDA has withdrawn and a hand-typed `/food/abc` both land
+                  here, and "USDA no longer serves it" is a confident wrong
+                  answer for the second. */}
+              <Text style={styles.missingBody}>Search for it again to see its detail.</Text>
+            </>
+          )}
+
+          {state === 'failed' && (
+            <>
+              <Text style={styles.missing}>Could not open this food.</Text>
+              <Text style={styles.missingBody}>Nothing is wrong with your entry. Try again.</Text>
+
+              <Pressable
+                onPress={look}
+                style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Try opening this food again"
+              >
+                <RetryIcon />
+                <Text style={styles.retryLabel}>Try again</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       ) : (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -124,7 +218,7 @@ export default function FoodDetail() {
               // A confirmation belongs to the amount that was saved. Once the
               // count moves it is describing something that never happened, so
               // it goes rather than sitting there next to a different number.
-              setSaveState('idle');
+              setSaved({ fdcId, state: 'idle' });
             }}
           />
           {/* Before the figures, as the board has it. */}
@@ -198,5 +292,24 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     lineHeight: 20,
     color: colors.textSecondary,
+  },
+  // The Journal's retry, to the pixel — the same control doing the same job on
+  // a second screen should not be a second shape.
+  retry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing['2'],
+    marginTop: spacing['2'],
+    paddingVertical: spacing['3'],
+    paddingHorizontal: spacing['5'],
+    borderRadius: radius.full,
+    backgroundColor: colors.brand,
+  },
+  retryLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.sm,
+    lineHeight: 18,
+    color: colors.onBrand,
   },
 });
