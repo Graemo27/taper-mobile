@@ -4,6 +4,7 @@ import { Geist_600SemiBold } from '@expo-google-fonts/geist/600SemiBold';
 import { Geist_700Bold } from '@expo-google-fonts/geist/700Bold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
@@ -37,7 +38,9 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <>
+    // Gestures are inert outside this — the journal's swipe-to-remove simply
+    // does not fire without it, which is a silent failure rather than an error.
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <AnimatedSplashOverlay />
       {/*
         A stack, not tabs. The design has one home and pushes Search and Food
@@ -54,6 +57,6 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.background },
         }}
       />
-    </>
+    </GestureHandlerRootView>
   );
 }

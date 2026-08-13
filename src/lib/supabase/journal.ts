@@ -63,6 +63,30 @@ export async function saveEntry(draft: JournalDraft): Promise<void> {
   if (error) throw new JournalError('Could not save to your journal.');
 }
 
+/**
+ * Deletes one entry.
+ *
+ * The id is enough: the delete policy scopes it to the owner, so a request for
+ * someone else's row matches nothing rather than removing it. Naming the user
+ * here as well would read as the security boundary, which it is not.
+ *
+ * Nothing is returned. A delete that matches no row is not an error to a
+ * reader — the row is gone either way, which is what they asked for.
+ */
+export async function removeEntry(id: number): Promise<void> {
+  const userId = await ensureSession();
+
+  const { error } = await supabase
+    .from('journal_entries')
+    .delete()
+    .eq('id', id)
+    // Redundant against RLS, but it lets the planner use the index rather than
+    // scanning, the same reason the read names the user.
+    .eq('user_id', userId);
+
+  if (error) throw new JournalError('Could not remove that entry.');
+}
+
 export interface JournalEntry {
   id: number;
   /** `YYYY-MM-DD` in the reader's own timezone, as it was written. */

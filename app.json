@@ -1,14 +1,15 @@
 {
   "expo": {
-    "name": ".expo-tmp",
-    "slug": ".expo-tmp",
+    "name": "Food Pad",
+    "slug": "food-pad",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "expotmp",
+    "scheme": "foodpad",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.graemkrietzman.foodpad"
     },
     "android": {
       "adaptiveIcon": {
