@@ -44,6 +44,17 @@ export default function Journal() {
   /** The food whose removal failed, named so the message is about that row. */
   const [failedRemoval, setFailedRemoval] = useState<string | null>(null);
 
+  /**
+   * Entries removed here, which a read may not know about yet.
+   *
+   * A read issued before a delete still answers with the row it deleted, and
+   * that answer can land afterwards — measured at a 2.9s gap between the 204
+   * and the stale reply. Without this the row returns to the screen while the
+   * database says it is gone, which is the one state neither the reader nor a
+   * later read can explain. Ids leave the set only when a delete fails.
+   */
+  const removed = useRef(new Set<number>());
+
   // Returning to this screen runs the focus effect several times over — the
   // navigation state settles across renders and each one re-runs it. Measured
   // at five reads for one return, and the first attempt at guarding this with a
@@ -62,7 +73,7 @@ export default function Journal() {
 
     listEntries()
       .then((rows) => {
-        setEntries(rows);
+        setEntries(rows.filter((row) => !removed.current.has(row.id)));
         setStatus('ready');
       })
       .catch(() => setStatus('failed'))
@@ -100,9 +111,13 @@ export default function Journal() {
   function remove(entry: JournalEntry) {
     // A previous failure is about a row that is no longer what is happening.
     setFailedRemoval(null);
+    removed.current.add(entry.id);
     setEntries((current) => current.filter((row) => row.id !== entry.id));
 
     void removeEntry(entry.id).catch(() => {
+      // It is still there, so it is no longer something to filter out — and the
+      // read below is what puts it back where it belongs.
+      removed.current.delete(entry.id);
       setFailedRemoval(entry.name);
       load();
     });
