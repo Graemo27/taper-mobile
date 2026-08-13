@@ -1,0 +1,36 @@
+name: FoodPad
+options:
+  bundleIdPrefix: com.graemkrietzman
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    TARGETED_DEVICE_FAMILY: "1"
+targets:
+  FoodPad:
+    type: application
+    platform: iOS
+    sources: [FoodPad]
+    info:
+      path: FoodPad/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Food Pad
+        UIUserInterfaceStyle: Light
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIAppFonts:
+          - Geist-Regular.ttf
+          - Geist-Medium.ttf
+          - Geist-SemiBold.ttf
+          - Geist-Bold.ttf
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.graemkrietzman.foodpad
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+schemes:
+  FoodPad:
+    build:
+      targets:
+        FoodPad: all
