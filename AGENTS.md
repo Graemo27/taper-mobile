@@ -25,8 +25,8 @@ review. **They are ported code's problem, not React Native's** — read
 
 - **400-line diff cap per PR, deletions included.** Propose a split with line estimates and
   let Graem pick. One PR at a time — wait for merge before cutting the next.
-- **Fix or argue down every CodeRabbit and Conductor GPT comment before merging.** A rejected
-  finding with its reasoning gets filed too.
+- **Fix or argue down every CodeRabbit and Conductor GPT comment before merging.** When
+  practice-wiki maintenance is requested, retain a rejected finding and its reasoning too.
 - **Semantic design tokens only** at call sites — never a raw hex or a primitive ramp step.
   Light theme only; the design has no dark palette.
 - **Verification is running, not building.** A PR that compiles and has not been driven is

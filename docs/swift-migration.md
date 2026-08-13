@@ -113,8 +113,8 @@ twice.
 
 **Fix every CodeRabbit and Conductor GPT review comment before merging** — or argue it down
 in writing. A rejected finding with its reasoning is worth as much as an accepted one, and
-both get filed. See `an-upper-date-bound-hides-a-real-entry` for what a good rejection looks
-like.
+when practice-wiki maintenance is in scope, retain both. See
+`an-upper-date-bound-hides-a-real-entry` for what a good rejection looks like.
 
 **Style with semantic tokens only.** Never a raw hex value, never a primitive ramp step, at a
 call site. §5 covers the token port.
