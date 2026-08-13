@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0F242662FEF4425A8B70DAB3 /* Geist-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */; };
+		18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D9E31533522E624522033B /* FoodPadTests.swift */; };
+		292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */; };
 		2C46EF3A0D0CC8B2949422CC /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */; };
 		AAF65A9B72EA866D5F305C29 /* Geist-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */; };
 		BDD6080C45C777D07880DFB3 /* Geist-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 437903947F46E0547A55FF96 /* Geist-Medium.ttf */; };
@@ -15,13 +17,34 @@
 		D0037DC754B53BC174ECD9E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C31D44570D65A30DA3894B57 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		8E4D83BA6022D2E9A4336931 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F5B86F1F8BC3F1199B6208CD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 46E202CB129D0EF5941B2BC4;
+			remoteInfo = FoodPad;
+		};
+		B064CBD1EEC6811B8EAE08EB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F5B86F1F8BC3F1199B6208CD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 46E202CB129D0EF5941B2BC4;
+			remoteInfo = FoodPad;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-SemiBold.ttf"; sourceTree = "<group>"; };
+		40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		437903947F46E0547A55FF96 /* Geist-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Medium.ttf"; sourceTree = "<group>"; };
 		641EBD2D07391AFC013D190A /* FoodPad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FoodPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		83D9E31533522E624522033B /* FoodPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadTests.swift; sourceTree = "<group>"; };
+		8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadUITests.swift; sourceTree = "<group>"; };
 		A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Bold.ttf"; sourceTree = "<group>"; };
 		AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Regular.ttf"; sourceTree = "<group>"; };
 		C31D44570D65A30DA3894B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DDC19326A66CBE51045F2AF1 /* FoodPadUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E0CCB921382D89E669683C0C /* FoodPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadApp.swift; sourceTree = "<group>"; };
 		FAF99AB6C54C7615DDBB6218 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -31,8 +54,18 @@
 			isa = PBXGroup;
 			children = (
 				641EBD2D07391AFC013D190A /* FoodPad.app */,
+				40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */,
+				DDC19326A66CBE51045F2AF1 /* FoodPadUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4644E4C524382D66DA811090 /* FoodPadUITests */ = {
+			isa = PBXGroup;
+			children = (
+				8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */,
+			);
+			path = FoodPadUITests;
 			sourceTree = "<group>";
 		};
 		46904BF135E19DD98338E8E6 /* App */ = {
@@ -47,6 +80,8 @@
 			isa = PBXGroup;
 			children = (
 				B43E0FF010A3063E77A28857 /* FoodPad */,
+				D9563819279D1CB32B3EB765 /* FoodPadTests */,
+				4644E4C524382D66DA811090 /* FoodPadUITests */,
 				32352F7610F3ECC09D950AEE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -81,7 +116,15 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		"TEMP_CE89D557-1B34-4610-A8D7-6355FE94092D" /* Features */ = {
+		D9563819279D1CB32B3EB765 /* FoodPadTests */ = {
+			isa = PBXGroup;
+			children = (
+				83D9E31533522E624522033B /* FoodPadTests.swift */,
+			);
+			path = FoodPadTests;
+			sourceTree = "<group>";
+		};
+		"TEMP_DA7B7A5F-F9A5-41B7-B19F-A1B05A4F58DD" /* Features */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -109,6 +152,42 @@
 			productReference = 641EBD2D07391AFC013D190A /* FoodPad.app */;
 			productType = "com.apple.product-type.application";
 		};
+		50F7707B1F0E0041252E56B4 /* FoodPadTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1E544EF04C92870A050B3BC1 /* Build configuration list for PBXNativeTarget "FoodPadTests" */;
+			buildPhases = (
+				244C346BA47472731FE3B681 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA63B6B13E7B5CD72C0CC2CB /* PBXTargetDependency */,
+			);
+			name = FoodPadTests;
+			packageProductDependencies = (
+			);
+			productName = FoodPadTests;
+			productReference = 40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DD439CBBA878760524415079 /* FoodPadUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 83C573D760152068EC5902B7 /* Build configuration list for PBXNativeTarget "FoodPadUITests" */;
+			buildPhases = (
+				9584D2113F4C7C70B3408E94 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8C4225D83A36555C0626FDEA /* PBXTargetDependency */,
+			);
+			name = FoodPadUITests;
+			packageProductDependencies = (
+			);
+			productName = FoodPadUITests;
+			productReference = DDC19326A66CBE51045F2AF1 /* FoodPadUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -118,6 +197,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					DD439CBBA878760524415079 = {
+						TestTargetID = 46E202CB129D0EF5941B2BC4;
+					};
 				};
 			};
 			buildConfigurationList = E4A3C1A3B234212661963AA8 /* Build configuration list for PBXProject "FoodPad" */;
@@ -135,6 +217,8 @@
 			projectRoot = "";
 			targets = (
 				46E202CB129D0EF5941B2BC4 /* FoodPad */,
+				DD439CBBA878760524415079 /* FoodPadUITests */,
+				50F7707B1F0E0041252E56B4 /* FoodPadTests */,
 			);
 		};
 /* End PBXProject section */
@@ -155,6 +239,22 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		244C346BA47472731FE3B681 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9584D2113F4C7C70B3408E94 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B3766E699CCA0A09ACD19BAF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -164,6 +264,19 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8C4225D83A36555C0626FDEA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 46E202CB129D0EF5941B2BC4 /* FoodPad */;
+			targetProxy = 8E4D83BA6022D2E9A4336931 /* PBXContainerItemProxy */;
+		};
+		EA63B6B13E7B5CD72C0CC2CB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 46E202CB129D0EF5941B2BC4 /* FoodPad */;
+			targetProxy = B064CBD1EEC6811B8EAE08EB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		119AE4C0B5A38AB11F76DF89 /* Release */ = {
@@ -179,6 +292,23 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.graemkrietzman.foodpad;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		1D9D5F93FFD909D7EB416126 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.graemkrietzman.FoodPadUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = FoodPad;
 			};
 			name = Release;
 		};
@@ -238,6 +368,23 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
+		};
+		4C40DEB67226D3FF1130B539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.graemkrietzman.FoodPadUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = FoodPad;
+			};
+			name = Debug;
 		};
 		60816BA6A467620B0CFE2F92 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -319,14 +466,66 @@
 			};
 			name = Debug;
 		};
+		D91D6F29B445A897CF6A5D16 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.graemkrietzman.FoodPadTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FoodPad.app/FoodPad";
+			};
+			name = Debug;
+		};
+		ED9405A8CEA73FA185BF7313 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.graemkrietzman.FoodPadTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FoodPad.app/FoodPad";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1E544EF04C92870A050B3BC1 /* Build configuration list for PBXNativeTarget "FoodPadTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D91D6F29B445A897CF6A5D16 /* Debug */,
+				ED9405A8CEA73FA185BF7313 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		7DCE918E72890EA5A92337F3 /* Build configuration list for PBXNativeTarget "FoodPad" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				988E864889F45B62AA7AE93E /* Debug */,
 				119AE4C0B5A38AB11F76DF89 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		83C573D760152068EC5902B7 /* Build configuration list for PBXNativeTarget "FoodPadUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C40DEB67226D3FF1130B539 /* Debug */,
+				1D9D5F93FFD909D7EB416126 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
