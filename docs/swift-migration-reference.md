@@ -38,7 +38,8 @@ response exists, such as a connection, cancellation, or URL-loading failure. Hig
 must retain the status when mapping responses to domain and UI states, so a 404 can become
 not-found without a retry control.
 
-The live implementation reads launch arguments and honours them:
+**Step 1 fault-injection acceptance criteria:** implement launch-argument parsing and an
+`HTTPClient` transport that honours this contract:
 
 | Argument | Effect |
 |---|---|
@@ -57,6 +58,10 @@ the scope changes only the delay and does not fail or rewrite a response. For th
 after-delete test, match a query fragment unique to the journal read rather than the table
 path shared by the read and delete. A global delay cannot express "a read that was already
 in flight when the delete started", which is the exact scenario that matters.
+
+Before Step 1 is complete, tests must prove argument parsing, delayed-response timing, a
+matching scoped URL, and a nonmatching URL that remains undelayed. Run those checks against
+an implementation with each behavior disabled first so red is demonstrated.
 
 **Accessibility identifiers on every interactive element and every state container, from the
 first commit.** The accessibility tree is the DOM analogue and the only thing XCUITest can

@@ -77,8 +77,9 @@ matter for this task specifically:
 - The vault's `AGENTS.md` names the repo as `~/Documents/GraemOS/food-pad`. **This work may
   be happening in a different checkout** — confirm the path you are in rather than assuming.
 
-Filing is not part of the migration PRs. Do it when Graem asks, or when a task explicitly
-includes it.
+Filing and resolving the vault's open swipe-defect page are required only when Graem asks or
+the active task explicitly includes maintaining the practice wiki. They are not migration PR
+completion gates otherwise.
 
 ---
 
@@ -190,8 +191,10 @@ tree *and* from the database.
 
 ### Test data hygiene
 
-Tests write to the production database. Delete every row you create, by id, after each cycle,
-and say so in the PR. Never issue a bulk delete (§3).
+End-to-end tests use the existing backend through a dedicated anonymous test session; RLS
+keeps that session's rows invisible to other users. Record every created row id immediately,
+delete those ids in teardown and again at the next run's startup if teardown was interrupted,
+and say what was cleaned up in the PR. Never issue a bulk delete (§3).
 
 ---
 
@@ -268,9 +271,9 @@ If M2 work seems necessary to complete a parity task, it is not. Ask.
       the database
 - [ ] Graem has run it on his phone and confirmed parity
 - [ ] The React Native app is deleted; `supabase/` is untouched
-- [ ] Any defect found along the way is filed in `wiki/practice/` with `caught-by: codex`
-- [ ] `the-swipe-gesture-cannot-be-driven-by-the-harness` is updated from `open` to resolved,
-      with the XCUITest as the evidence
+- [ ] If Graem requested practice-wiki maintenance, qualifying defects are filed with
+      `caught-by: codex`, and `the-swipe-gesture-cannot-be-driven-by-the-harness` is updated
+      from `open` to resolved with the XCUITest as evidence
 
 ---
 

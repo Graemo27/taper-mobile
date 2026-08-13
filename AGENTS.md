@@ -14,6 +14,9 @@ product is shaped this way) and **practice** (every merged PR, every confirmed d
 the classes they fall into). Its own `AGENTS.md` is the entry point and governs how to read
 and write it.
 
+If the vault is unavailable, report the missing historical context and continue without
+inventing or assuming its contents.
+
 Fifteen defects from the last five PRs are filed there with the reason each one survived
 review. **They are ported code's problem, not React Native's** — read
 `wiki/practice/synthesis.md` before designing anything async, bounded, or stateful.
