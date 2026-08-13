@@ -33,6 +33,11 @@ protocol HTTPClient {
 }
 ```
 
+Return every received HTTP response, including 4xx and 5xx statuses. Throw only when no HTTP
+response exists, such as a connection, cancellation, or URL-loading failure. Higher layers
+must retain the status when mapping responses to domain and UI states, so a 404 can become
+not-found without a retry control.
+
 The live implementation reads launch arguments and honours them:
 
 | Argument | Effect |
@@ -68,11 +73,12 @@ The app talks to Supabase over PostgREST and to one Edge Function. Use the offic
 `supabase-swift` package and state the reasoning in the foundation PR. Keep fault injection
 at the transport boundary by giving it a custom `URLSession` configuration.
 
-Whatever you choose, **anonymous auth must self-heal.** An access token stays
-cryptographically valid for about an hour after the user row is deleted; the refresh then
-fails with a 400 and "Invalid Refresh Token". The current client signs in fresh when that
-happens rather than presenting an error. Reproduce that behaviour — it is the difference
-between a phone that recovers silently and one that is permanently broken.
+**Anonymous auth must self-heal.** An access token stays cryptographically valid for about
+an hour after the user row is deleted; the refresh then fails with a 400 and "Invalid Refresh
+Token". On that exact response, clear the persisted stale credentials, coalesce concurrent
+recovery behind one fresh anonymous sign-in, and retry the original operation exactly once.
+If sign-in or that retry fails, surface the normal typed failure; never loop and never reuse
+the stale credentials.
 
 ---
 
