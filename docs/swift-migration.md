@@ -154,7 +154,8 @@ defect class in the project's history is verification that reported success on b
 - `xcrun simctl spawn <udid> log stream` — runtime logging
 - **XCUITest** — the accessibility tree is the DOM analogue, and unlike the old web harness
   it drives the real binary
-- Launch-argument fault injection (§4.2) for every failure and race case
+- Launch-argument fault injection (§4.2) for every failure and race case; use
+  `-FPDelayURL` whenever only one side of a race may be delayed
 
 ### Four rules, each of which exists because it was violated
 
