@@ -13,23 +13,22 @@ final class FoodPadTests: XCTestCase {
         XCTAssertEqual(data, Data("missing".utf8))
     }
 
-    func testGlobalResponseDelayParses() {
-        let faults = LaunchFaults(arguments: ["FoodPad", "-FPDelay", "0.05"])
-        XCTAssertEqual(faults.delay(for: URL(string: "https://example.com/foods")), 0.05)
-    }
+    func testFaultTransportDelaysOnlyMatchingResponse() async throws {
+        let client = URLSessionHTTPClient(session: NetworkSession.live())
+        let arguments = ["FoodPad", "-FPDelay", "0.15", "-FPDelayURL", "select=journal"]
 
-    func testScopedResponseDelayMatchesURL() {
-        let faults = LaunchFaults(arguments: [
-            "FoodPad", "-FPDelay", "0.05", "-FPDelayURL", "select=journal",
-        ])
-        XCTAssertEqual(faults.delay(for: URL(string: "https://example.com?select=journal")), 0.05)
-    }
+        func duration(for url: URL) async throws -> Duration {
+            let request = FaultInjectingURLProtocol.stubbedRequest(url: url, arguments: arguments)
+            let start = ContinuousClock.now
+            _ = try await client.send(request)
+            return start.duration(to: .now)
+        }
 
-    func testScopedResponseDelayLeavesOtherURLsUndelayed() {
-        let faults = LaunchFaults(arguments: [
-            "FoodPad", "-FPDelay", "0.05", "-FPDelayURL", "select=journal",
-        ])
-        XCTAssertEqual(faults.delay(for: URL(string: "https://example.com?id=eq.1")), 0)
+        let nonmatching = try await duration(for: URL(string: "https://example.com?id=eq.1")!)
+        let matching = try await duration(for: URL(string: "https://example.com?select=journal")!)
+
+        XCTAssertGreaterThanOrEqual(matching, .milliseconds(120))
+        XCTAssertGreaterThanOrEqual(matching - nonmatching, .milliseconds(100))
     }
 
     func testFailureAndStatusArgumentsParse() {
@@ -38,17 +37,6 @@ final class FoodPadTests: XCTestCase {
         ])
         XCTAssertEqual(faults.failingURLSubstring, "food-search")
         XCTAssertEqual(faults.status, 404)
-    }
-
-    func testResponseDeliveryWaitsForConfiguredDelay() {
-        let delivered = expectation(description: "response delivered")
-        let start = ContinuousClock.now
-        let loading = LoadingGate()
-
-        loading.schedule(after: 0.05) { delivered.fulfill() }
-
-        wait(for: [delivered], timeout: 0.2)
-        XCTAssertGreaterThanOrEqual(start.duration(to: .now), .milliseconds(40))
     }
 
     func testCancellationStopsDelayedDelivery() {

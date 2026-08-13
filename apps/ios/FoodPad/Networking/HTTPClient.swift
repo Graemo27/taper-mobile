@@ -89,9 +89,18 @@ final class LoadingGate: @unchecked Sendable {
     }
 }
 
-private final class FaultInjectingURLProtocol: URLProtocol, @unchecked Sendable {
+final class FaultInjectingURLProtocol: URLProtocol, @unchecked Sendable {
+    private static let argumentsKey = "FoodPad.faultArguments"
+    private static let stubKey = "FoodPad.stubResponse"
     private var transportTask: URLSessionDataTask?
     private let loading = LoadingGate()
+
+    static func stubbedRequest(url: URL, arguments: [String]) -> URLRequest {
+        let request = NSMutableURLRequest(url: url)
+        URLProtocol.setProperty(arguments, forKey: argumentsKey, in: request)
+        URLProtocol.setProperty(true, forKey: stubKey, in: request)
+        return request as URLRequest
+    }
 
     override class func canInit(with request: URLRequest) -> Bool {
         ["http", "https"].contains(request.url?.scheme?.lowercased() ?? "")
@@ -100,17 +109,33 @@ private final class FaultInjectingURLProtocol: URLProtocol, @unchecked Sendable 
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        let faults = LaunchFaults()
+        let arguments = URLProtocol.property(forKey: Self.argumentsKey, in: request) as? [String]
+        let faults = LaunchFaults(arguments: arguments ?? ProcessInfo.processInfo.arguments)
         if let substring = faults.failingURLSubstring,
            request.url?.absoluteString.contains(substring) == true {
             client?.urlProtocol(self, didFailWithError: URLError(.cannotConnectToHost))
             return
         }
 
+        if URLProtocol.property(forKey: Self.stubKey, in: request) as? Bool == true {
+            let response = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+            )!
+            deliver(Data("stub".utf8), response: response, error: nil, faults: faults)
+            return
+        }
+
         transportTask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            self?.deliver(data, response: response, error: error, faults: faults)
+        }
+        transportTask?.resume()
+    }
+
+    private func deliver(
+        _ data: Data?, response: URLResponse?, error: Error?, faults: LaunchFaults
+    ) {
+        let finish: @Sendable () -> Void = { [weak self] in
             guard let self else { return }
-            let finish: @Sendable () -> Void = { [weak self] in
-                guard let self else { return }
                 if let error {
                     self.loading.performIfActive {
                         self.client?.urlProtocol(self, didFailWithError: error)
@@ -139,13 +164,10 @@ private final class FaultInjectingURLProtocol: URLProtocol, @unchecked Sendable 
                     self.loading.performIfActive { self.client?.urlProtocol(self, didLoad: data) }
                 }
                 self.loading.performIfActive { self.client?.urlProtocolDidFinishLoading(self) }
-            }
-
-            // The real response has arrived; delaying here preserves the stale-response ordering.
-            let delay = faults.delay(for: self.request.url)
-            self.loading.schedule(after: delay, finish)
         }
-        transportTask?.resume()
+
+        // The response has arrived; delaying here preserves the stale-response ordering.
+        loading.schedule(after: faults.delay(for: request.url), finish)
     }
 
     override func stopLoading() {
