@@ -29,8 +29,31 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.graemkrietzman.foodpad
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
+  FoodPadUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [FoodPadUITests]
+    dependencies:
+      - target: FoodPad
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1"
+  FoodPadTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [FoodPadTests]
+    dependencies:
+      - target: FoodPad
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   FoodPad:
     build:
       targets:
         FoodPad: all
+        FoodPadTests: [test]
+        FoodPadUITests: [test]
+    test:
+      targets: [FoodPadTests, FoodPadUITests]
