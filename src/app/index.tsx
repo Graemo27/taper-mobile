@@ -24,7 +24,7 @@ import { RetryIcon } from '@/components/icons';
 import { JournalDay } from '@/components/journal-day';
 import { PlusIcon } from '@/components/plus-icon';
 import { byDay, dayHeading, localDate, thingCount } from '@/lib/journal/days';
-import { listEntries, type JournalEntry } from '@/lib/supabase/journal';
+import { listEntries, removeEntry, type JournalEntry } from '@/lib/supabase/journal';
 import {
   colors,
   fontFamily,
@@ -40,6 +40,9 @@ type Status = 'loading' | 'ready' | 'failed';
 export default function Journal() {
   const [status, setStatus] = useState<Status>('loading');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+
+  /** The food whose removal failed, named so the message is about that row. */
+  const [failedRemoval, setFailedRemoval] = useState<string | null>(null);
 
   // Returning to this screen runs the focus effect several times over — the
   // navigation state settles across renders and each one re-runs it. Measured
@@ -84,6 +87,27 @@ export default function Journal() {
     return () => clearTimeout(timer);
   }, [today]);
 
+  /**
+   * Optimistic, like the favourite star: the row goes at once and comes back if
+   * the delete fails. Waiting on a round trip to remove something you have
+   * already decided about is the worse trade, and a reappearing row says what
+   * happened more plainly than a spinner on a row you meant to be rid of.
+   *
+   * Restored by re-reading rather than by splicing the old row back in: the
+   * position it held depends on the whole day, and the read is the thing that
+   * knows.
+   */
+  function remove(entry: JournalEntry) {
+    // A previous failure is about a row that is no longer what is happening.
+    setFailedRemoval(null);
+    setEntries((current) => current.filter((row) => row.id !== entry.id));
+
+    void removeEntry(entry.id).catch(() => {
+      setFailedRemoval(entry.name);
+      load();
+    });
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -94,8 +118,17 @@ export default function Journal() {
             count={thingCount(day.entries.length)}
             entries={day.entries}
             after={index > 0}
+            onRemove={remove}
           />
         ))}
+
+        {/* The row came back on its own; this says why, and names which one so
+            a reader who removed two things knows which of them stayed. */}
+        {failedRemoval !== null && (
+          <Text style={styles.removalFailed}>
+            {failedRemoval} is still here — removing it did not go through.
+          </Text>
+        )}
 
         {/* Only before there is anything to look at. A refresh behind a list
             already on screen is not worth replacing that list with bars. */}
@@ -187,6 +220,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: letterSpacing(fontSize.lg, tracking.tight),
     color: colors.textPrimary,
+  },
+  removalFailed: {
+    fontFamily: fontFamily.normal,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+    color: colors.error,
+    paddingTop: spacing['1'],
   },
   blockBody: {
     fontFamily: fontFamily.normal,

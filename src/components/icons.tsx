@@ -131,6 +131,26 @@ export function StarIcon({
   );
 }
 
+/**
+ * Removing an entry. Red is doing system work again — this is a destructive
+ * action, not a judgement about the food, which is the line status colour is
+ * not allowed to cross in this app.
+ */
+export function TrashIcon({ size = 18, color = colors.onError }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 18 18">
+      <Path
+        d="M2.5 4.5h13M7 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4.5 4.5l.8 10a1 1 0 0 0 1 .9h5.4a1 1 0 0 0 1-.9l.8-10"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /** Points right. The row affordance, not a control — rows carry their own press. */
 export function ChevronIcon({ size = 14, color = colors.textSecondary }: IconProps) {
   return (
