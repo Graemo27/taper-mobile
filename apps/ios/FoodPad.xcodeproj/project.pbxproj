@@ -10,14 +10,18 @@
 		0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658D2B2C9A136C07991D21 /* DesignTokens.swift */; };
 		0F242662FEF4425A8B70DAB3 /* Geist-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */; };
 		18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D9E31533522E624522033B /* FoodPadTests.swift */; };
+		1E93BFCDBB684072CBB53D44 /* JournalRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946066BE85C0B33AD1D253CA /* JournalRepository.swift */; };
 		292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */; };
 		2C46EF3A0D0CC8B2949422CC /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */; };
+		A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */; };
 		AAF65A9B72EA866D5F305C29 /* Geist-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */; };
 		BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */; };
 		BDD6080C45C777D07880DFB3 /* Geist-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 437903947F46E0547A55FF96 /* Geist-Medium.ttf */; };
 		C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CCB921382D89E669683C0C /* FoodPadApp.swift */; };
 		CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9533148B383912C0BCE0B0 /* JournalShellView.swift */; };
 		D0037DC754B53BC174ECD9E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C31D44570D65A30DA3894B57 /* Assets.xcassets */; };
+		E29D2780B1DD86E0C4847DF0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 55AC15C90E021EE096518756 /* Supabase */; };
+		F3F9B10CD505FCE1DB379D4B /* JournalDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,14 +50,28 @@
 		641EBD2D07391AFC013D190A /* FoodPad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FoodPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83D9E31533522E624522033B /* FoodPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadTests.swift; sourceTree = "<group>"; };
 		8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadUITests.swift; sourceTree = "<group>"; };
+		946066BE85C0B33AD1D253CA /* JournalRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalRepository.swift; sourceTree = "<group>"; };
+		A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalDataTests.swift; sourceTree = "<group>"; };
 		A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Bold.ttf"; sourceTree = "<group>"; };
 		AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Regular.ttf"; sourceTree = "<group>"; };
 		B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		C31D44570D65A30DA3894B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DDC19326A66CBE51045F2AF1 /* FoodPadUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E0CCB921382D89E669683C0C /* FoodPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadApp.swift; sourceTree = "<group>"; };
+		E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
 		FAF99AB6C54C7615DDBB6218 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		18CCF06314E0EFE9E698177E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E29D2780B1DD86E0C4847DF0 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		1887CFABD7BDBDD1DD3CDDC3 /* Features */ = {
@@ -70,6 +88,15 @@
 				21658D2B2C9A136C07991D21 /* DesignTokens.swift */,
 			);
 			path = Design;
+			sourceTree = "<group>";
+		};
+		23A84289C27468379AFC7B7D /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				946066BE85C0B33AD1D253CA /* JournalRepository.swift */,
+				E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */,
+			);
+			path = Data;
 			sourceTree = "<group>";
 		};
 		32352F7610F3ECC09D950AEE /* Products */ = {
@@ -139,6 +166,7 @@
 			isa = PBXGroup;
 			children = (
 				46904BF135E19DD98338E8E6 /* App */,
+				23A84289C27468379AFC7B7D /* Data */,
 				21A1EF5788E9BF33D89A944A /* Design */,
 				1887CFABD7BDBDD1DD3CDDC3 /* Features */,
 				52A976F2EA7429DDFA19F916 /* Networking */,
@@ -161,6 +189,7 @@
 			isa = PBXGroup;
 			children = (
 				83D9E31533522E624522033B /* FoodPadTests.swift */,
+				A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */,
 			);
 			path = FoodPadTests;
 			sourceTree = "<group>";
@@ -174,6 +203,7 @@
 			buildPhases = (
 				B3766E699CCA0A09ACD19BAF /* Sources */,
 				8C707530E4E94CD9A6FAC3AF /* Resources */,
+				18CCF06314E0EFE9E698177E /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -181,6 +211,7 @@
 			);
 			name = FoodPad;
 			packageProductDependencies = (
+				55AC15C90E021EE096518756 /* Supabase */,
 			);
 			productName = FoodPad;
 			productReference = 641EBD2D07391AFC013D190A /* FoodPad.app */;
@@ -245,6 +276,9 @@
 			);
 			mainGroup = 5ECCE21F8AADEE44B65D2DEE;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				676B691E44228F756E967A31 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 32352F7610F3ECC09D950AEE /* Products */;
 			projectDirPath = "";
@@ -278,6 +312,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */,
+				F3F9B10CD505FCE1DB379D4B /* JournalDataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -296,7 +331,9 @@
 				0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */,
 				C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */,
 				BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */,
+				1E93BFCDBB684072CBB53D44 /* JournalRepository.swift in Sources */,
 				CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */,
+				A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -577,6 +614,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		676B691E44228F756E967A31 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = exactVersion;
+				version = 2.55.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		55AC15C90E021EE096518756 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 676B691E44228F756E967A31 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F5B86F1F8BC3F1199B6208CD /* Project object */;
 }

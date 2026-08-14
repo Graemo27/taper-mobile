@@ -7,11 +7,17 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     TARGETED_DEVICE_FAMILY: "1"
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    exactVersion: 2.55.1
 targets:
   FoodPad:
     type: application
     platform: iOS
     sources: [FoodPad]
+    dependencies:
+      - package: Supabase
     info:
       path: FoodPad/Resources/Info.plist
       properties:
