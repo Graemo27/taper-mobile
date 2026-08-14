@@ -125,6 +125,21 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
+    func testFavouriteIsSharedAndFailedWriteRollsBack() {
+        var app = launchSearch("results", favourite: "off")
+        app.buttons["search.result.101"].tap()
+        app.buttons["Add to favourites"].tap()
+        XCTAssertTrue(app.buttons["Remove from favourites"].waitForExistence(timeout: 3))
+        app.buttons["Back to search"].tap()
+        XCTAssertTrue(app.buttons["search.result.101"].label.contains("favourite"))
+
+        app.terminate()
+        app = launchFood("loaded", favourite: "fails")
+        app.buttons["Add to favourites"].tap()
+        XCTAssertTrue(app.buttons["Add to favourites"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     private func launch(_ fixture: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPJournalFixture", fixture]
@@ -133,18 +148,20 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchSearch(_ fixture: String) -> XCUIApplication {
+    private func launchSearch(_ fixture: String, favourite: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPSearchFixture", fixture]
+        if let favourite { app.launchArguments += ["-FPFavouriteFixture", favourite] }
         app.launch()
         return app
     }
 
     @MainActor
-    private func launchFood(_ fixture: String, save: String? = nil) -> XCUIApplication {
+    private func launchFood(_ fixture: String, save: String? = nil, favourite: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPFoodFixture", fixture]
         if let save { app.launchArguments += ["-FPSaveFixture", save] }
+        if let favourite { app.launchArguments += ["-FPFavouriteFixture", favourite] }
         app.launch()
         return app
     }

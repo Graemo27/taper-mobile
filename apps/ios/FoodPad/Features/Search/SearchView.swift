@@ -44,6 +44,7 @@ struct SearchFlowView: View {
 
 struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var favourites: FavouritesModel
     @ObservedObject var model: SearchModel
     @State private var query: String
     @FocusState private var fieldIsFocused: Bool
@@ -95,6 +96,7 @@ struct SearchView: View {
         .background(AppColor.background)
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { fieldIsFocused = true }
+        .task { await favourites.load() }
         .task(id: query) {
             do {
                 try await Task.sleep(for: .milliseconds(400))
@@ -136,7 +138,7 @@ struct SearchView: View {
                 VStack(spacing: SearchToken.zeroGap) {
                     ForEach(Array(model.foods.enumerated()), id: \.element.id) { index, food in
                         if index > 0 { Divider().padding(.horizontal, SearchToken.cardInset) }
-                        SearchResultCard(food: food)
+                        SearchResultCard(food: food, isFavourite: favourites.ids.contains(food.fdcId))
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 fieldIsFocused = false
@@ -172,6 +174,7 @@ struct SearchView: View {
 
 private struct SearchResultCard: View {
     let food: Food
+    let isFavourite: Bool
 
     var body: some View {
         HStack {
@@ -184,6 +187,10 @@ private struct SearchResultCard: View {
             if let kcal = (food.perServing ?? food.per100g).kcal {
                 Text("\(kcal) kcal").font(AppFont.medium(SearchToken.bodySize))
                     .foregroundStyle(AppColor.textSecondary).frame(width: SearchToken.energyWidth, alignment: .trailing)
+            }
+            if isFavourite {
+                Image(systemName: "star.fill").foregroundStyle(AppColor.favourite)
+                    .accessibilityLabel("favourite")
             }
             Image(systemName: "chevron.right").foregroundStyle(AppColor.textSecondary)
         }
