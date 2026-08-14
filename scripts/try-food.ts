@@ -10,7 +10,7 @@
  * explicit load below.
  */
 
-import { FdcError, searchWithServings } from '../src/lib/food/index.ts';
+import { FdcError, searchWithServings } from '../supabase/functions/food-search/food/index.ts';
 
 try {
   process.loadEnvFile();

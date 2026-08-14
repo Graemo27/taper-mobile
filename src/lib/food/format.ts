@@ -5,7 +5,7 @@
  * carries the FDC key and belongs to the Edge Function alone.
  */
 
-import type { Portion } from './types.ts';
+import type { Portion } from '../../../supabase/functions/food-search/food/types.ts';
 
 /**
  * A quantity opening a segment: "2", "0.5", "1/2", or the mixed "1 1/2".

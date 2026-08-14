@@ -24,7 +24,7 @@ import { NoMatches } from '@/components/no-matches';
 import { RecentFoods } from '@/components/recent-foods';
 import { SearchFailure } from '@/components/search-failure';
 import { SearchField } from '@/components/search-field';
-import type { Food } from '@/lib/food/types';
+import type { Food } from '../../supabase/functions/food-search/food/types.ts';
 import { FoodSearchError, searchFoods } from '@/lib/supabase/food-search';
 import { listRecentFoods, type RecentFood } from '@/lib/supabase/journal';
 import { colors, fontFamily, fontSize, spacing } from '@/theme';

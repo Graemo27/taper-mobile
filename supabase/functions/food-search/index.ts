@@ -11,12 +11,18 @@
  * the device would mean six round trips over mobile network instead of one, and
  * would leak the shape of the quota to anyone watching.
  *
- * The lookup logic is imported, not reimplemented — `src/lib/food` is the same
- * code the Node harness runs, so `npm run food` stays a faithful test of what
- * this serves.
+ * The lookup logic is imported, not reimplemented — `./food` is the same code
+ * the Node harness runs, so `npm run food` stays a faithful test of what this
+ * serves.
+ *
+ * That directory used to live at `src/lib/food/`, inside the React Native app.
+ * It moved here because the app is being deleted and this function is not: a
+ * `git rm -r src` would otherwise have taken the lookup logic with it and left
+ * this import pointing at nothing. Deno bundles it from either place; the
+ * difference is only that the function's dependencies now all sit beneath it.
  */
 
-import { FdcError, getFood, searchWithServings } from '../../../src/lib/food/index.ts';
+import { FdcError, getFood, searchWithServings } from './food/index.ts';
 
 /** Expo also targets web, where a browser will preflight this. */
 const CORS = {
