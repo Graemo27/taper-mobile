@@ -25,6 +25,7 @@
 		BB75FFAD1F0313498465600F /* FoodFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C461A77CBE94B4AB3BC69E /* FoodFormattingTests.swift */; };
 		BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */; };
 		BDD6080C45C777D07880DFB3 /* Geist-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 437903947F46E0547A55FF96 /* Geist-Medium.ttf */; };
+		C0C0CF61099DF71F29AC1A6F /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B06BC7094AFD2E6BD826EF /* SearchView.swift */; };
 		C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CCB921382D89E669683C0C /* FoodPadApp.swift */; };
 		CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9533148B383912C0BCE0B0 /* JournalShellView.swift */; };
 		CF822CBE5CEEC1EBDFEE75CE /* FoodSearchPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76256A2F07870C3DFB5E6D45 /* FoodSearchPresentation.swift */; };
@@ -67,6 +68,7 @@
 		83D9E31533522E624522033B /* FoodPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadTests.swift; sourceTree = "<group>"; };
 		8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadUITests.swift; sourceTree = "<group>"; };
 		946066BE85C0B33AD1D253CA /* JournalRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalRepository.swift; sourceTree = "<group>"; };
+		98B06BC7094AFD2E6BD826EF /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		9C90489E6B84ED8D78275259 /* FoodClaims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodClaims.swift; sourceTree = "<group>"; };
 		A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalDataTests.swift; sourceTree = "<group>"; };
 		A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Bold.ttf"; sourceTree = "<group>"; };
@@ -98,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				76256A2F07870C3DFB5E6D45 /* FoodSearchPresentation.swift */,
+				98B06BC7094AFD2E6BD826EF /* SearchView.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -389,6 +392,7 @@
 				6E486777D06EB8CDC8B549AA /* JournalPresentation.swift in Sources */,
 				1E93BFCDBB684072CBB53D44 /* JournalRepository.swift in Sources */,
 				CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */,
+				C0C0CF61099DF71F29AC1A6F /* SearchView.swift in Sources */,
 				A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
