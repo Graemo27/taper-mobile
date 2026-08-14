@@ -14,11 +14,17 @@ struct FoodPadApp: App {
                         fdcID: 101
                     )
                 } else if let fixture = AppComposition.searchFixture {
-                    SearchFlowView(model: SearchComposition.fixture(fixture), initialQuery: "ap")
+                    SearchFlowView(
+                        model: SearchComposition.fixture(fixture),
+                        recent: RecentComposition.makeModel(),
+                        initialQuery: fixture == "idle" ? "" : "ap",
+                        fetch: FoodComposition.fixtureFetcher()
+                    )
                 } else {
                     AppRootView(
                         journal: JournalComposition.makeModel(),
                         search: SearchComposition.makeModel(),
+                        recent: RecentComposition.makeModel(),
                         fetch: SearchComposition.makeFetcher(),
                         save: SearchComposition.makeSaver()
                     )
@@ -33,6 +39,7 @@ struct FoodPadApp: App {
 private struct AppRootView: View {
     let journal: JournalModel
     let search: SearchModel
+    let recent: RecentFoodsModel
     let fetch: @Sendable (Int) async throws -> Food
     let save: @Sendable (JournalDraft) async throws -> Void
     @State private var isSearching = false
@@ -40,7 +47,7 @@ private struct AppRootView: View {
     var body: some View {
         JournalShellView(model: journal) { isSearching = true }
             .navigationDestination(isPresented: $isSearching) {
-                SearchFlowView(model: search, fetch: fetch, save: save)
+                SearchFlowView(model: search, recent: recent, fetch: fetch, save: save)
             }
             .onChange(of: isSearching) { _, visible in
                 if !visible { Task { await journal.load() } }
@@ -51,6 +58,7 @@ private struct AppRootView: View {
 private enum AppComposition {
     static var foodFixture: String? { fixture(after: "-FPFoodFixture") }
     static var favouriteFixture: String? { fixture(after: "-FPFavouriteFixture") }
+    static var recentFixture: String? { fixture(after: "-FPRecentFixture") }
     static var saveFixture: String? { fixture(after: "-FPSaveFixture") }
     static var searchFixture: String? { fixture(after: "-FPSearchFixture") }
 
@@ -60,6 +68,39 @@ private enum AppComposition {
               arguments.indices.contains(marker + 1) else { return nil }
         return arguments[marker + 1]
     }
+}
+
+@MainActor
+private enum RecentComposition {
+    static func makeModel() -> RecentFoodsModel {
+        if AppComposition.recentFixture == "refreshes" {
+            let fixture = RefreshFixture()
+            return RecentFoodsModel { await fixture.read() }
+        }
+        let environment = ProcessInfo.processInfo.environment
+        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
+              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+            return RecentFoodsModel { throw ConfigurationError.missing }
+        }
+        let client = AppSupabase.make(url: url, publishableKey: key)
+        let repository = RecentFoodsRepository(
+            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
+            source: SupabaseRecentFoodsDataSource(client: client)
+        )
+        return RecentFoodsModel { try await repository.list() }
+    }
+
+    private actor RefreshFixture {
+        private var reads = 0
+        func read() -> [RecentFood] {
+            reads += 1
+            return [RecentFood(
+                fdcID: 101, name: "Apple", servingLabel: reads == 1 ? "1 medium" : "2 medium", kcal: 95
+            )]
+        }
+    }
+
+    private enum ConfigurationError: Error { case missing }
 }
 
 @MainActor
@@ -165,6 +206,11 @@ private enum SearchComposition {
 
 @MainActor
 private enum FoodComposition {
+    static func fixtureFetcher() -> @Sendable (Int) async throws -> Food {
+        let food = fixtureFood
+        return { _ in food }
+    }
+
     static func fixture(_ name: String) -> FoodLookupModel {
         let food = fixtureFood
         switch name {
