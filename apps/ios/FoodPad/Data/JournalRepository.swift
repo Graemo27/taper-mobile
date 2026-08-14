@@ -1,6 +1,8 @@
 import Foundation
 import Supabase
 
+/// One saved row, as the journal reads it back: a name, an optional serving
+/// label and optional kcal, on a local `yyyy-MM-dd` date.
 struct JournalEntry: Decodable, Equatable, Identifiable, Sendable {
     let id: Int
     let eatenOn: String
@@ -15,15 +17,20 @@ struct JournalEntry: Decodable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// A bounded read plus the exact server-side count, so the caller can tell a
+/// complete window from a truncated one.
 struct JournalPage: Sendable {
     let entries: [JournalEntry]
     let total: Int?
 }
 
+/// Reads a user's entries newest-first from a starting date, capped.
 protocol JournalDataSource: Sendable {
     func fetch(userID: UUID, from start: String, limit: Int) async throws -> JournalPage
 }
 
+/// What Save captures at the moment of the tap — the displayed snapshot,
+/// scaled to the chosen servings, not a reference to be re-derived later.
 struct JournalDraft: Equatable, Sendable {
     let fdcID: Int
     let name: String
@@ -35,14 +42,18 @@ struct JournalDraft: Equatable, Sendable {
     let fibreG: Double?
 }
 
+/// Inserts one entry for one user and returns the stored row.
 protocol JournalWriteDataSource: Sendable {
     func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws -> JournalEntry
 }
 
+/// Deletes one entry by id, scoped to its owner.
 protocol JournalDeleteDataSource: Sendable {
     func remove(userID: UUID, id: Int) async throws
 }
 
+/// PostgREST delete keyed by both id and user id — the row cap in §3 of the
+/// brief: never a bulk predicate.
 struct SupabaseJournalDeleteDataSource: JournalDeleteDataSource {
     let client: SupabaseClient
 
@@ -52,6 +63,8 @@ struct SupabaseJournalDeleteDataSource: JournalDeleteDataSource {
     }
 }
 
+/// PostgREST insert returning the selected row, so the UI shows what the
+/// database actually stored.
 struct SupabaseJournalWriteDataSource: JournalWriteDataSource {
     let client: SupabaseClient
 
@@ -87,6 +100,7 @@ struct SupabaseJournalWriteDataSource: JournalWriteDataSource {
     }
 }
 
+/// Stamps a draft with the local date and writes it as the current user.
 struct JournalWriteRepository: Sendable {
     let sessions: SessionCoordinator
     let source: any JournalWriteDataSource
@@ -101,6 +115,7 @@ struct JournalWriteRepository: Sendable {
     }
 }
 
+/// Removes one entry as the current user.
 struct JournalDeleteRepository: Sendable {
     let sessions: SessionCoordinator
     let source: any JournalDeleteDataSource
@@ -110,6 +125,8 @@ struct JournalDeleteRepository: Sendable {
     }
 }
 
+/// PostgREST read with `count: .exact`, which is what makes truncation
+/// detectable at all.
 struct SupabaseJournalDataSource: JournalDataSource {
     let client: SupabaseClient
 
@@ -127,6 +144,8 @@ struct SupabaseJournalDataSource: JournalDataSource {
     }
 }
 
+/// The 30-day journal read: windowed, capped, and truncated at a whole-day
+/// boundary so no day ever renders partially with a confident count.
 struct JournalRepository: Sendable {
     static let readCap = 2_000
     let sessions: SessionCoordinator

@@ -1,6 +1,8 @@
 import Foundation
 import Supabase
 
+/// A journal row reduced to what the Recent card shows, identified by food
+/// rather than by entry so one food appears once.
 struct RecentFood: Decodable, Equatable, Identifiable, Sendable {
     let fdcID: Int
     let name: String
@@ -15,10 +17,13 @@ struct RecentFood: Decodable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// Newest journal rows for a user, in a total order.
 protocol RecentFoodsDataSource: Sendable {
     func fetch(userID: UUID, limit: Int) async throws -> [RecentFood]
 }
 
+/// Orders by eaten date, then created-at, then id — the tie-breaker that
+/// makes paging by widening prefix sound.
 struct SupabaseRecentFoodsDataSource: RecentFoodsDataSource {
     let client: SupabaseClient
 
@@ -30,6 +35,9 @@ struct SupabaseRecentFoodsDataSource: RecentFoodsDataSource {
     }
 }
 
+/// The newest distinct foods up to the requested limit (three by default),
+/// deduplicating after ordering and widening the read until it has enough or
+/// the rows run out.
 struct RecentFoodsRepository: Sendable {
     static let scanLimit = 50
     let sessions: SessionCoordinator

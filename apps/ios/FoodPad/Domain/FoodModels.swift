@@ -6,6 +6,7 @@ struct Portion: Codable, Equatable, Sendable {
     let grams: Double
 }
 
+/// The six values this product tracks, all optional because FDC omits freely.
 struct Nutrients: Codable, Equatable, Sendable {
     let kcal: Int?
     let proteinG: Double?
@@ -25,6 +26,7 @@ struct Nutrients: Codable, Equatable, Sendable {
     )
 }
 
+/// A search result row before its detail is fetched.
 struct FoodHit: Codable, Equatable, Identifiable, Sendable {
     let fdcId: Int
     let name: String
@@ -34,6 +36,8 @@ struct FoodHit: Codable, Equatable, Identifiable, Sendable {
     var id: Int { fdcId }
 }
 
+/// A fully resolved food: per-100g always, per-serving when FDC lists a
+/// usable household portion.
 struct Food: Codable, Equatable, Identifiable, Sendable {
     let fdcId: Int
     let name: String

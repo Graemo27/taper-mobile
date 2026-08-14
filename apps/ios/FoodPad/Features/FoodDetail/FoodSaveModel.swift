@@ -1,6 +1,8 @@
 import Foundation
 
 @MainActor
+/// Save-to-today state, keyed by food id so "Saved" can never confirm a
+/// different food. Confirmation holds 2.4s, then reverts.
 final class FoodSaveModel: ObservableObject {
     enum Status: Equatable { case idle, saving, saved, failed }
 

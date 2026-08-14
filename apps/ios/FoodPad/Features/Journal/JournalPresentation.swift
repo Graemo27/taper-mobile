@@ -1,11 +1,14 @@
 import Foundation
 
+/// One dated group of entries, in arrival order.
 struct JournalDay: Equatable, Identifiable {
     let date: String
     var entries: [JournalEntry]
     var id: String { date }
 }
 
+/// Pure presentation: grouping entries into days, the Today/Yesterday/weekday
+/// headings, and the "n things" count.
 enum JournalPresentation {
     static func days(from entries: [JournalEntry]) -> [JournalDay] {
         var days: [JournalDay] = []
@@ -58,10 +61,13 @@ enum JournalPresentation {
     }
 }
 
+/// Waits until the next local midnight. A protocol so tests can strike
+/// midnight on demand.
 protocol MidnightClock: Sendable {
     func nextMidnight(after date: Date, calendar: Calendar) async throws -> Date
 }
 
+/// Sleeps to one second past real midnight and reports the time it woke.
 struct SystemMidnightClock: MidnightClock {
     func nextMidnight(after date: Date, calendar: Calendar) async throws -> Date {
         let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))!
@@ -72,6 +78,8 @@ struct SystemMidnightClock: MidnightClock {
 }
 
 @MainActor
+/// Journal screen state: the bounded read, optimistic removal with restore on
+/// failure, and the day heading that must roll at midnight.
 final class JournalModel: ObservableObject {
     enum Status: Equatable { case loading, ready, failed }
 

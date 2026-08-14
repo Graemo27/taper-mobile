@@ -1,0 +1,23 @@
+# CodeRabbit configuration.
+#
+# One deliberate departure from defaults. The docstring pre-merge check fired
+# on five PRs (#33, #37, #45, #46, #50) against its default 80% and was argued
+# down each time with the same reasoning — five findings and five identical
+# rebuttals is a tax, not a review.
+#
+# The repository's documentation rule, decided 2026-08-14 with PR #52:
+#
+#   - Every top-level type and protocol carries a brief `///` — one or two
+#     sentences — saying what it is for.
+#   - Private and nested implementation does not, unless something about it is
+#     non-obvious — in which case it gets a *why* comment, which is the
+#     convention this codebase values most (many record measurements or
+#     debugging history).
+#
+# The threshold stays on, lowered to hold that rule rather than an aspiration:
+# a real drop in contract documentation should still fail the check.
+reviews:
+  pre_merge_checks:
+    docstrings:
+      mode: warning
+      threshold: 55

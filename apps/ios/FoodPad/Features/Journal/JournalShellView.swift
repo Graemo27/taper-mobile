@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// The root screen: days of entries, swipe-to-remove, the add button, and the
+/// four journal states.
 struct JournalShellView: View {
     @StateObject private var model: JournalModel
     private let onAdd: () -> Void

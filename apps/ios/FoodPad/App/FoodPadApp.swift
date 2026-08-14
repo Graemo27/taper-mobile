@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// Entry point. Launch arguments can swap any screen's dependencies for
+/// fixtures; without them everything composes against the real backend.
 @main
 struct FoodPadApp: App {
     @StateObject private var favourites = FavouritesComposition.makeModel()

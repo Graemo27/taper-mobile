@@ -1,6 +1,8 @@
 import Foundation
 
 @MainActor
+/// The one favourites set shared by Search and Food detail. Optimistic; taps
+/// capture intent before any await, and writes chain per food id.
 final class FavouritesModel: ObservableObject {
     @Published private(set) var ids: Set<Int> = []
     private let read: @Sendable () async throws -> Set<Int>

@@ -1,3 +1,4 @@
+/// The "High in" chip thresholds, ported case for case from `claims.ts`.
 enum FoodClaims {
     private struct Claim {
         let label: String
