@@ -7,13 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658D2B2C9A136C07991D21 /* DesignTokens.swift */; };
 		0F242662FEF4425A8B70DAB3 /* Geist-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */; };
 		18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D9E31533522E624522033B /* FoodPadTests.swift */; };
 		292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */; };
 		2C46EF3A0D0CC8B2949422CC /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */; };
 		AAF65A9B72EA866D5F305C29 /* Geist-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */; };
+		BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */; };
 		BDD6080C45C777D07880DFB3 /* Geist-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 437903947F46E0547A55FF96 /* Geist-Medium.ttf */; };
 		C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CCB921382D89E669683C0C /* FoodPadApp.swift */; };
+		CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9533148B383912C0BCE0B0 /* JournalShellView.swift */; };
 		D0037DC754B53BC174ECD9E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C31D44570D65A30DA3894B57 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -35,7 +38,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		21658D2B2C9A136C07991D21 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-SemiBold.ttf"; sourceTree = "<group>"; };
+		3C9533148B383912C0BCE0B0 /* JournalShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalShellView.swift; sourceTree = "<group>"; };
 		40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		437903947F46E0547A55FF96 /* Geist-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Medium.ttf"; sourceTree = "<group>"; };
 		641EBD2D07391AFC013D190A /* FoodPad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FoodPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -43,6 +48,7 @@
 		8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadUITests.swift; sourceTree = "<group>"; };
 		A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Bold.ttf"; sourceTree = "<group>"; };
 		AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Regular.ttf"; sourceTree = "<group>"; };
+		B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		C31D44570D65A30DA3894B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DDC19326A66CBE51045F2AF1 /* FoodPadUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E0CCB921382D89E669683C0C /* FoodPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadApp.swift; sourceTree = "<group>"; };
@@ -50,6 +56,22 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		1887CFABD7BDBDD1DD3CDDC3 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A16B8F03AA7367FF8F95A34C /* Journal */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		21A1EF5788E9BF33D89A944A /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				21658D2B2C9A136C07991D21 /* DesignTokens.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
 		32352F7610F3ECC09D950AEE /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -76,6 +98,14 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		52A976F2EA7429DDFA19F916 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
 		5ECCE21F8AADEE44B65D2DEE = {
 			isa = PBXGroup;
 			children = (
@@ -97,10 +127,21 @@
 			path = Fonts;
 			sourceTree = "<group>";
 		};
+		A16B8F03AA7367FF8F95A34C /* Journal */ = {
+			isa = PBXGroup;
+			children = (
+				3C9533148B383912C0BCE0B0 /* JournalShellView.swift */,
+			);
+			path = Journal;
+			sourceTree = "<group>";
+		};
 		B43E0FF010A3063E77A28857 /* FoodPad */ = {
 			isa = PBXGroup;
 			children = (
 				46904BF135E19DD98338E8E6 /* App */,
+				21A1EF5788E9BF33D89A944A /* Design */,
+				1887CFABD7BDBDD1DD3CDDC3 /* Features */,
+				52A976F2EA7429DDFA19F916 /* Networking */,
 				C2C70BC5EA5AE5E83714106A /* Resources */,
 			);
 			path = FoodPad;
@@ -122,13 +163,6 @@
 				83D9E31533522E624522033B /* FoodPadTests.swift */,
 			);
 			path = FoodPadTests;
-			sourceTree = "<group>";
-		};
-		"TEMP_DA7B7A5F-F9A5-41B7-B19F-A1B05A4F58DD" /* Features */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Features;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -259,7 +293,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */,
 				C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */,
+				BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */,
+				CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

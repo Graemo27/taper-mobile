@@ -4,9 +4,8 @@ import SwiftUI
 struct FoodPadApp: App {
     var body: some Scene {
         WindowGroup {
-            Text("Food Pad")
+            JournalShellView()
                 .preferredColorScheme(.light)
-                .accessibilityIdentifier("bootstrap.screen")
         }
     }
 }
