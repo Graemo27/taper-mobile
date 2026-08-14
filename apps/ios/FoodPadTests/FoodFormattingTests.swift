@@ -9,6 +9,7 @@ final class FoodFormattingTests: XCTestCase {
             ("1 pita, large (6-1/2\" dia)", 64, 2, "2 pitas, large · 6-1/2\" dia · 128 g"),
             ("3/4 cup", 80, 2, "1.5 cups · 160 g"),
             ("1 1/2 cup", 80, 2, "3 cups · 160 g"),
+            ("1-1/2 cups", 80, 2, "3 cups · 160 g"),
             ("1 piece (1/6 of 16 oz cake)", 70, 2, "2 pieces · 1/6 of 16 oz cake · 140 g"),
             ("1 can, 15 oz (303 x 406)", 425, 2, "2 cans, 15 oz · 303 x 406 · 850 g"),
             ("1 small bagel", 70, 2, "2 small bagels · 140 g"),
@@ -51,11 +52,22 @@ final class FoodFormattingTests: XCTestCase {
         XCTAssertEqual(FoodFormatting.energy(20.6), "21")
     }
 
+    func testInvalidNumericValuesUsePlaceholdersInsteadOfTrapping() {
+        XCTAssertEqual(FoodFormatting.grams(.infinity), "—")
+        XCTAssertEqual(FoodFormatting.energy(.greatestFiniteMagnitude), "—")
+        XCTAssertEqual(
+            FoodFormatting.servingSummary(
+                Portion(label: "1 cup", grams: .greatestFiniteMagnitude), servings: 2
+            ),
+            "2 cups · — g"
+        )
+    }
+
     func testHighInUsesPerHundredGramDailyValueThresholds() {
         let nutrients = Nutrients(
             kcal: nil,
             proteinG: 100,
-            fibreG: 5.7,
+            fibreG: 5.6,
             vitaminEMg: 2.99,
             magnesiumMg: 84,
             unsaturatedFatG: 100

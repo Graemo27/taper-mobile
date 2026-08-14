@@ -36,19 +36,21 @@ enum FoodFormatting {
             !$0.trimmingCharacters(in: .whitespaces).isEmpty
         }
         let summary = parts.map { scaleSegment($0, servings: servings) }
-        return (summary + ["\(Int((portion.grams * servings).rounded())) g"]).joined(separator: " · ")
+        let totalGrams = roundedInteger(portion.grams * servings)
+            .map { "\($0) g" } ?? "— g"
+        return (summary + [totalGrams]).joined(separator: " · ")
     }
 
     static func grams(_ value: Double?) -> String {
-        value.map { "\(Int($0.rounded()))g" } ?? "—"
+        value.flatMap(roundedInteger).map { "\($0)g" } ?? "—"
     }
 
     static func energy(_ value: Double?) -> String {
-        value.map { String(Int($0.rounded())) } ?? "—"
+        value.flatMap(roundedInteger).map(String.init) ?? "—"
     }
 
     private static func leadingQuantity(_ text: String) -> Quantity? {
-        if let parsed = match(#"^(\d+)\s+(\d+)/(\d+)\s*"#, in: text) {
+        if let parsed = match(#"^(\d+)[\s-]+(\d+)/(\d+)\s*"#, in: text) {
             guard let whole = Double(parsed.groups[0]),
                   let numerator = Double(parsed.groups[1]),
                   let denominator = Double(parsed.groups[2]),
@@ -131,7 +133,14 @@ enum FoodFormatting {
     }
 
     private static func number(_ value: Double) -> String {
-        value.rounded() == value ? String(Int(value)) : String(value)
+        guard value.isFinite else { return "—" }
+        guard value.rounded() == value else { return String(value) }
+        return Int(exactly: value).map(String.init) ?? "—"
+    }
+
+    private static func roundedInteger(_ value: Double) -> Int? {
+        guard value.isFinite else { return nil }
+        return Int(exactly: value.rounded())
     }
 
     private static func match(
