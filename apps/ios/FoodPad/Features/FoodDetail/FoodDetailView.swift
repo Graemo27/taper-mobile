@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FoodDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var favourites: FavouritesModel
     @StateObject private var model: FoodLookupModel
     @StateObject private var saveModel: FoodSaveModel
     @State private var servings = 1
@@ -34,6 +35,7 @@ struct FoodDetailView: View {
             servings = 1
             await model.load(fdcID: fdcID, handedOff: handedOff)
         }
+        .task { await favourites.load() }
     }
 
     @ViewBuilder private var content: some View {
@@ -69,6 +71,7 @@ struct FoodDetailView: View {
 }
 
 private struct FoodDetailContent: View {
+    @EnvironmentObject private var favourites: FavouritesModel
     let food: Food
     @Binding var servings: Int
     @ObservedObject var saveModel: FoodSaveModel
@@ -113,9 +116,12 @@ private struct FoodDetailContent: View {
                 .padding(.horizontal, FoodDetailToken.screenInset)
                 .padding(.vertical, FoodDetailToken.contentTop)
             }
-            SaveFooter(status: saveModel.status(for: food.fdcId)) {
-                Task { await saveModel.save(draft) }
-            }
+            SaveFooter(
+                status: saveModel.status(for: food.fdcId),
+                isFavourite: favourites.ids.contains(food.fdcId),
+                onSave: { Task { await saveModel.save(draft) } },
+                onFavourite: { Task { await favourites.toggle(food.fdcId) } }
+            )
         }
     }
 }
@@ -156,7 +162,9 @@ private struct ServingCard: View {
 
 private struct SaveFooter: View {
     let status: FoodSaveModel.Status
+    let isFavourite: Bool
     let onSave: () -> Void
+    let onFavourite: () -> Void
 
     private var label: String {
         switch status {
@@ -169,14 +177,25 @@ private struct SaveFooter: View {
 
     var body: some View {
         VStack(spacing: FoodDetailToken.itemGap) {
-            Button(label, action: onSave)
-                .font(AppFont.semibold(FoodDetailToken.bodySize))
-                .frame(maxWidth: .infinity)
-                .padding(FoodDetailToken.cardInset)
-                .foregroundStyle(AppColor.onBrand).background(AppColor.brand)
-                .clipShape(.rect(cornerRadius: FoodDetailToken.controlRadius))
-                .disabled(status == .saving)
-                .accessibilityIdentifier("food.save-button")
+            HStack(spacing: FoodDetailToken.itemGap) {
+                Button(label, action: onSave)
+                    .font(AppFont.semibold(FoodDetailToken.bodySize))
+                    .frame(maxWidth: .infinity)
+                    .padding(FoodDetailToken.cardInset)
+                    .foregroundStyle(AppColor.onBrand).background(AppColor.brand)
+                    .clipShape(.rect(cornerRadius: FoodDetailToken.controlRadius))
+                    .disabled(status == .saving)
+                    .accessibilityIdentifier("food.save-button")
+                Button(action: onFavourite) {
+                    Image(systemName: isFavourite ? "star.fill" : "star")
+                        .foregroundStyle(isFavourite ? AppColor.favourite : AppColor.textSecondary)
+                        .frame(width: FoodDetailToken.controlSize, height: FoodDetailToken.controlSize)
+                }
+                .buttonStyle(.plain).background(AppColor.surface).clipShape(Circle())
+                .accessibilityLabel(isFavourite ? "Remove from favourites" : "Add to favourites")
+                .accessibilityAddTraits(isFavourite ? .isSelected : [])
+                .accessibilityIdentifier("food.favourite-button")
+            }
             if status == .failed {
                 Text("Your entry was not saved. Try again in a moment.")
                     .font(AppFont.regular(FoodDetailToken.bodySize)).foregroundStyle(AppColor.error)

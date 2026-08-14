@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct FoodPadApp: App {
+    @StateObject private var favourites = FavouritesComposition.makeModel()
+
     var body: some Scene {
         WindowGroup {
             NavigationStack {
@@ -22,6 +24,7 @@ struct FoodPadApp: App {
                     )
                 }
             }
+            .environmentObject(favourites)
             .preferredColorScheme(.light)
         }
     }
@@ -47,6 +50,7 @@ private struct AppRootView: View {
 
 private enum AppComposition {
     static var foodFixture: String? { fixture(after: "-FPFoodFixture") }
+    static var favouriteFixture: String? { fixture(after: "-FPFavouriteFixture") }
     static var saveFixture: String? { fixture(after: "-FPSaveFixture") }
     static var searchFixture: String? { fixture(after: "-FPSearchFixture") }
 
@@ -56,6 +60,31 @@ private enum AppComposition {
               arguments.indices.contains(marker + 1) else { return nil }
         return arguments[marker + 1]
     }
+}
+
+@MainActor
+private enum FavouritesComposition {
+    static func makeModel() -> FavouritesModel {
+        if let fixture = AppComposition.favouriteFixture {
+            let initial: Set<Int> = fixture == "on" ? [101] : []
+            return FavouritesModel(read: { initial }) { _, _ in
+                if fixture == "fails" { throw FixtureError.failed }
+            }
+        }
+        let environment = ProcessInfo.processInfo.environment
+        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
+              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+            return FavouritesModel(read: { throw FixtureError.failed }, persist: { _, _ in throw FixtureError.failed })
+        }
+        let client = AppSupabase.make(url: url, publishableKey: key)
+        let repository = FavouritesRepository(
+            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
+            source: SupabaseFavouritesDataSource(client: client)
+        )
+        return FavouritesModel(read: { try await repository.list() }, persist: repository.set)
+    }
+
+    private enum FixtureError: Error { case failed }
 }
 
 @MainActor
