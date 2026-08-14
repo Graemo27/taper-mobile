@@ -78,18 +78,24 @@ final class JournalModel: ObservableObject {
     @Published private(set) var status: Status = .loading
     @Published private(set) var entries: [JournalEntry]
     @Published private(set) var today: String
+    @Published private(set) var failedRemoval: String?
+    @Published private(set) var confirmedRemovalIDs: Set<Int> = []
     let loadsAutomatically: Bool
     private let loadEntries: @Sendable () async throws -> [JournalEntry]
+    private let deleteEntry: @Sendable (Int) async throws -> Bool
     private var reading = false
+    private var removedIDs: Set<Int> = []
 
     init(
         entries: [JournalEntry] = [], today: String, loadsAutomatically: Bool = true,
-        loadEntries: @escaping @Sendable () async throws -> [JournalEntry]
+        loadEntries: @escaping @Sendable () async throws -> [JournalEntry],
+        deleteEntry: @escaping @Sendable (Int) async throws -> Bool = { _ in false }
     ) {
         self.entries = entries
         self.today = today
         self.loadsAutomatically = loadsAutomatically
         self.loadEntries = loadEntries
+        self.deleteEntry = deleteEntry
     }
 
     func load() async {
@@ -98,10 +104,23 @@ final class JournalModel: ObservableObject {
         defer { reading = false }
         status = .loading
         do {
-            entries = try await loadEntries()
+            entries = try await loadEntries().filter { !removedIDs.contains($0.id) }
             status = .ready
         } catch {
             status = .failed
+        }
+    }
+
+    func remove(_ entry: JournalEntry) async {
+        failedRemoval = nil
+        removedIDs.insert(entry.id)
+        entries.removeAll { $0.id == entry.id }
+        do {
+            if try await deleteEntry(entry.id) { confirmedRemovalIDs.insert(entry.id) }
+        } catch {
+            removedIDs.remove(entry.id)
+            failedRemoval = entry.name
+            await load()
         }
     }
 

@@ -153,6 +153,46 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
+    func testRealSwipeRemovesRowAndDatabaseRecord() throws {
+        guard let configuration = e2eConfiguration() else {
+            throw XCTSkip("Supabase publishable configuration is required for the swipe E2E test")
+        }
+        let app = XCUIApplication()
+        app.launchArguments = ["-FPJournalE2E"]
+        app.launchEnvironment = [
+            "EXPO_PUBLIC_SUPABASE_URL": configuration.url,
+            "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": configuration.key,
+        ]
+        app.launch()
+
+        let row = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'journal.entry.'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.swipeLeft()
+        let remove = app.buttons
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'journal.remove.'")).firstMatch
+        XCTAssertTrue(remove.waitForExistence(timeout: 3))
+        remove.tap()
+
+        XCTAssertFalse(row.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["journal.database-delete-confirmed"].waitForExistence(timeout: 10))
+    }
+
+    private func e2eConfiguration() -> (url: String, key: String)? {
+        var file = URL(fileURLWithPath: #filePath)
+        for _ in 0..<4 { file.deleteLastPathComponent() }
+        file.appendPathComponent(".env")
+        guard let contents = try? String(contentsOf: file, encoding: .utf8) else { return nil }
+        let values = Dictionary(uniqueKeysWithValues: contents.split(separator: "\n").compactMap { line in
+            let parts = line.split(separator: "=", maxSplits: 1).map(String.init)
+            return parts.count == 2 ? (parts[0], parts[1]) : nil
+        })
+        guard let url = values["EXPO_PUBLIC_SUPABASE_URL"],
+              let key = values["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else { return nil }
+        return (url, key)
+    }
+
+    @MainActor
     private func launch(_ fixture: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPJournalFixture", fixture]

@@ -89,6 +89,9 @@ enum JournalToken {
     static let actionSize = TypeScale.sizes[2]
     static let skeletonHeight = SpacingScale.values[15]
     static let energyWidth = SpacingScale.values[19]
+    static let removeWidth = SpacingScale.values[19] + SpacingScale.values[4]
+    static let removeThreshold = SpacingScale.values[15]
+    static let removeGap = SpacingScale.values[2]
 }
 
 enum SearchToken {

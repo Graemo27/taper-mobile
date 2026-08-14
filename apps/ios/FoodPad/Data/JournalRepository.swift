@@ -39,6 +39,19 @@ protocol JournalWriteDataSource: Sendable {
     func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws
 }
 
+protocol JournalDeleteDataSource: Sendable {
+    func remove(userID: UUID, id: Int) async throws
+}
+
+struct SupabaseJournalDeleteDataSource: JournalDeleteDataSource {
+    let client: SupabaseClient
+
+    func remove(userID: UUID, id: Int) async throws {
+        try await client.from("journal_entries").delete()
+            .eq("id", value: id).eq("user_id", value: userID.uuidString).execute()
+    }
+}
+
 struct SupabaseJournalWriteDataSource: JournalWriteDataSource {
     let client: SupabaseClient
 
@@ -83,6 +96,15 @@ struct JournalWriteRepository: Sendable {
         try await sessions.authenticated { userID in
             try await source.save(userID: userID, eatenOn: eatenOn, draft: draft)
         }
+    }
+}
+
+struct JournalDeleteRepository: Sendable {
+    let sessions: SessionCoordinator
+    let source: any JournalDeleteDataSource
+
+    func remove(id: Int) async throws {
+        try await sessions.authenticated { try await source.remove(userID: $0, id: id) }
     }
 }
 

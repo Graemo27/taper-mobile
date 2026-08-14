@@ -148,6 +148,20 @@ final class JournalDataTests: XCTestCase {
         )
     }
 
+    func testSupabaseDeleteScopesTheEntryToItsUser() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [JournalURLProtocol.self]
+        let client = SupabaseClient(
+            supabaseURL: URL(string: "https://project.supabase.co")!,
+            supabaseKey: "sb_publishable_test",
+            options: .init(global: .init(session: URLSession(configuration: configuration)))
+        )
+
+        try await SupabaseJournalDeleteDataSource(client: client).remove(
+            userID: UUID(uuidString: "00000000-0000-0000-0000-000000000007")!, id: 7
+        )
+    }
+
     func testPresentationGroupsInQueryOrderAndNamesRelativeDays() {
         let rows = [entry(1, "2026-08-14"), entry(3, "2026-08-13"), entry(2, "2026-08-14")]
 
@@ -175,6 +189,38 @@ final class JournalDataTests: XCTestCase {
 
         XCTAssertEqual(model.entries, rows)
         XCTAssertEqual(model.status, .failed)
+    }
+
+    @MainActor
+    func testStaleReadCannotRestoreAnEntryRemovedWhileItWasLoading() async {
+        let row = entry(7, "2026-08-14")
+        let gate = JournalReadGate()
+        let model = JournalModel(
+            entries: [row], today: "2026-08-14", loadEntries: { await gate.load() },
+            deleteEntry: { _ in false }
+        )
+        let loading = Task { await model.load() }
+        await gate.waitUntilStarted()
+
+        await model.remove(row)
+        await gate.finish(with: [row])
+        await loading.value
+
+        XCTAssertTrue(model.entries.isEmpty)
+    }
+
+    @MainActor
+    func testFailedRemovalRestoresTheEntryAndShowsItsName() async {
+        let row = entry(7, "2026-08-14")
+        let model = JournalModel(
+            entries: [row], today: "2026-08-14", loadEntries: { [row] },
+            deleteEntry: { _ in throw TestFailure.recoverable }
+        )
+
+        await model.remove(row)
+
+        XCTAssertEqual(model.entries, [row])
+        XCTAssertEqual(model.failedRemoval, row.name)
     }
 
     @MainActor
@@ -285,10 +331,38 @@ private actor MidnightStub: MidnightClock {
     }
 }
 
+private actor JournalReadGate {
+    private var continuation: CheckedContinuation<[JournalEntry], Never>?
+
+    func load() async -> [JournalEntry] {
+        await withCheckedContinuation { continuation = $0 }
+    }
+
+    func waitUntilStarted() async {
+        while continuation == nil { await Task.yield() }
+    }
+
+    func finish(with entries: [JournalEntry]) {
+        continuation?.resume(returning: entries)
+        continuation = nil
+    }
+}
+
 private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
+        if request.httpMethod == "DELETE",
+           request.url?.query?.contains("id=eq.7") == true,
+           request.url?.query?.contains("user_id=eq.00000000-0000-0000-0000-000000000007") == true {
+            let response = HTTPURLResponse(
+                url: request.url!, statusCode: 204, httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
         if request.httpMethod == "POST", let data = bodyData(),
            let json = try? JSONSerialization.jsonObject(with: data),
            let row = (json as? [String: Any]) ?? (json as? [[String: Any]])?.first,
