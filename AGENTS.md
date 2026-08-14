@@ -1,11 +1,16 @@
 # Food Pad — agent instructions
 
-## Active work: the SwiftUI migration
+## The app
 
-The React Native app is being ported to SwiftUI and then deleted. **Read
-`docs/swift-migration.md` and `docs/swift-migration-reference.md` in full before writing any
-code.** Together they are the complete brief: architecture, the backend contract, parity
-scope, the PR sequence, and the verification standard.
+Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and one Edge Function
+in `supabase/functions/food-search/`. Start from `README.md` for how to build and run it,
+including the `write-config.sh` step the build does not work without.
+
+The SwiftUI migration completed on 2026-08-14 and the React Native app was deleted in PR #53.
+`docs/swift-migration.md` and `docs/swift-migration-reference.md` remain the record of how it
+was done: architecture, the backend contract, parity scope, and the verification standard.
+**Their file paths under `src/` are historical**, but the architecture and backend contract
+they describe are current and still binding.
 
 ## The project has a knowledge base — read it
 
@@ -17,9 +22,11 @@ and write it.
 If the vault is unavailable, report the missing historical context and continue without
 inventing or assuming its contents.
 
-Fifteen defects from the last five PRs are filed there with the reason each one survived
-review. **They are ported code's problem, not React Native's** — read
-`wiki/practice/synthesis.md` before designing anything async, bounded, or stateful.
+Sixty-plus confirmed defects are filed there, each with the reason it survived review, sorted
+into classes. **Read `wiki/practice/synthesis.md` before designing anything async, bounded, or
+stateful** — and before trusting a green test run. The single most expensive lesson on file is
+that the suite once supplied the app's own configuration, so 59 passing tests and an app that
+could not start were compatible states.
 
 ## Standing constraints
 
@@ -42,9 +49,3 @@ review. **They are ported code's problem, not React Native's** — read
   Graem's phone. Delete only rows you created, by id.
 - **Production actions need explicit authorisation** — `supabase db push`,
   `supabase functions deploy`.
-
-## While the React Native app still exists
-
-Expo has changed since most training data. Read the exact versioned docs at
-https://docs.expo.dev/versions/v57.0.0/ before editing anything under `src/`. This stops
-applying once the migration reaches parity and `src/` is deleted.
