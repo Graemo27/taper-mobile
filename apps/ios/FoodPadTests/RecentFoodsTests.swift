@@ -11,19 +11,21 @@ final class RecentFoodsTests: XCTestCase {
         XCTAssertEqual(result, [food(1, "new"), food(2, "two")])
     }
 
-    func testPagesPastFiftyDuplicatesToFindThreeDistinctFoods() async throws {
-        let source = PagedRecentSource(rows: Array(repeating: food(1, "new"), count: 50) + [
-            food(2, "two"), food(3, "three"),
-        ])
+    func testWidensPastDuplicatesAndRecomputesAfterAnInsert() async throws {
+        let duplicates = Array(repeating: food(1, "new"), count: 50)
+        let source = ExpandingRecentSource(
+            first: duplicates,
+            next: [food(4, "inserted")] + duplicates + [food(2, "two"), food(3, "three")]
+        )
         let repository = RecentFoodsRepository(
             sessions: SessionCoordinator(auth: RecentAuthStub()), source: source
         )
 
         let result = try await repository.list()
 
-        XCTAssertEqual(result, [food(1, "new"), food(2, "two"), food(3, "three")])
-        let offsets = await source.offsets
-        XCTAssertEqual(offsets, [0, 50])
+        XCTAssertEqual(result, [food(4, "inserted"), food(1, "new"), food(2, "two")])
+        let limits = await source.limits
+        XCTAssertEqual(limits, [50, 100])
     }
 
     @MainActor
@@ -49,9 +51,7 @@ final class RecentFoodsTests: XCTestCase {
         )
         let userID = UUID(uuidString: "00000000-0000-0000-0000-000000000007")!
 
-        let rows = try await SupabaseRecentFoodsDataSource(client: client).fetch(
-            userID: userID, offset: 0, limit: 50
-        )
+        let rows = try await SupabaseRecentFoodsDataSource(client: client).fetch(userID: userID, limit: 50)
 
         XCTAssertEqual(rows, [food(7, "1 medium")])
     }
@@ -68,15 +68,16 @@ private actor FailingRecentReader {
 
 private enum RecentTestError: Error { case failed }
 
-private actor PagedRecentSource: RecentFoodsDataSource {
-    let rows: [RecentFood]
-    private(set) var offsets: [Int] = []
+private actor ExpandingRecentSource: RecentFoodsDataSource {
+    let first: [RecentFood]
+    let next: [RecentFood]
+    private(set) var limits: [Int] = []
 
-    init(rows: [RecentFood]) { self.rows = rows }
+    init(first: [RecentFood], next: [RecentFood]) { self.first = first; self.next = next }
 
-    func fetch(userID: UUID, offset: Int, limit: Int) async throws -> [RecentFood] {
-        offsets.append(offset)
-        return Array(rows.dropFirst(offset).prefix(limit))
+    func fetch(userID: UUID, limit: Int) async throws -> [RecentFood] {
+        limits.append(limit)
+        return Array((limits.count == 1 ? first : next).prefix(limit))
     }
 }
 
@@ -94,8 +95,8 @@ private final class RecentURLProtocol: URLProtocol, @unchecked Sendable {
         let query = request.url?.query ?? ""
         guard query.contains("fdc_id%2Cname%2Cserving_label%2Ckcal"),
               query.contains("user_id=eq.00000000-0000-0000-0000-000000000007"),
-              query.contains("order=eaten_on.desc.nullslast%2Ccreated_at.desc.nullslast"),
-              query.contains("offset=0"), query.contains("limit=50") else {
+              query.contains("order=eaten_on.desc.nullslast%2Ccreated_at.desc.nullslast%2Cid.desc.nullslast"),
+              query.contains("limit=50") else {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL)); return
         }
         let response = HTTPURLResponse(
