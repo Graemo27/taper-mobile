@@ -52,6 +52,17 @@ final class JournalDataTests: XCTestCase {
         XCTAssertEqual(JournalRepository.windowStart(today: today, calendar: calendar), "2026-02-07")
     }
 
+    func testJournalDatesStayGregorianForNonGregorianUserCalendar() {
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        let today = gregorian.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 12))!
+        var userCalendar = Calendar(identifier: .buddhist)
+        userCalendar.timeZone = gregorian.timeZone
+
+        XCTAssertEqual(JournalRepository.windowStart(today: today, calendar: userCalendar), "2026-07-16")
+        XCTAssertEqual(JournalRepository.localDate(today, calendar: userCalendar), "2026-08-14")
+    }
+
     func testSupabaseReadRequestsExactCountThroughInjectedSession() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [JournalURLProtocol.self]

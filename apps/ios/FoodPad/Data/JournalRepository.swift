@@ -62,11 +62,19 @@ struct JournalRepository: Sendable {
     }
 
     static func windowStart(today: Date, calendar: Calendar) -> String {
-        localDate(calendar.date(byAdding: .day, value: -29, to: today)!, calendar: calendar)
+        let calendar = gregorianCalendar(in: calendar.timeZone)
+        return localDate(calendar.date(byAdding: .day, value: -29, to: today)!, calendar: calendar)
     }
 
     static func localDate(_ date: Date, calendar: Calendar) -> String {
+        let calendar = gregorianCalendar(in: calendar.timeZone)
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
+    }
+
+    private static func gregorianCalendar(in timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
     }
 }
