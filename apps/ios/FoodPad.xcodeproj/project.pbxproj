@@ -16,6 +16,7 @@
 		24C40290AE3B6B74179B1AEA /* FoodClaims.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C90489E6B84ED8D78275259 /* FoodClaims.swift */; };
 		292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */; };
 		2C46EF3A0D0CC8B2949422CC /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */; };
+		3C564884905CD5D6CA16FA2B /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FEF218ADB95F7F87E313089 /* Controls.swift */; };
 		4494F87BA8F13EB754A7C20A /* FoodSaveModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEC6D25EDA302415D90D27E /* FoodSaveModel.swift */; };
 		4C4699757724182072B06D75 /* FoodFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */; };
 		6A3846573D1DD6777DD24266 /* FoodSearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */; };
@@ -72,6 +73,7 @@
 		3C9533148B383912C0BCE0B0 /* JournalShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalShellView.swift; sourceTree = "<group>"; };
 		3CE73C122B55D28A116DE289 /* FoodDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailView.swift; sourceTree = "<group>"; };
 		3DEC6D25EDA302415D90D27E /* FoodSaveModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSaveModel.swift; sourceTree = "<group>"; };
+		3FEF218ADB95F7F87E313089 /* Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controls.swift; sourceTree = "<group>"; };
 		40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		437903947F46E0547A55FF96 /* Geist-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Medium.ttf"; sourceTree = "<group>"; };
 		536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFormatting.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 		21A1EF5788E9BF33D89A944A /* Design */ = {
 			isa = PBXGroup;
 			children = (
+				3FEF218ADB95F7F87E313089 /* Controls.swift */,
 				21658D2B2C9A136C07991D21 /* DesignTokens.swift */,
 			);
 			path = Design;
@@ -414,6 +417,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C564884905CD5D6CA16FA2B /* Controls.swift in Sources */,
 				0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */,
 				9BBA6AC463435CD2DCCB6345 /* FavouritesModel.swift in Sources */,
 				C0A49FC5FB99EB25A9A5A3F6 /* FavouritesRepository.swift in Sources */,

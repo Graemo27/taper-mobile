@@ -43,10 +43,10 @@ struct JournalShellView: View {
                                 : "This is what was here when it last read. Anything saved since may be missing.",
                             identifier: "journal.failure-state"
                         )
-                        Button("Try again") { Task { await model.load() } }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppColor.brand)
-                            .accessibilityIdentifier("journal.retry-button")
+                        RetryButton(
+                            spokenLabel: "Try opening your journal again",
+                            identifier: "journal.retry-button"
+                        ) { Task { await model.load() } }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
