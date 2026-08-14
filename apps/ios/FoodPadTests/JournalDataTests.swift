@@ -293,9 +293,11 @@ private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
            let json = try? JSONSerialization.jsonObject(with: data),
            let row = (json as? [String: Any]) ?? (json as? [[String: Any]])?.first,
            row["user_id"] as? String == "00000000-0000-0000-0000-000000000007",
-           row["eaten_on"] as? String == "2026-08-14", row["fdc_id"] as? Int == 7,
+           row["eaten_on"] as? String == "2026-08-14", row["fdc_id"] as? Int == 7, row["name"] as? String == "Apple",
            row["serving_label"] as? String == "2 medium · 364 g",
-           row["servings"] as? Int == 2, row["kcal"] as? Int == 189 {
+           row["servings"] as? Int == 2, row["grams"] as? Double == 364,
+           row["kcal"] as? Int == 189, row["protein_g"] as? Double == 1.1,
+           row["fibre_g"] as? Double == 8.7 {
             let response = HTTPURLResponse(
                 url: request.url!, statusCode: 201, httpVersion: nil,
                 headerFields: ["Content-Type": "application/json"]
