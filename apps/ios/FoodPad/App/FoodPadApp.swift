@@ -46,6 +46,18 @@ private struct AppRootView: View {
 
     var body: some View {
         JournalShellView(model: journal) { isSearching = true }
+            // A configured app and an app whose backend is unreachable render
+            // the same journal failure, so the difference is not observable on
+            // screen. This marker is the only way a test can tell "launched
+            // without configuration" from "launched fine, network is down".
+            .overlay(alignment: .topLeading) {
+                if AppConfiguration.backend != nil {
+                    Color.clear.frame(width: 1, height: 1)
+                        .allowsHitTesting(false)
+                        .accessibilityElement()
+                        .accessibilityIdentifier("app.backend-configured")
+                }
+            }
             .navigationDestination(isPresented: $isSearching) {
                 SearchFlowView(model: search, recent: recent, fetch: fetch, save: save)
             }
@@ -79,12 +91,12 @@ private enum RecentComposition {
             let fixture = RefreshFixture()
             return RecentFoodsModel { await fixture.read() }
         }
-        let environment = ProcessInfo.processInfo.environment
-        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
-              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+        guard let backend = AppConfiguration.backend else {
             return RecentFoodsModel { throw ConfigurationError.missing }
         }
-        let client = AppSupabase.make(url: url, publishableKey: key)
+        let client = AppSupabase.make(
+            url: backend.url, publishableKey: backend.publishableKey
+        )
         let repository = RecentFoodsRepository(
             sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
             source: SupabaseRecentFoodsDataSource(client: client)
@@ -102,7 +114,6 @@ private enum RecentComposition {
         }
     }
 
-    private enum ConfigurationError: Error { case missing }
 }
 
 @MainActor
@@ -114,12 +125,15 @@ private enum FavouritesComposition {
                 if fixture == "fails" { throw FixtureError.failed }
             }
         }
-        let environment = ProcessInfo.processInfo.environment
-        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
-              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
-            return FavouritesModel(read: { throw FixtureError.failed }, persist: { _, _ in throw FixtureError.failed })
+        guard let backend = AppConfiguration.backend else {
+            return FavouritesModel(
+                read: { throw ConfigurationError.missing },
+                persist: { _, _ in throw ConfigurationError.missing }
+            )
         }
-        let client = AppSupabase.make(url: url, publishableKey: key)
+        let client = AppSupabase.make(
+            url: backend.url, publishableKey: backend.publishableKey
+        )
         let repository = FavouritesRepository(
             sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
             source: SupabaseFavouritesDataSource(client: client)
@@ -133,12 +147,12 @@ private enum FavouritesComposition {
 @MainActor
 private enum SearchComposition {
     static func makeModel() -> SearchModel {
-        let environment = ProcessInfo.processInfo.environment
-        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
-              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+        guard let backend = AppConfiguration.backend else {
             return SearchModel { _ in throw ConfigurationError.missing }
         }
-        let client = AppSupabase.make(url: url, publishableKey: key)
+        let client = AppSupabase.make(
+            url: backend.url, publishableKey: backend.publishableKey
+        )
         let repository = FoodSearchRepository(
             sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
             source: SupabaseFoodSearchDataSource(client: client)
@@ -147,12 +161,12 @@ private enum SearchComposition {
     }
 
     static func makeFetcher() -> @Sendable (Int) async throws -> Food {
-        let environment = ProcessInfo.processInfo.environment
-        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
-              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+        guard let backend = AppConfiguration.backend else {
             return { _ in throw ConfigurationError.missing }
         }
-        let client = AppSupabase.make(url: url, publishableKey: key)
+        let client = AppSupabase.make(
+            url: backend.url, publishableKey: backend.publishableKey
+        )
         let repository = FoodSearchRepository(
             sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
             source: SupabaseFoodSearchDataSource(client: client)
@@ -161,12 +175,12 @@ private enum SearchComposition {
     }
 
     static func makeSaver() -> @Sendable (JournalDraft) async throws -> Void {
-        let environment = ProcessInfo.processInfo.environment
-        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
-              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+        guard let backend = AppConfiguration.backend else {
             return { _ in throw ConfigurationError.missing }
         }
-        let client = AppSupabase.make(url: url, publishableKey: key)
+        let client = AppSupabase.make(
+            url: backend.url, publishableKey: backend.publishableKey
+        )
         let repository = JournalWriteRepository(
             sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
             source: SupabaseJournalWriteDataSource(client: client)
@@ -202,7 +216,6 @@ private enum SearchComposition {
         ),
     ]
 
-    private enum ConfigurationError: Error { case missing }
     private enum FixtureError: Error { case failed }
 }
 
@@ -260,12 +273,12 @@ private enum JournalComposition {
             return fixture(arguments[marker + 1], today: today, launchedAt: launchedAt, calendar: calendar)
         }
 
-        let environment = ProcessInfo.processInfo.environment
-        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
-              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+        guard let backend = AppConfiguration.backend else {
             return JournalModel(today: today) { throw ConfigurationError.missing }
         }
-        let client = AppSupabase.make(url: url, publishableKey: key)
+        let client = AppSupabase.make(
+            url: backend.url, publishableKey: backend.publishableKey
+        )
         let sessions = SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
         let repository = JournalRepository(
             sessions: sessions,
@@ -313,7 +326,6 @@ private enum JournalComposition {
         }
     }
 
-    private enum ConfigurationError: Error { case missing }
     private enum FixtureError: Error { case failed }
 }
 

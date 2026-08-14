@@ -21,6 +21,24 @@ halves form one stable brief when that split is complete.
 - Graem is on a **free personal Apple team** — certificates expire every 7 days and the app
   must be rebuilt to keep running on device. Do not design anything around a long-lived
   install. Development runs against the simulator; device runs are Graem's, on request.
+- **The build needs a configuration step before `xcodegen generate`:**
+
+  ```sh
+  apps/ios/Scripts/write-config.sh   # repository .env -> apps/ios/Config.xcconfig
+  ```
+
+  This is the native replacement for Expo inlining `EXPO_PUBLIC_*` into the JS bundle. Skip
+  it and the app still compiles, installs and launches — it simply has no backend, and every
+  screen reports the same failure it would report if Supabase were down. `Config.xcconfig` is
+  gitignored, like the `.env` it derives from.
+
+  `ProcessInfo.processInfo.environment` still wins over the built-in values, which is how
+  XCUITest points a build at a different project. That precedence is why the omission went
+  unnoticed for the whole migration: **the test suite supplied the configuration itself**, so
+  a fully green run and an app that cannot start were compatible states. Any check that only
+  ever launches through the harness cannot see this class of defect —
+  `testTheAppIsConfiguredWhenLaunchedTheWayAPersonLaunchesIt` is the one that can, because it
+  launches with no arguments and no environment at all.
 
 ### 4.2 The decisions already made
 

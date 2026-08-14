@@ -18,9 +18,21 @@ targets:
     sources: [FoodPad]
     dependencies:
       - package: Supabase
+    # Written from the repository .env by Scripts/write-config.sh, which must be
+    # run before `xcodegen generate`. Gitignored, like the .env it comes from.
+    configFiles:
+      Debug: Config.xcconfig
+      Release: Config.xcconfig
     info:
       path: FoodPad/Resources/Info.plist
       properties:
+        # The backend the app talks to. Expo inlined EXPO_PUBLIC_* into the JS
+        # bundle at build time; this is the same idea for a native build, and
+        # without it the app has a backend only while a test is driving it.
+        # Scheme and host arrive separately because an xcconfig reads `//` as a
+        # comment — see Scripts/write-config.sh.
+        EXPO_PUBLIC_SUPABASE_URL: "$(SUPABASE_URL_SCHEME)://$(SUPABASE_URL_HOST)"
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "$(SUPABASE_PUBLISHABLE_KEY)"
         CFBundleDisplayName: Food Pad
         UIUserInterfaceStyle: Light
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]

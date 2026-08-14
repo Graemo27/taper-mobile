@@ -16,6 +16,7 @@
 		24C40290AE3B6B74179B1AEA /* FoodClaims.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C90489E6B84ED8D78275259 /* FoodClaims.swift */; };
 		292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */; };
 		2C46EF3A0D0CC8B2949422CC /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */; };
+		30014D9FDCC0D0F6B9FB3EBB /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCF664C8510F5C51FE825F88 /* AppConfiguration.swift */; };
 		3C564884905CD5D6CA16FA2B /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FEF218ADB95F7F87E313089 /* Controls.swift */; };
 		4494F87BA8F13EB754A7C20A /* FoodSaveModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEC6D25EDA302415D90D27E /* FoodSaveModel.swift */; };
 		4C4699757724182072B06D75 /* FoodFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */; };
@@ -29,6 +30,7 @@
 		BB75FFAD1F0313498465600F /* FoodFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C461A77CBE94B4AB3BC69E /* FoodFormattingTests.swift */; };
 		BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */; };
 		BDD6080C45C777D07880DFB3 /* Geist-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 437903947F46E0547A55FF96 /* Geist-Medium.ttf */; };
+		BEC564280CC4A1FEDFD3A60F /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D1841D3734B8E8C73C81867 /* ConfigurationTests.swift */; };
 		C0A49FC5FB99EB25A9A5A3F6 /* FavouritesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E10EE0F7F7593A6B8F03D63 /* FavouritesRepository.swift */; };
 		C0C0CF61099DF71F29AC1A6F /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B06BC7094AFD2E6BD826EF /* SearchView.swift */; };
 		C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CCB921382D89E669683C0C /* FoodPadApp.swift */; };
@@ -76,6 +78,7 @@
 		3FEF218ADB95F7F87E313089 /* Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controls.swift; sourceTree = "<group>"; };
 		40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		437903947F46E0547A55FF96 /* Geist-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Medium.ttf"; sourceTree = "<group>"; };
+		4D1841D3734B8E8C73C81867 /* ConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationTests.swift; sourceTree = "<group>"; };
 		536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFormatting.swift; sourceTree = "<group>"; };
 		641EBD2D07391AFC013D190A /* FoodPad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FoodPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7519DB0AE818225FAE4DBF9B /* JournalPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalPresentation.swift; sourceTree = "<group>"; };
@@ -92,6 +95,7 @@
 		B86949CD7A35EAFA171B21BC /* RecentFoodsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFoodsRepository.swift; sourceTree = "<group>"; };
 		C31D44570D65A30DA3894B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C5BD020444D6814AB51014EA /* RecentFoodsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFoodsModel.swift; sourceTree = "<group>"; };
+		CE1C3D0841430D611C543B85 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSearchRepository.swift; sourceTree = "<group>"; };
 		D5C461A77CBE94B4AB3BC69E /* FoodFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFormattingTests.swift; sourceTree = "<group>"; };
 		DC80CF493565ED67DEC62532 /* FoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodModels.swift; sourceTree = "<group>"; };
@@ -100,6 +104,7 @@
 		E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
 		F4736F7B45B15479C5AFC2CF /* FavouritesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavouritesTests.swift; sourceTree = "<group>"; };
 		FAF99AB6C54C7615DDBB6218 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		FCF664C8510F5C51FE825F88 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,6 +182,7 @@
 		46904BF135E19DD98338E8E6 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				FCF664C8510F5C51FE825F88 /* AppConfiguration.swift */,
 				E0CCB921382D89E669683C0C /* FoodPadApp.swift */,
 			);
 			path = App;
@@ -196,8 +202,18 @@
 				B43E0FF010A3063E77A28857 /* FoodPad */,
 				D9563819279D1CB32B3EB765 /* FoodPadTests */,
 				4644E4C524382D66DA811090 /* FoodPadUITests */,
+				6DE80187D0989F06A6F1C295 /* ios */,
 				32352F7610F3ECC09D950AEE /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		6DE80187D0989F06A6F1C295 /* ios */ = {
+			isa = PBXGroup;
+			children = (
+				CE1C3D0841430D611C543B85 /* Config.xcconfig */,
+			);
+			name = ios;
+			path = .;
 			sourceTree = "<group>";
 		};
 		6F3FBE8E31CF3F594BFD531A /* Fonts */ = {
@@ -267,6 +283,7 @@
 		D9563819279D1CB32B3EB765 /* FoodPadTests */ = {
 			isa = PBXGroup;
 			children = (
+				4D1841D3734B8E8C73C81867 /* ConfigurationTests.swift */,
 				F4736F7B45B15479C5AFC2CF /* FavouritesTests.swift */,
 				364E79AF629F510D3BF7B0AE /* FoodDomainTests.swift */,
 				D5C461A77CBE94B4AB3BC69E /* FoodFormattingTests.swift */,
@@ -395,6 +412,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BEC564280CC4A1FEDFD3A60F /* ConfigurationTests.swift in Sources */,
 				FBCB63E209540337F5FDDC87 /* FavouritesTests.swift in Sources */,
 				B42838D4F97871779FA9A929 /* FoodDomainTests.swift in Sources */,
 				BB75FFAD1F0313498465600F /* FoodFormattingTests.swift in Sources */,
@@ -417,6 +435,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				30014D9FDCC0D0F6B9FB3EBB /* AppConfiguration.swift in Sources */,
 				3C564884905CD5D6CA16FA2B /* Controls.swift in Sources */,
 				0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */,
 				9BBA6AC463435CD2DCCB6345 /* FavouritesModel.swift in Sources */,
@@ -459,6 +478,7 @@
 /* Begin XCBuildConfiguration section */
 		119AE4C0B5A38AB11F76DF89 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE1C3D0841430D611C543B85 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -630,6 +650,7 @@
 		};
 		988E864889F45B62AA7AE93E /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE1C3D0841430D611C543B85 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";

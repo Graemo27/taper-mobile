@@ -44,3 +44,6 @@ example
 
 # local env files
 .env
+
+# Generated from .env by apps/ios/Scripts/write-config.sh — never committed.
+apps/ios/Config.xcconfig
