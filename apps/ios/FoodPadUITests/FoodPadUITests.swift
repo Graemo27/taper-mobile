@@ -105,6 +105,26 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
+    func testSaveToTodayStatesAndServingReset() {
+        var app = launchFood("loaded", save: "succeeds")
+        app.buttons["food.servings.increment"].tap()
+        app.buttons["food.save-button"].tap()
+        XCTAssertTrue(app.buttons["Saved to today"].waitForExistence(timeout: 3))
+
+        app.buttons["food.servings.increment"].tap()
+        XCTAssertTrue(app.buttons["Save to today"].exists)
+        app.buttons["food.save-button"].tap()
+        XCTAssertTrue(app.buttons["Saved to today"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Save to today"].waitForExistence(timeout: 3))
+
+        app.terminate()
+        app = launchFood("loaded", save: "fails")
+        app.buttons["food.save-button"].tap()
+        XCTAssertTrue(app.buttons["Try saving again"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Your entry was not saved. Try again in a moment."].exists)
+    }
+
+    @MainActor
     private func launch(_ fixture: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPJournalFixture", fixture]
@@ -121,9 +141,10 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchFood(_ fixture: String) -> XCUIApplication {
+    private func launchFood(_ fixture: String, save: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPFoodFixture", fixture]
+        if let save { app.launchArguments += ["-FPSaveFixture", save] }
         app.launch()
         return app
     }

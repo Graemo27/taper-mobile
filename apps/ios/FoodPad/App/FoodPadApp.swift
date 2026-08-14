@@ -6,14 +6,19 @@ struct FoodPadApp: App {
         WindowGroup {
             NavigationStack {
                 if let fixture = AppComposition.foodFixture {
-                    FoodDetailView(model: FoodComposition.fixture(fixture), fdcID: 101)
+                    FoodDetailView(
+                        model: FoodComposition.fixture(fixture),
+                        saveModel: SaveComposition.fixture(AppComposition.saveFixture),
+                        fdcID: 101
+                    )
                 } else if let fixture = AppComposition.searchFixture {
                     SearchFlowView(model: SearchComposition.fixture(fixture), initialQuery: "ap")
                 } else {
                     AppRootView(
                         journal: JournalComposition.makeModel(),
                         search: SearchComposition.makeModel(),
-                        fetch: SearchComposition.makeFetcher()
+                        fetch: SearchComposition.makeFetcher(),
+                        save: SearchComposition.makeSaver()
                     )
                 }
             }
@@ -26,18 +31,23 @@ private struct AppRootView: View {
     let journal: JournalModel
     let search: SearchModel
     let fetch: @Sendable (Int) async throws -> Food
+    let save: @Sendable (JournalDraft) async throws -> Void
     @State private var isSearching = false
 
     var body: some View {
         JournalShellView(model: journal) { isSearching = true }
             .navigationDestination(isPresented: $isSearching) {
-                SearchFlowView(model: search, fetch: fetch)
+                SearchFlowView(model: search, fetch: fetch, save: save)
+            }
+            .onChange(of: isSearching) { _, visible in
+                if !visible { Task { await journal.load() } }
             }
     }
 }
 
 private enum AppComposition {
     static var foodFixture: String? { fixture(after: "-FPFoodFixture") }
+    static var saveFixture: String? { fixture(after: "-FPSaveFixture") }
     static var searchFixture: String? { fixture(after: "-FPSearchFixture") }
 
     private static func fixture(after flag: String) -> String? {
@@ -76,6 +86,20 @@ private enum SearchComposition {
             source: SupabaseFoodSearchDataSource(client: client)
         )
         return { try await repository.food(fdcID: $0) }
+    }
+
+    static func makeSaver() -> @Sendable (JournalDraft) async throws -> Void {
+        let environment = ProcessInfo.processInfo.environment
+        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
+              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+            return { _ in throw ConfigurationError.missing }
+        }
+        let client = AppSupabase.make(url: url, publishableKey: key)
+        let repository = JournalWriteRepository(
+            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
+            source: SupabaseJournalWriteDataSource(client: client)
+        )
+        return { try await repository.save($0) }
     }
 
     static func fixture(_ name: String) -> SearchModel {
@@ -133,6 +157,17 @@ private enum FoodComposition {
         per100g: Nutrients(kcal: 579, proteinG: 21.2, fibreG: 12.5, vitaminEMg: 25.6, magnesiumMg: 270, unsaturatedFatG: 43.9),
         perServing: nil, portions: [Portion(label: "1 oz", grams: 28)]
     )
+
+    private enum FixtureError: Error { case failed }
+}
+
+@MainActor
+private enum SaveComposition {
+    static func fixture(_ name: String?) -> FoodSaveModel {
+        name == "succeeds"
+            ? FoodSaveModel(save: { _ in })
+            : FoodSaveModel(save: { _ in throw FixtureError.failed })
+    }
 
     private enum FixtureError: Error { case failed }
 }

@@ -63,6 +63,56 @@ final class JournalDataTests: XCTestCase {
         XCTAssertEqual(JournalRepository.localDate(today, calendar: userCalendar), "2026-08-14")
     }
 
+    func testSaveWritesTheDisplayedSnapshotOnTheLocalDate() async throws {
+        let source = JournalWriteStub()
+        let userID = UUID()
+        let repository = JournalWriteRepository(
+            sessions: SessionCoordinator(auth: AuthStub(valid: .success(userID))), source: source
+        )
+        let draft = saveDraft(7)
+
+        try await repository.save(draft, at: date(2026, 8, 14), calendar: testCalendar)
+
+        let call = await source.call
+        XCTAssertEqual(call, .init(userID: userID, eatenOn: "2026-08-14", draft: draft))
+    }
+
+    @MainActor
+    func testSaveStateStaysKeyedWhenAnOlderFailureArrives() async {
+        let model = FoodSaveModel(
+            save: { draft in
+                if draft.fdcID == 1 {
+                    try await Task.sleep(for: .milliseconds(50))
+                    throw TestFailure.recoverable
+                }
+            },
+            holdConfirmation: { try? await Task.sleep(for: .seconds(1)) }
+        )
+        let old = Task { await model.save(saveDraft(1)) }
+        await Task.yield()
+        let current = Task { await model.save(saveDraft(2)) }
+        while model.status(for: 2) != .saved { await Task.yield() }
+
+        await old.value
+
+        XCTAssertEqual(model.status(for: 2), .saved)
+        current.cancel()
+    }
+
+    @MainActor
+    func testChangingTheServingClearsItsConfirmation() async {
+        let model = FoodSaveModel(
+            save: { _ in }, holdConfirmation: { try? await Task.sleep(for: .seconds(1)) }
+        )
+        let saving = Task { await model.save(saveDraft(1)) }
+        while model.status(for: 1) != .saved { await Task.yield() }
+
+        model.reset(for: 1)
+
+        XCTAssertEqual(model.status(for: 1), .idle)
+        saving.cancel()
+    }
+
     func testSupabaseReadRequestsExactCountThroughInjectedSession() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [JournalURLProtocol.self]
@@ -81,6 +131,21 @@ final class JournalDataTests: XCTestCase {
 
         XCTAssertEqual(page.total, 3)
         XCTAssertEqual(page.entries.map(\.id), [1])
+    }
+
+    func testSupabaseSaveSendsTheSnapshotFields() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [JournalURLProtocol.self]
+        let client = SupabaseClient(
+            supabaseURL: URL(string: "https://project.supabase.co")!,
+            supabaseKey: "sb_publishable_test",
+            options: .init(global: .init(session: URLSession(configuration: configuration)))
+        )
+
+        try await SupabaseJournalWriteDataSource(client: client).save(
+            userID: UUID(uuidString: "00000000-0000-0000-0000-000000000007")!,
+            eatenOn: "2026-08-14", draft: saveDraft(7)
+        )
     }
 
     func testPresentationGroupsInQueryOrderAndNamesRelativeDays() {
@@ -145,6 +210,13 @@ final class JournalDataTests: XCTestCase {
         JournalEntry(id: id, eatenOn: day, name: "Food", servingLabel: nil, kcal: nil)
     }
 
+    private func saveDraft(_ id: Int) -> JournalDraft {
+        JournalDraft(
+            fdcID: id, name: "Apple", servingLabel: "2 medium · 364 g", servings: 2,
+            grams: 364, kcal: 189, proteinG: 1.1, fibreG: 8.7
+        )
+    }
+
     private var testCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
@@ -187,6 +259,19 @@ private struct JournalSourceStub: JournalDataSource {
     func fetch(userID: UUID, from start: String, limit: Int) async throws -> JournalPage { page }
 }
 
+private actor JournalWriteStub: JournalWriteDataSource {
+    struct Call: Equatable {
+        let userID: UUID
+        let eatenOn: String
+        let draft: JournalDraft
+    }
+
+    private(set) var call: Call?
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) {
+        call = Call(userID: userID, eatenOn: eatenOn, draft: draft)
+    }
+}
+
 private actor MidnightStub: MidnightClock {
     private var dates: [Date]
     private(set) var calls = 0
@@ -204,6 +289,22 @@ private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
+        if request.httpMethod == "POST", let data = bodyData(),
+           let json = try? JSONSerialization.jsonObject(with: data),
+           let row = (json as? [String: Any]) ?? (json as? [[String: Any]])?.first,
+           row["user_id"] as? String == "00000000-0000-0000-0000-000000000007",
+           row["eaten_on"] as? String == "2026-08-14", row["fdc_id"] as? Int == 7,
+           row["serving_label"] as? String == "2 medium · 364 g",
+           row["servings"] as? Int == 2, row["kcal"] as? Int == 189 {
+            let response = HTTPURLResponse(
+                url: request.url!, statusCode: 201, httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Data("[]".utf8))
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
         guard request.value(forHTTPHeaderField: "Prefer")?.contains("count=exact") == true,
               request.url?.query?.contains("eaten_on=gte.2026-07-16") == true,
               request.url?.query?.contains("limit=2000") == true else {
@@ -218,6 +319,19 @@ private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: data)
         client?.urlProtocolDidFinishLoading(self)
+    }
+    private func bodyData() -> Data? {
+        if let body = request.httpBody { return body }
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open(); defer { stream.close() }
+        var data = Data(), buffer = [UInt8](repeating: 0, count: 1_024)
+        while stream.hasBytesAvailable {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            guard count >= 0 else { return nil }
+            if count == 0 { break }
+            data.append(buffer, count: count)
+        }
+        return data
     }
     override func stopLoading() {}
 }
