@@ -109,6 +109,24 @@ enum SearchToken {
     static let energyWidth = SpacingScale.values[19]
 }
 
+enum FoodDetailToken {
+    static let zeroGap = SpacingScale.values[0]
+    static let compactGap = SpacingScale.values[2]
+    static let itemGap = SpacingScale.values[6]
+    static let sectionGap = SpacingScale.values[7]
+    static let screenInset = SpacingScale.values[8]
+    static let contentTop = SpacingScale.values[8]
+    static let cardInset = SpacingScale.values[8]
+    static let stateTop = SpacingScale.values[10]
+    static let controlSize = SpacingScale.values[14]
+    static let cardRadius = RadiusScale.values[5]
+    static let controlRadius = RadiusScale.values[10]
+    static let titleSize = TypeScale.sizes[6]
+    static let headingSize = TypeScale.sizes[3]
+    static let bodySize = TypeScale.sizes[1]
+    static let valueSize = TypeScale.sizes[5]
+}
+
 private extension Color {
     init(hex: String) {
         let value = UInt64(hex, radix: 16)!

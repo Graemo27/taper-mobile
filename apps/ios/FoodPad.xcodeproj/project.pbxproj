@@ -30,6 +30,7 @@
 		CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9533148B383912C0BCE0B0 /* JournalShellView.swift */; };
 		CF822CBE5CEEC1EBDFEE75CE /* FoodSearchPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76256A2F07870C3DFB5E6D45 /* FoodSearchPresentation.swift */; };
 		D0037DC754B53BC174ECD9E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C31D44570D65A30DA3894B57 /* Assets.xcassets */; };
+		D1445F2DB63995234E7E8842 /* FoodDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CE73C122B55D28A116DE289 /* FoodDetailView.swift */; };
 		D7CFCC17B960CE1553B9CE2D /* FoodModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC80CF493565ED67DEC62532 /* FoodModels.swift */; };
 		E29D2780B1DD86E0C4847DF0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 55AC15C90E021EE096518756 /* Supabase */; };
 		F3F9B10CD505FCE1DB379D4B /* JournalDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */; };
@@ -59,6 +60,7 @@
 		2FA5B82E3572EF3739D3129B /* FoodParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodParser.swift; sourceTree = "<group>"; };
 		364E79AF629F510D3BF7B0AE /* FoodDomainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDomainTests.swift; sourceTree = "<group>"; };
 		3C9533148B383912C0BCE0B0 /* JournalShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalShellView.swift; sourceTree = "<group>"; };
+		3CE73C122B55D28A116DE289 /* FoodDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailView.swift; sourceTree = "<group>"; };
 		40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		437903947F46E0547A55FF96 /* Geist-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Medium.ttf"; sourceTree = "<group>"; };
 		536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFormatting.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 		1887CFABD7BDBDD1DD3CDDC3 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				8F42F4B639032711040B23BD /* FoodDetail */,
 				A16B8F03AA7367FF8F95A34C /* Journal */,
 				0B461ADE45D90C4C7DAC7227 /* Search */,
 			);
@@ -185,6 +188,14 @@
 				2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */,
 			);
 			path = Fonts;
+			sourceTree = "<group>";
+		};
+		8F42F4B639032711040B23BD /* FoodDetail */ = {
+			isa = PBXGroup;
+			children = (
+				3CE73C122B55D28A116DE289 /* FoodDetailView.swift */,
+			);
+			path = FoodDetail;
 			sourceTree = "<group>";
 		};
 		9A16DAECC278987E9C690388 /* Domain */ = {
@@ -382,6 +393,7 @@
 			files = (
 				0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */,
 				24C40290AE3B6B74179B1AEA /* FoodClaims.swift in Sources */,
+				D1445F2DB63995234E7E8842 /* FoodDetailView.swift in Sources */,
 				4C4699757724182072B06D75 /* FoodFormatting.swift in Sources */,
 				D7CFCC17B960CE1553B9CE2D /* FoodModels.swift in Sources */,
 				C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */,

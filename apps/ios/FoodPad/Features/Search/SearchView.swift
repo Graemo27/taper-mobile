@@ -4,16 +4,30 @@ struct SearchFlowView: View {
     @StateObject private var model: SearchModel
     @State private var selectedFood: Food?
     private let initialQuery: String
+    private let fetch: @Sendable (Int) async throws -> Food
 
-    init(model: SearchModel, initialQuery: String = "") {
+    init(
+        model: SearchModel,
+        initialQuery: String = "",
+        fetch: @escaping @Sendable (Int) async throws -> Food = { _ in
+            throw FoodSearchError("Food lookup is unavailable right now.", kind: .http)
+        }
+    ) {
         _model = StateObject(wrappedValue: model)
         self.initialQuery = initialQuery
+        self.fetch = fetch
     }
 
     var body: some View {
         SearchView(model: model, initialQuery: initialQuery) { selectedFood = $0 }
             .navigationDestination(isPresented: selectionIsPresented) {
-                if let selectedFood { FoodHandoffView(food: selectedFood) }
+                if let selectedFood {
+                    FoodDetailView(
+                        model: FoodLookupModel(fetch: fetch),
+                        fdcID: selectedFood.fdcId,
+                        handedOff: selectedFood
+                    )
+                }
             }
     }
 
@@ -220,18 +234,5 @@ private struct SearchLoadingView: View {
         }
         .accessibilityLabel("Searching foods")
         .accessibilityIdentifier("search.loading-state")
-    }
-}
-
-private struct FoodHandoffView: View {
-    let food: Food
-
-    var body: some View {
-        VStack {
-            Text(food.name).font(AppFont.semibold(SearchToken.titleSize))
-        }
-            .accessibilityElement(children: .contain)
-            .navigationTitle("Food")
-            .accessibilityIdentifier("food.handoff.\(food.fdcId)")
     }
 }

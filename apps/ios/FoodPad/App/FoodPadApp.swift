@@ -5,12 +5,15 @@ struct FoodPadApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationStack {
-                if let fixture = AppComposition.searchFixture {
+                if let fixture = AppComposition.foodFixture {
+                    FoodDetailView(model: FoodComposition.fixture(fixture), fdcID: 101)
+                } else if let fixture = AppComposition.searchFixture {
                     SearchFlowView(model: SearchComposition.fixture(fixture), initialQuery: "ap")
                 } else {
                     AppRootView(
                         journal: JournalComposition.makeModel(),
-                        search: SearchComposition.makeModel()
+                        search: SearchComposition.makeModel(),
+                        fetch: SearchComposition.makeFetcher()
                     )
                 }
             }
@@ -22,18 +25,24 @@ struct FoodPadApp: App {
 private struct AppRootView: View {
     let journal: JournalModel
     let search: SearchModel
+    let fetch: @Sendable (Int) async throws -> Food
     @State private var isSearching = false
 
     var body: some View {
         JournalShellView(model: journal) { isSearching = true }
-            .navigationDestination(isPresented: $isSearching) { SearchFlowView(model: search) }
+            .navigationDestination(isPresented: $isSearching) {
+                SearchFlowView(model: search, fetch: fetch)
+            }
     }
 }
 
 private enum AppComposition {
-    static var searchFixture: String? {
+    static var foodFixture: String? { fixture(after: "-FPFoodFixture") }
+    static var searchFixture: String? { fixture(after: "-FPSearchFixture") }
+
+    private static func fixture(after flag: String) -> String? {
         let arguments = ProcessInfo.processInfo.arguments
-        guard let marker = arguments.firstIndex(of: "-FPSearchFixture"),
+        guard let marker = arguments.firstIndex(of: flag),
               arguments.indices.contains(marker + 1) else { return nil }
         return arguments[marker + 1]
     }
@@ -53,6 +62,20 @@ private enum SearchComposition {
             source: SupabaseFoodSearchDataSource(client: client)
         )
         return SearchModel { try await repository.search($0) }
+    }
+
+    static func makeFetcher() -> @Sendable (Int) async throws -> Food {
+        let environment = ProcessInfo.processInfo.environment
+        guard let url = URL(string: environment["EXPO_PUBLIC_SUPABASE_URL"] ?? ""),
+              let key = environment["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else {
+            return { _ in throw ConfigurationError.missing }
+        }
+        let client = AppSupabase.make(url: url, publishableKey: key)
+        let repository = FoodSearchRepository(
+            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
+            source: SupabaseFoodSearchDataSource(client: client)
+        )
+        return { try await repository.food(fdcID: $0) }
     }
 
     static func fixture(_ name: String) -> SearchModel {
@@ -84,6 +107,33 @@ private enum SearchComposition {
     ]
 
     private enum ConfigurationError: Error { case missing }
+    private enum FixtureError: Error { case failed }
+}
+
+@MainActor
+private enum FoodComposition {
+    static func fixture(_ name: String) -> FoodLookupModel {
+        let food = fixtureFood
+        switch name {
+        case "loaded": return FoodLookupModel { _ in food }
+        case "missing": return FoodLookupModel { _ in
+            throw FoodSearchError("That food could not be found.", kind: .http, status: 404)
+        }
+        case "failed": return FoodLookupModel { _ in throw FixtureError.failed }
+        default: return FoodLookupModel { _ in
+            try await Task.sleep(for: .seconds(60))
+            return food
+        }
+        }
+    }
+
+    private static let fixtureFood = Food(
+        fdcId: 101, name: "Almonds", category: "Nuts", dataType: "Foundation",
+        portion: Portion(label: "1 oz", grams: 28),
+        per100g: Nutrients(kcal: 579, proteinG: 21.2, fibreG: 12.5, vitaminEMg: 25.6, magnesiumMg: 270, unsaturatedFatG: 43.9),
+        perServing: nil, portions: [Portion(label: "1 oz", grams: 28)]
+    )
+
     private enum FixtureError: Error { case failed }
 }
 

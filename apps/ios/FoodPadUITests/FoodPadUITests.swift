@@ -50,9 +50,13 @@ final class FoodPadUITests: XCTestCase {
         add(screenshot)
 
         app.buttons["search.result.101"].tap()
-        let handoff = app.descendants(matching: .any)["food.handoff.101"]
-        XCTAssertTrue(handoff.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["food.detail.101"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Apple"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["food.nutrition"].exists)
+
+        app.buttons["food.servings.increment"].tap()
+        XCTAssertTrue(app.staticTexts["2 servings"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["189"].exists)
     }
 
     @MainActor
@@ -71,6 +75,36 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
+    func testFoodDetailLoadsByID() {
+        let app = launchFood("loaded")
+
+        XCTAssertTrue(app.otherElements["food.detail.101"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["High in"].exists)
+        XCTAssertTrue(app.staticTexts["Nutrition"].exists)
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Food detail"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    @MainActor
+    func testEveryFoodLookupStateRenders() {
+        var app = launchFood("loading")
+        XCTAssertTrue(app.otherElements["food.loading-state"].waitForExistence(timeout: 3))
+
+        app.terminate()
+        app = launchFood("missing")
+        XCTAssertTrue(app.otherElements["food.missing-state"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["food.retry-button"].exists)
+
+        app.terminate()
+        app = launchFood("failed")
+        XCTAssertTrue(app.otherElements["food.failure-state"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["food.retry-button"].exists)
+    }
+
+    @MainActor
     private func launch(_ fixture: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPJournalFixture", fixture]
@@ -82,6 +116,14 @@ final class FoodPadUITests: XCTestCase {
     private func launchSearch(_ fixture: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPSearchFixture", fixture]
+        app.launch()
+        return app
+    }
+
+    @MainActor
+    private func launchFood(_ fixture: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FPFoodFixture", fixture]
         app.launch()
         return app
     }
