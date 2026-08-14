@@ -1,9 +1,12 @@
 import Foundation
 
+/// The transport seam. Returns every received HTTP response, including 4xx
+/// and 5xx; throws only when no HTTP response exists.
 protocol HTTPClient: Sendable {
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
 }
 
+/// `URLSession` behind the seam, on the fault-injectable session.
 struct URLSessionHTTPClient: HTTPClient {
     let session: URLSession
 
@@ -20,6 +23,7 @@ struct URLSessionHTTPClient: HTTPClient {
     }
 }
 
+/// The session every network path shares.
 enum NetworkSession {
     /// Use this session for both `HTTPClient` and Supabase so launch faults cover every request.
     static func live() -> URLSession {
@@ -29,6 +33,8 @@ enum NetworkSession {
     }
 }
 
+/// Fault injection parsed from launch arguments: a delay (optionally scoped
+/// to URLs containing a substring), a failing URL, a forced status.
 struct LaunchFaults {
     let delay: TimeInterval
     let delayedURLSubstring: String?
@@ -59,6 +65,8 @@ struct LaunchFaults {
     }
 }
 
+/// Guards delayed delivery so a cancelled load can never deliver callbacks
+/// after cancellation.
 final class LoadingGate: @unchecked Sendable {
     private let lock = NSRecursiveLock()
     private var active = true
@@ -89,6 +97,8 @@ final class LoadingGate: @unchecked Sendable {
     }
 }
 
+/// The URL protocol that applies `LaunchFaults` at the transport boundary,
+/// where the real requests actually travel.
 final class FaultInjectingURLProtocol: URLProtocol, @unchecked Sendable {
     private static let argumentsKey = "FoodPad.faultArguments"
     private static let stubKey = "FoodPad.stubResponse"

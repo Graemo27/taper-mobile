@@ -47,4 +47,6 @@ enum AppConfiguration {
     }
 }
 
+/// Thrown by every composition guard when `AppConfiguration.backend` is nil,
+/// so an unconfigured build fails loudly on first use rather than quietly.
 enum ConfigurationError: Error { case missing }

@@ -1,5 +1,7 @@
 import Foundation
 
+/// Serving labels and numeric display, ported case for case from `format.ts` —
+/// including the pluralisation table that took three attempts to get right.
 enum FoodFormatting {
     private struct Quantity {
         let value: Double

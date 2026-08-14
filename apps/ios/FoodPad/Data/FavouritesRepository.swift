@@ -1,12 +1,15 @@
 import Foundation
 import Supabase
 
+/// A user's favourites as a set of FDC ids.
 protocol FavouritesDataSource: Sendable {
     func list(userID: UUID) async throws -> Set<Int>
     func add(userID: UUID, fdcID: Int) async throws
     func remove(userID: UUID, fdcID: Int) async throws
 }
 
+/// PostgREST rows keyed (user, fdc id); `add` upserts so repeating a
+/// favourite is not an error.
 struct SupabaseFavouritesDataSource: FavouritesDataSource {
     let client: SupabaseClient
 
@@ -35,6 +38,7 @@ struct SupabaseFavouritesDataSource: FavouritesDataSource {
     }
 }
 
+/// Reads and toggles favourites as the current user.
 struct FavouritesRepository: Sendable {
     let sessions: SessionCoordinator
     let source: any FavouritesDataSource

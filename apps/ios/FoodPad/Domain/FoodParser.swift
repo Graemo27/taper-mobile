@@ -1,5 +1,7 @@
 import Foundation
 
+/// FDC response shapes to domain types, ported from `parse.ts`. Absent
+/// readings stay nil throughout.
 enum FoodParser {
     /// Normalizes the flat search and nested detail nutrient shapes FDC returns.
     static func nutrients(from data: Data) throws -> Nutrients {

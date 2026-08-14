@@ -1,6 +1,8 @@
 import Foundation
 import Supabase
 
+/// Builds the app's one Supabase client, routed through `NetworkSession.live()`
+/// so launch-argument faults reach Supabase traffic too.
 enum AppSupabase {
     static func make(url: URL, publishableKey: String) -> SupabaseClient {
         SupabaseClient(
@@ -11,6 +13,9 @@ enum AppSupabase {
     }
 }
 
+/// The slice of auth the coordinator needs: a current user id, a fresh
+/// anonymous sign-in, and the judgement call of which errors mean
+/// "sign in again" rather than "give up".
 protocol AnonymousAuthClient: Sendable {
     func validUserID() async throws -> UUID
     func signInAnonymously() async throws -> UUID
@@ -18,6 +23,8 @@ protocol AnonymousAuthClient: Sendable {
     func canRecover(from error: Error) -> Bool
 }
 
+/// Recovery is deliberately narrow: a missing session, or a 400 naming an
+/// invalid refresh token. Anything else propagates.
 struct SupabaseAnonymousAuth: AnonymousAuthClient {
     let client: SupabaseClient
 
@@ -42,6 +49,8 @@ struct SupabaseAnonymousAuth: AnonymousAuthClient {
     }
 }
 
+/// Runs work as a signed-in anonymous user, healing a dead session once per
+/// call and coalescing concurrent sign-ins into a single request.
 actor SessionCoordinator {
     private let auth: any AnonymousAuthClient
     private var pendingSignIn: Task<UUID, Error>?

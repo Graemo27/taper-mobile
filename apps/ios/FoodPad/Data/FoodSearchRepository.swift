@@ -1,11 +1,16 @@
 import Foundation
 import Supabase
 
+/// What the Edge Function returns: resolved foods plus how many hits FDC
+/// listed but could not serve, so "5 matches" never silently means 3.
 struct FoodSearchResult: Decodable, Equatable, Sendable {
     let foods: [Food]
     let unavailable: Int
 }
 
+/// A search failure sorted into the three cases the UI words differently —
+/// `http`, `timeout`, `offline` — carrying the request id when a response
+/// existed to assign one.
 struct FoodSearchError: Error, Equatable, LocalizedError, Sendable {
     enum Kind: Equatable, Sendable { case http, timeout, offline }
 
@@ -24,11 +29,14 @@ struct FoodSearchError: Error, Equatable, LocalizedError, Sendable {
     var errorDescription: String? { message }
 }
 
+/// The two Edge Function routes: text search and lookup by FDC id.
 protocol FoodSearchDataSource: Sendable {
     func search(query: String, limit: Int) async throws -> FoodSearchResult
     func food(fdcID: Int) async throws -> Food
 }
 
+/// Invokes the `food-search` Edge Function and maps transport failures onto
+/// `FoodSearchError`, keeping cancellation distinct from failure.
 struct SupabaseFoodSearchDataSource: FoodSearchDataSource {
     let client: SupabaseClient
 
@@ -85,6 +93,8 @@ struct SupabaseFoodSearchDataSource: FoodSearchDataSource {
     private struct FailureResponse: Decodable { let error: String?; let requestId: String? }
 }
 
+/// Trims and bounds queries, rejects impossible ids before the network, and
+/// runs every call through the authenticated session.
 struct FoodSearchRepository: Sendable {
     let sessions: SessionCoordinator
     let source: any FoodSearchDataSource

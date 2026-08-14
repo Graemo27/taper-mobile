@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// Search plus its push to Food detail, handing the resolved food across so
+/// detail has nothing to fetch.
 struct SearchFlowView: View {
     @StateObject private var model: SearchModel
     @StateObject private var recent: RecentFoodsModel
@@ -53,6 +55,8 @@ struct SearchFlowView: View {
 
 private struct FoodSelection { let id: Int; var handedOff: Food? }
 
+/// The search screen itself: field, results, Recent on empty, and the
+/// skeleton, no-matches and failure states.
 struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var favourites: FavouritesModel
@@ -269,6 +273,8 @@ private struct SearchResultCard: View {
     }
 }
 
+/// Failure copy selection. Internal rather than private so the unit target
+/// can assert every body verbatim — two of them once lost a sentence.
 struct SearchFailureMessage {
     let title: String
     let body: String

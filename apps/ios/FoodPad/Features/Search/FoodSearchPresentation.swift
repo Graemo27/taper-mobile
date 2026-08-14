@@ -1,6 +1,8 @@
 import Foundation
 
 @MainActor
+/// Search screen state. Results are generation-keyed so a stale reply can
+/// never land over a newer query's.
 final class SearchModel: ObservableObject {
     enum Status: Equatable { case idle, loading, ready, failed }
 
@@ -46,6 +48,8 @@ final class SearchModel: ObservableObject {
 }
 
 @MainActor
+/// Food detail state: shows a handed-off food without refetching, fetches by
+/// id otherwise, and separates not-found from failure.
 final class FoodLookupModel: ObservableObject {
     enum Status: Equatable { case looking, held, missing, failed }
 

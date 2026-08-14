@@ -9,6 +9,7 @@ private enum ColorRamp {
     static let green = ["F0FDF4", "DCFCE7", "BBF7D0", "86EFAC", "4ADE80", "22C55E", "16A34A", "15803D", "166534", "14532D", "052E16"].map(Color.init(hex:))
 }
 
+/// Semantic colour tokens — the only names call sites may use.
 enum AppColor {
     static let background = ColorRamp.neutral[1]
     static let surface = Color.white
@@ -59,6 +60,7 @@ private enum ElevationScale {
     ]
 }
 
+/// Geist, the app's one family, by weight.
 enum AppFont {
     static func regular(_ size: Double) -> Font { .custom("Geist-Regular", size: size) }
     static func medium(_ size: Double) -> Font { .custom("Geist-Medium", size: size) }
@@ -66,6 +68,7 @@ enum AppFont {
     static func bold(_ size: Double) -> Font { .custom("Geist-Bold", size: size) }
 }
 
+/// Journal screen values, each an alias into the primitive scales.
 enum JournalToken {
     static let zeroGap = SpacingScale.values[0]
     static let screenInset = SpacingScale.values[8]
@@ -94,6 +97,7 @@ enum JournalToken {
     static let removeGap = SpacingScale.values[2]
 }
 
+/// Search screen values, each an alias into the primitive scales.
 enum SearchToken {
     static let zeroGap = SpacingScale.values[0]
     static let compactGap = SpacingScale.values[3]
@@ -113,6 +117,7 @@ enum SearchToken {
     static let energyWidth = SpacingScale.values[19]
 }
 
+/// Food detail values, each an alias into the primitive scales.
 enum FoodDetailToken {
     static let zeroGap = SpacingScale.values[0]
     static let compactGap = SpacingScale.values[2]

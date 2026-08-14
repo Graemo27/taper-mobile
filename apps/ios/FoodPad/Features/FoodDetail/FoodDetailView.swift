@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// A food's detail: serving stepper, "High in" chips, nutrition, save and
+/// favourite. Reachable by hand-off from Search or by id alone.
 struct FoodDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var favourites: FavouritesModel
