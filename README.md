@@ -9,7 +9,7 @@ Native iOS, SwiftUI, with a Supabase backend and one Edge Function.
 
 ## Layout
 
-```
+```text
 apps/ios/            The app. SwiftUI, iOS 26, XcodeGen-generated project
 supabase/functions/  food-search — the FDC proxy, Deno/TypeScript
 supabase/migrations/ Schema, applied in order

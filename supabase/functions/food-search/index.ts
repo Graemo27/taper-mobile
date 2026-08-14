@@ -7,10 +7,19 @@
  * less convenient to unpack. USDA deactivates keys it finds published. So the
  * key lives here as a Supabase secret and the app never sees it.
  *
- * The whole N+1 fan-out runs server-side. FDC has no batch endpoint that
- * includes portions, so a five-row result costs six requests; doing that from
- * the device would mean six round trips over mobile network instead of one, and
- * would leak the shape of the quota to anyone watching.
+ * The whole N+1 fan-out runs server-side: a five-row result costs six requests.
+ * Doing that from the device would mean six round trips over mobile network
+ * instead of one, and would leak the shape of the quota to anyone watching.
+ *
+ * **The fan-out itself is not necessary, and this comment used to claim it
+ * was.** `GET /v1/foods?fdcIds=…` returns full records *including*
+ * `foodPortions`, for Foundation and SR Legacy alike — measured against the
+ * live API on 2026-08-14. The original claim is true only of
+ * `format=abridged`, which does omit portions and is the likely source of the
+ * mistake. Collapsing search + N lookups into two requests is a real
+ * improvement and deliberately not made here: it changes behaviour in a
+ * deployed function, and this repository still cannot drive an Edge Function
+ * locally to prove it. See the follow-up on PR #54.
  *
  * The lookup logic lives in `./food` rather than inline. It was originally
  * split out to be shared with a Node harness (`npm run food`) that exercised it

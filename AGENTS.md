@@ -4,7 +4,8 @@
 
 Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and one Edge Function
 in `supabase/functions/food-search/`. Start from `README.md` for how to build and run it,
-including the `write-config.sh` step the build does not work without.
+including the `write-config.sh` step that gives the running app its backend configuration.
+Skipping it does not fail the build — it produces an app that launches with no backend.
 
 The SwiftUI migration completed on 2026-08-14 and the React Native app was deleted in PR #53.
 `docs/swift-migration.md` and `docs/swift-migration-reference.md` remain the record of how it

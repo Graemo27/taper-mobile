@@ -68,9 +68,18 @@ export async function getFood(
 /**
  * Search, then resolve each hit to get its serving.
  *
- * This is N+1 requests by construction — FDC offers no batch endpoint that
- * includes portions. Keep `limit` small. DEMO_KEY (30 req/hour) will not
+ * This is N+1 requests as written, not by necessity. `GET /v1/foods?fdcIds=…`
+ * returns full records including `foodPortions` — verified against the live API
+ * on 2026-08-14 for both Foundation and SR Legacy — so this could be two
+ * requests rather than `limit + 1`. Only `format=abridged` omits portions,
+ * which is where the older "no batch endpoint" claim came from. Batching is a
+ * pending change, not a rejected one; it needs a way to drive this function
+ * locally first. Until then keep `limit` small. DEMO_KEY (30 req/hour) will not
  * survive repeated use; set FDC_API_KEY.
+ *
+ * Note that batching would also change the failure model below: a per-id 404
+ * currently identifies exactly which row FDC would not serve, and one batched
+ * response would have to derive that from which ids came back missing.
  *
  * Failures are split by kind, because the two obvious policies are both wrong:
  * dropping everything turns a 429 into a misleading "no such food", while
