@@ -83,6 +83,57 @@ final class JournalDataTests: XCTestCase {
         XCTAssertEqual(page.entries.map(\.id), [1])
     }
 
+    func testPresentationGroupsInQueryOrderAndNamesRelativeDays() {
+        let rows = [entry(1, "2026-08-14"), entry(3, "2026-08-13"), entry(2, "2026-08-14")]
+
+        let days = JournalPresentation.days(from: rows)
+
+        XCTAssertEqual(days.map(\.date), ["2026-08-14", "2026-08-13"])
+        XCTAssertEqual(days.map { $0.entries.map(\.id) }, [[1, 2], [3]])
+        XCTAssertEqual(JournalPresentation.heading(for: days[0].date, today: "2026-08-14"), "Today")
+        XCTAssertEqual(JournalPresentation.heading(for: days[1].date, today: "2026-08-14"), "Yesterday")
+        XCTAssertEqual(
+            JournalPresentation.heading(
+                for: "2026-08-09", today: "2026-08-14", locale: Locale(identifier: "en_US")
+            ),
+            "Sunday, August 9"
+        )
+        XCTAssertEqual(JournalPresentation.thingCount(2), "2 things")
+    }
+
+    @MainActor
+    func testFailedRefreshKeepsPreviouslyRenderedDays() async {
+        let rows = [entry(1, "2026-08-14")]
+        let model = JournalModel(entries: rows, today: "2026-08-14") { throw TestFailure.recoverable }
+
+        await model.load()
+
+        XCTAssertEqual(model.entries, rows)
+        XCTAssertEqual(model.status, .failed)
+    }
+
+    @MainActor
+    func testMidnightClockRearmsForFollowingDay() async {
+        let clock = MidnightStub(dates: [date(2026, 8, 15), date(2026, 8, 16)])
+        let model = JournalModel(today: "2026-08-14") { [] }
+
+        await model.followMidnights(clock: clock, calendar: testCalendar)
+
+        XCTAssertEqual(model.today, "2026-08-16")
+        let calls = await clock.calls
+        XCTAssertEqual(calls, 3)
+    }
+
+    @MainActor
+    func testMidnightClockCorrectsDateBeforeWaiting() async {
+        let model = JournalModel(today: "stale") { [] }
+        await model.followMidnights(
+            clock: MidnightStub(dates: []), calendar: testCalendar, startingAt: date(2026, 8, 14)
+        )
+
+        XCTAssertEqual(model.today, "2026-08-14")
+    }
+
     private func makeRepository(page: JournalPage) -> JournalRepository {
         JournalRepository(
             sessions: SessionCoordinator(auth: AuthStub(valid: .success(UUID()))),
@@ -92,6 +143,16 @@ final class JournalDataTests: XCTestCase {
 
     private func entry(_ id: Int, _ day: String) -> JournalEntry {
         JournalEntry(id: id, eatenOn: day, name: "Food", servingLabel: nil, kcal: nil)
+    }
+
+    private var testCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        return calendar
+    }
+
+    private func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
+        testCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: 0, second: 1))!
     }
 }
 
@@ -124,6 +185,19 @@ private actor AttemptCounter {
 private struct JournalSourceStub: JournalDataSource {
     let page: JournalPage
     func fetch(userID: UUID, from start: String, limit: Int) async throws -> JournalPage { page }
+}
+
+private actor MidnightStub: MidnightClock {
+    private var dates: [Date]
+    private(set) var calls = 0
+
+    init(dates: [Date]) { self.dates = dates }
+
+    func nextMidnight(after date: Date, calendar: Calendar) throws -> Date {
+        calls += 1
+        guard !dates.isEmpty else { throw CancellationError() }
+        return dates.removeFirst()
+    }
 }
 
 private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
