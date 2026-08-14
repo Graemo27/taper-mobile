@@ -113,6 +113,7 @@ final class JournalModel: ObservableObject {
 
     func remove(_ entry: JournalEntry) async {
         failedRemoval = nil
+        let position = entries.firstIndex { $0.id == entry.id } ?? entries.endIndex
         removedIDs.insert(entry.id)
         entries.removeAll { $0.id == entry.id }
         do {
@@ -120,7 +121,11 @@ final class JournalModel: ObservableObject {
         } catch {
             removedIDs.remove(entry.id)
             failedRemoval = entry.name
+            entries.insert(entry, at: min(position, entries.endIndex))
             await load()
+            if !entries.contains(where: { $0.id == entry.id }) {
+                entries.insert(entry, at: min(position, entries.endIndex))
+            }
         }
     }
 

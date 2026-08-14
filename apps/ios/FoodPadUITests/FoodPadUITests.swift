@@ -163,11 +163,23 @@ final class FoodPadUITests: XCTestCase {
             "EXPO_PUBLIC_SUPABASE_URL": configuration.url,
             "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": configuration.key,
         ]
+        addTeardownBlock { @MainActor in
+            let cleanup = XCUIApplication()
+            cleanup.launchArguments = ["-FPJournalE2ECleanup"]
+            cleanup.launchEnvironment = app.launchEnvironment
+            cleanup.launch()
+            XCTAssertTrue(cleanup.otherElements["journal.empty-state"].waitForExistence(timeout: 10))
+        }
         app.launch()
 
         let row = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier BEGINSWITH 'journal.entry.'")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        guard row.waitForExistence(timeout: 10) else {
+            let state = app.otherElements["journal.failure-state"].exists
+                ? "journal.failure-state" : "no terminal journal state"
+            XCTFail("E2E harness exposed \(state) instead of its seeded row")
+            return
+        }
         row.swipeLeft()
         let remove = app.buttons
             .matching(NSPredicate(format: "identifier BEGINSWITH 'journal.remove.'")).firstMatch
@@ -183,10 +195,16 @@ final class FoodPadUITests: XCTestCase {
         for _ in 0..<4 { file.deleteLastPathComponent() }
         file.appendPathComponent(".env")
         guard let contents = try? String(contentsOf: file, encoding: .utf8) else { return nil }
-        let values = Dictionary(uniqueKeysWithValues: contents.split(separator: "\n").compactMap { line in
-            let parts = line.split(separator: "=", maxSplits: 1).map(String.init)
-            return parts.count == 2 ? (parts[0], parts[1]) : nil
-        })
+        let values: [String: String] = Dictionary(
+            uniqueKeysWithValues: contents.split(separator: "\n").compactMap { line in
+            let parts = line.split(separator: "=", maxSplits: 1).map {
+                String($0).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            guard parts.count == 2 else { return nil }
+            let key = parts[0].replacingOccurrences(of: "export ", with: "")
+            return (key, parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "'\"")))
+        }
+        )
         guard let url = values["EXPO_PUBLIC_SUPABASE_URL"],
               let key = values["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else { return nil }
         return (url, key)

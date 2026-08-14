@@ -36,7 +36,7 @@ struct JournalDraft: Equatable, Sendable {
 }
 
 protocol JournalWriteDataSource: Sendable {
-    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws -> JournalEntry
 }
 
 protocol JournalDeleteDataSource: Sendable {
@@ -55,12 +55,12 @@ struct SupabaseJournalDeleteDataSource: JournalDeleteDataSource {
 struct SupabaseJournalWriteDataSource: JournalWriteDataSource {
     let client: SupabaseClient
 
-    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws {
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws -> JournalEntry {
         try await client.from("journal_entries").insert(Row(
             userID: userID, eatenOn: eatenOn, fdcID: draft.fdcID, name: draft.name,
             servingLabel: draft.servingLabel, servings: draft.servings, grams: draft.grams,
             kcal: draft.kcal, proteinG: draft.proteinG, fibreG: draft.fibreG
-        )).execute()
+        )).select("id,eaten_on,name,serving_label,kcal").single().execute().value
     }
 
     private struct Row: Encodable {
@@ -91,9 +91,11 @@ struct JournalWriteRepository: Sendable {
     let sessions: SessionCoordinator
     let source: any JournalWriteDataSource
 
-    func save(_ draft: JournalDraft, at date: Date = .now, calendar: Calendar = .current) async throws {
+    func save(
+        _ draft: JournalDraft, at date: Date = .now, calendar: Calendar = .current
+    ) async throws -> JournalEntry {
         let eatenOn = JournalRepository.localDate(date, calendar: calendar)
-        try await sessions.authenticated { userID in
+        return try await sessions.authenticated { userID in
             try await source.save(userID: userID, eatenOn: eatenOn, draft: draft)
         }
     }

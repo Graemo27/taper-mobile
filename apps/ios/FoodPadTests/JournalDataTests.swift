@@ -71,7 +71,7 @@ final class JournalDataTests: XCTestCase {
         )
         let draft = saveDraft(7)
 
-        try await repository.save(draft, at: date(2026, 8, 14), calendar: testCalendar)
+        _ = try await repository.save(draft, at: date(2026, 8, 14), calendar: testCalendar)
 
         let call = await source.call
         XCTAssertEqual(call, .init(userID: userID, eatenOn: "2026-08-14", draft: draft))
@@ -142,7 +142,7 @@ final class JournalDataTests: XCTestCase {
             options: .init(global: .init(session: URLSession(configuration: configuration)))
         )
 
-        try await SupabaseJournalWriteDataSource(client: client).save(
+        _ = try await SupabaseJournalWriteDataSource(client: client).save(
             userID: UUID(uuidString: "00000000-0000-0000-0000-000000000007")!,
             eatenOn: "2026-08-14", draft: saveDraft(7)
         )
@@ -213,7 +213,7 @@ final class JournalDataTests: XCTestCase {
     func testFailedRemovalRestoresTheEntryAndShowsItsName() async {
         let row = entry(7, "2026-08-14")
         let model = JournalModel(
-            entries: [row], today: "2026-08-14", loadEntries: { [row] },
+            entries: [row], today: "2026-08-14", loadEntries: { throw TestFailure.recoverable },
             deleteEntry: { _ in throw TestFailure.recoverable }
         )
 
@@ -221,6 +221,7 @@ final class JournalDataTests: XCTestCase {
 
         XCTAssertEqual(model.entries, [row])
         XCTAssertEqual(model.failedRemoval, row.name)
+        XCTAssertEqual(model.status, .failed)
     }
 
     @MainActor
@@ -313,8 +314,9 @@ private actor JournalWriteStub: JournalWriteDataSource {
     }
 
     private(set) var call: Call?
-    func save(userID: UUID, eatenOn: String, draft: JournalDraft) {
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) -> JournalEntry {
         call = Call(userID: userID, eatenOn: eatenOn, draft: draft)
+        return JournalEntry(id: 7, eatenOn: eatenOn, name: draft.name, servingLabel: draft.servingLabel, kcal: draft.kcal)
     }
 }
 
@@ -364,6 +366,7 @@ private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
             return
         }
         if request.httpMethod == "POST", let data = bodyData(),
+           request.value(forHTTPHeaderField: "Prefer")?.contains("return=representation") == true,
            let json = try? JSONSerialization.jsonObject(with: data),
            let row = (json as? [String: Any]) ?? (json as? [[String: Any]])?.first,
            row["user_id"] as? String == "00000000-0000-0000-0000-000000000007",
@@ -377,7 +380,9 @@ private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
                 headerFields: ["Content-Type": "application/json"]
             )!
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: Data("[]".utf8))
+            client?.urlProtocol(self, didLoad: Data(
+                #"{"id":7,"eaten_on":"2026-08-14","name":"Apple","serving_label":"2 medium · 364 g","kcal":189}"#.utf8
+            ))
             client?.urlProtocolDidFinishLoading(self)
             return
         }

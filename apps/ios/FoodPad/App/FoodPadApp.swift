@@ -62,6 +62,7 @@ private enum AppComposition {
     static var saveFixture: String? { fixture(after: "-FPSaveFixture") }
     static var searchFixture: String? { fixture(after: "-FPSearchFixture") }
     static var journalE2E: Bool { ProcessInfo.processInfo.arguments.contains("-FPJournalE2E") }
+    static var journalE2ECleanup: Bool { ProcessInfo.processInfo.arguments.contains("-FPJournalE2ECleanup") }
 
     private static func fixture(after flag: String) -> String? {
         let arguments = ProcessInfo.processInfo.arguments
@@ -170,7 +171,7 @@ private enum SearchComposition {
             sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
             source: SupabaseJournalWriteDataSource(client: client)
         )
-        return { try await repository.save($0) }
+        return { _ = try await repository.save($0) }
     }
 
     static func fixture(_ name: String) -> SearchModel {
@@ -273,7 +274,7 @@ private enum JournalComposition {
         let deletion = JournalDeleteRepository(
             sessions: sessions, source: SupabaseJournalDeleteDataSource(client: client)
         )
-        if AppComposition.journalE2E {
+        if AppComposition.journalE2E || AppComposition.journalE2ECleanup {
             let harness = JournalE2EHarness(
                 read: repository,
                 write: JournalWriteRepository(
@@ -281,6 +282,9 @@ private enum JournalComposition {
                 ),
                 deletion: deletion
             )
+            if AppComposition.journalE2ECleanup {
+                return JournalModel(today: today) { try await harness.cleanup(); return [] }
+            }
             return JournalModel(
                 today: today, loadEntries: { try await harness.load() },
                 deleteEntry: { try await harness.remove(id: $0) }
@@ -315,10 +319,11 @@ private enum JournalComposition {
 
 private actor JournalE2EHarness {
     private static let name = "FP swipe test"
+    private static let pendingKey = "JournalE2EPendingRowIDs"
     let read: JournalRepository
     let write: JournalWriteRepository
     let deletion: JournalDeleteRepository
-    private var bootstrapped = false
+    private var seeded: JournalEntry?
 
     init(read: JournalRepository, write: JournalWriteRepository, deletion: JournalDeleteRepository) {
         self.read = read
@@ -327,21 +332,43 @@ private actor JournalE2EHarness {
     }
 
     func load() async throws -> [JournalEntry] {
-        if !bootstrapped {
-            for entry in try await read.listEntries() where entry.name == Self.name {
-                try await deletion.remove(id: entry.id)
-            }
-            try await write.save(JournalDraft(
-                fdcID: 1, name: Self.name, servingLabel: "1 test serving", servings: 1,
-                grams: 1, kcal: 1, proteinG: nil, fibreG: nil
-            ))
-            bootstrapped = true
-        }
-        return try await read.listEntries().filter { $0.name == Self.name }
+        if let seeded { return [seeded] }
+        try await cleanup()
+        let entry = try await write.save(JournalDraft(
+            fdcID: 1, name: Self.name, servingLabel: "1 test serving", servings: 1,
+            grams: 1, kcal: 1, proteinG: nil, fibreG: nil
+        ))
+        record(entry.id)
+        seeded = entry
+        return [entry]
     }
 
     func remove(id: Int) async throws -> Bool {
         try await deletion.remove(id: id)
         return try await !read.listEntries().contains { $0.id == id }
+    }
+
+    func cleanup() async throws {
+        for id in pendingIDs {
+            try await deletion.remove(id: id)
+            forget(id)
+        }
+        for entry in (try? await read.listEntries()) ?? [] where entry.name == Self.name {
+            try await deletion.remove(id: entry.id)
+        }
+    }
+
+    private var pendingIDs: [Int] {
+        UserDefaults.standard.array(forKey: Self.pendingKey) as? [Int] ?? []
+    }
+
+    private func record(_ id: Int) {
+        UserDefaults.standard.set(Array(Set(pendingIDs + [id])), forKey: Self.pendingKey)
+        UserDefaults.standard.synchronize()
+    }
+
+    private func forget(_ id: Int) {
+        UserDefaults.standard.set(pendingIDs.filter { $0 != id }, forKey: Self.pendingKey)
+        UserDefaults.standard.synchronize()
     }
 }
