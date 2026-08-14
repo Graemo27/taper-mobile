@@ -108,6 +108,7 @@ enum SearchToken {
     static let titleSize = TypeScale.sizes[3]
     static let bodySize = TypeScale.sizes[1]
     static let fieldSize = TypeScale.sizes[2]
+    static let alertSize = TypeScale.sizes[4]
     static let fieldBorder = 1.5
     static let energyWidth = SpacingScale.values[19]
 }

@@ -104,6 +104,35 @@ final class FoodSearchTests: XCTestCase {
             per100g: .empty, perServing: nil, portions: []
         )
     }
+
+    func testEveryFailureStateExplainsWhetherAReferenceCodeExists() {
+        let timeout = SearchFailureMessage(FoodSearchError("", kind: .timeout))
+        XCTAssertEqual(
+            timeout.body,
+            "It didn't come back in time. A search usually takes a couple of seconds — worth "
+                + "another try. No reference code — no response came back to carry one."
+        )
+
+        let offline = SearchFailureMessage(FoodSearchError("", kind: .offline))
+        XCTAssertEqual(
+            offline.body,
+            "Check your connection, then try again. No reference code — the request never arrived."
+        )
+
+        let limited = SearchFailureMessage(FoodSearchError("", kind: .http, status: 429))
+        XCTAssertEqual(
+            limited.body,
+            "Give it a minute and try again. Nothing you did — the food database limits how "
+                + "often we can ask."
+        )
+
+        let http = SearchFailureMessage(FoodSearchError("", kind: .http, status: 502))
+        XCTAssertEqual(
+            http.body,
+            "This one is on our side, not yours. Your search is still here — try again in a moment."
+        )
+    }
+
 }
 
 private actor FoodAuthStub: AnonymousAuthClient {

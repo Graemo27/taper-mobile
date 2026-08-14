@@ -84,6 +84,7 @@ struct SearchView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .focused($fieldIsFocused)
+                        .accessibilityLabel("Search for a food")
                         .accessibilityIdentifier("search.field")
                 }
                 .padding(.horizontal, SearchToken.cardInset)
@@ -176,15 +177,20 @@ struct SearchView: View {
         case .failed:
             let message = SearchFailureMessage(model.failure)
             VStack(alignment: .leading, spacing: SearchToken.itemGap) {
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: SearchToken.alertSize))
+                    .foregroundStyle(AppColor.error)
+                    .accessibilityHidden(true)
+                    .padding(.top, SearchToken.stateTop)
                 SearchMessage(
                     title: message.title,
                     message: message.body,
-                    identifier: "search.failure-state"
+                    identifier: "search.failure-state",
+                    topInset: SearchToken.zeroGap
                 )
-                Button("Try again") { Task { await model.search(query) } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColor.brand)
-                    .accessibilityIdentifier("search.retry-button")
+                RetryButton(
+                    spokenLabel: "Try the search again", identifier: "search.retry-button"
+                ) { Task { await model.search(query) } }
                 if let requestID = model.failure?.requestID {
                     Text("Reference \(requestID)").font(AppFont.regular(SearchToken.bodySize))
                         .foregroundStyle(AppColor.textSecondary)
@@ -263,18 +269,21 @@ private struct SearchResultCard: View {
     }
 }
 
-private struct SearchFailureMessage {
+struct SearchFailureMessage {
     let title: String
     let body: String
 
     init(_ error: FoodSearchError?) {
         switch (error?.kind, error?.status) {
+        // The reference line renders only when a response carried an id, so the two
+        // states that never got a response say why there is none to quote.
         case (.timeout, _):
             title = "Food search took too long"
-            body = "It didn't come back in time. A search usually takes a couple of seconds — worth another try."
+            body = "It didn't come back in time. A search usually takes a couple of seconds — worth "
+                + "another try. No reference code — no response came back to carry one."
         case (.offline, _):
             title = "Can't reach food search"
-            body = "Check your connection, then try again."
+            body = "Check your connection, then try again. No reference code — the request never arrived."
         case (_, 429):
             title = "Too many lookups right now"
             body = "Give it a minute and try again. Nothing you did — the food database limits how often we can ask."
@@ -289,13 +298,15 @@ private struct SearchMessage: View {
     let title: String
     let message: String
     var identifier: String?
+    /// The failure state carries its own alert icon, which takes the top inset instead.
+    var topInset = SearchToken.stateTop
 
     var body: some View {
         VStack(alignment: .leading, spacing: SearchToken.compactGap) {
             Text(title).font(AppFont.semibold(SearchToken.titleSize))
             Text(message).font(AppFont.regular(SearchToken.bodySize)).foregroundStyle(AppColor.textSecondary)
         }
-        .padding(.top, SearchToken.stateTop)
+        .padding(.top, topInset)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(identifier ?? "")
     }

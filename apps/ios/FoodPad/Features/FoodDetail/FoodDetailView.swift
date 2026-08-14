@@ -57,10 +57,9 @@ struct FoodDetailView: View {
                     message: "Nothing is wrong with your entry. Try again.",
                     identifier: "food.failure-state"
                 )
-                Button("Try again") { Task { await model.load(fdcID: fdcID) } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColor.brand)
-                    .accessibilityIdentifier("food.retry-button")
+                RetryButton(
+                    spokenLabel: "Try opening this food again", identifier: "food.retry-button"
+                ) { Task { await model.load(fdcID: fdcID) } }
             }
         case .held:
             if let food = model.food {
@@ -214,7 +213,7 @@ private struct HighInCard: View {
         if !claims.isEmpty {
             VStack(alignment: .leading, spacing: FoodDetailToken.itemGap) {
                 Text("High in").font(AppFont.medium(FoodDetailToken.bodySize)).foregroundStyle(AppColor.textSecondary)
-                HStack(spacing: FoodDetailToken.itemGap) {
+                ChipFlow(spacing: FoodDetailToken.itemGap) {
                     ForEach(claims, id: \.self) { claim in
                         Text(claim).font(AppFont.medium(FoodDetailToken.bodySize)).foregroundStyle(AppColor.brand)
                             .padding(.horizontal, FoodDetailToken.itemGap).padding(.vertical, FoodDetailToken.compactGap)
@@ -224,8 +223,11 @@ private struct HighInCard: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("High in \(claims.joined(separator: ", "))")
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(FoodDetailToken.cardInset).background(AppColor.surface)
             .clipShape(.rect(cornerRadius: FoodDetailToken.cardRadius))
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("food.high-in")
         }
     }
 }
@@ -244,6 +246,7 @@ private struct NutritionCard: View {
         }
         .padding(FoodDetailToken.cardInset).background(AppColor.surface)
         .clipShape(.rect(cornerRadius: FoodDetailToken.cardRadius))
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("food.nutrition")
     }
 }

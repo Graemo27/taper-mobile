@@ -210,6 +210,35 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
+    func testEveryTryAgainButtonSaysWhatItRetries() {
+        var app = launch("failed")
+        XCTAssertTrue(app.buttons["journal.retry-button"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.buttons["journal.retry-button"].label, "Try opening your journal again")
+
+        app.terminate()
+        app = launchFood("failed")
+        XCTAssertTrue(app.buttons["food.retry-button"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.buttons["food.retry-button"].label, "Try opening this food again")
+
+        app.terminate()
+        app = launchSearch("failed")
+        XCTAssertTrue(app.buttons["search.retry-button"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.buttons["search.retry-button"].label, "Try the search again")
+        XCTAssertEqual(app.textFields["search.field"].label, "Search for a food")
+    }
+
+    @MainActor
+    func testHighInCardFillsTheWidthLikeItsNeighbour() {
+        let app = launchFood("loaded")
+        let claims = app.descendants(matching: .any)
+            .matching(identifier: "food.high-in").firstMatch
+        let nutrition = app.descendants(matching: .any)
+            .matching(identifier: "food.nutrition").firstMatch
+        XCTAssertTrue(claims.waitForExistence(timeout: 3))
+        XCTAssertEqual(claims.frame.width, nutrition.frame.width, accuracy: 0.5)
+    }
+
+    @MainActor
     private func launch(_ fixture: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPJournalFixture", fixture]
@@ -230,9 +259,12 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchFood(_ fixture: String, save: String? = nil, favourite: String? = nil) -> XCUIApplication {
+    private func launchFood(
+        _ fixture: String, save: String? = nil, favourite: String? = nil, textSize: String? = nil
+    ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPFoodFixture", fixture]
+        if let textSize { app.launchArguments += ["-UIPreferredContentSizeCategoryName", textSize] }
         if let save { app.launchArguments += ["-FPSaveFixture", save] }
         if let favourite { app.launchArguments += ["-FPFavouriteFixture", favourite] }
         app.launch()
