@@ -20,6 +20,10 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY</key>
+	<string>$(SUPABASE_PUBLISHABLE_KEY)</string>
+	<key>EXPO_PUBLIC_SUPABASE_URL</key>
+	<string>$(SUPABASE_URL_SCHEME)://$(SUPABASE_URL_HOST)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Geist-Regular.ttf</string>

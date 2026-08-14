@@ -1,6 +1,28 @@
 import XCTest
 
 final class FoodPadUITests: XCTestCase {
+    /// The check the whole suite was missing. Every other test either injects a
+    /// fixture or injects the backend through `launchEnvironment`, so all of
+    /// them passed against a build that had no backend of its own — which is
+    /// exactly how the app reached a phone unable to reach Supabase at all.
+    ///
+    /// This launches the way the home screen does: no arguments, no
+    /// environment. The marker resolves only from what the build itself
+    /// carries.
+    @MainActor
+    func testTheAppIsConfiguredWhenLaunchedTheWayAPersonLaunchesIt() {
+        let app = XCUIApplication()
+        app.launchArguments = []
+        app.launchEnvironment = [:]
+        app.launch()
+
+        XCTAssertTrue(
+            app.otherElements["app.backend-configured"].waitForExistence(timeout: 5),
+            "Launched with no environment and found no backend. Info.plist carries no "
+                + "Supabase settings — run apps/ios/Scripts/write-config.sh, then xcodegen generate."
+        )
+    }
+
     @MainActor
     func testJournalShellIsAddressable() {
         let app = launch("empty")
