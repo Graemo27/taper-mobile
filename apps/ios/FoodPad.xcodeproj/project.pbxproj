@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03D9C57AF3A87EF86684CA64 /* FoodSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F18FBBB1C704052C22CF27 /* FoodSearchTests.swift */; };
 		0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658D2B2C9A136C07991D21 /* DesignTokens.swift */; };
 		0F242662FEF4425A8B70DAB3 /* Geist-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */; };
 		18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D9E31533522E624522033B /* FoodPadTests.swift */; };
@@ -16,6 +17,7 @@
 		292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */; };
 		2C46EF3A0D0CC8B2949422CC /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */; };
 		4C4699757724182072B06D75 /* FoodFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */; };
+		6A3846573D1DD6777DD24266 /* FoodSearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */; };
 		6E486777D06EB8CDC8B549AA /* JournalPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7519DB0AE818225FAE4DBF9B /* JournalPresentation.swift */; };
 		A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */; };
 		AAF65A9B72EA866D5F305C29 /* Geist-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */; };
@@ -25,6 +27,7 @@
 		BDD6080C45C777D07880DFB3 /* Geist-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 437903947F46E0547A55FF96 /* Geist-Medium.ttf */; };
 		C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CCB921382D89E669683C0C /* FoodPadApp.swift */; };
 		CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9533148B383912C0BCE0B0 /* JournalShellView.swift */; };
+		CF822CBE5CEEC1EBDFEE75CE /* FoodSearchPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76256A2F07870C3DFB5E6D45 /* FoodSearchPresentation.swift */; };
 		D0037DC754B53BC174ECD9E2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C31D44570D65A30DA3894B57 /* Assets.xcassets */; };
 		D7CFCC17B960CE1553B9CE2D /* FoodModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC80CF493565ED67DEC62532 /* FoodModels.swift */; };
 		E29D2780B1DD86E0C4847DF0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 55AC15C90E021EE096518756 /* Supabase */; };
@@ -49,6 +52,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		07F18FBBB1C704052C22CF27 /* FoodSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSearchTests.swift; sourceTree = "<group>"; };
 		21658D2B2C9A136C07991D21 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-SemiBold.ttf"; sourceTree = "<group>"; };
 		2FA5B82E3572EF3739D3129B /* FoodParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodParser.swift; sourceTree = "<group>"; };
@@ -59,6 +63,7 @@
 		536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFormatting.swift; sourceTree = "<group>"; };
 		641EBD2D07391AFC013D190A /* FoodPad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FoodPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7519DB0AE818225FAE4DBF9B /* JournalPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalPresentation.swift; sourceTree = "<group>"; };
+		76256A2F07870C3DFB5E6D45 /* FoodSearchPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSearchPresentation.swift; sourceTree = "<group>"; };
 		83D9E31533522E624522033B /* FoodPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadTests.swift; sourceTree = "<group>"; };
 		8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadUITests.swift; sourceTree = "<group>"; };
 		946066BE85C0B33AD1D253CA /* JournalRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalRepository.swift; sourceTree = "<group>"; };
@@ -68,6 +73,7 @@
 		AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Regular.ttf"; sourceTree = "<group>"; };
 		B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		C31D44570D65A30DA3894B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSearchRepository.swift; sourceTree = "<group>"; };
 		D5C461A77CBE94B4AB3BC69E /* FoodFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFormattingTests.swift; sourceTree = "<group>"; };
 		DC80CF493565ED67DEC62532 /* FoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodModels.swift; sourceTree = "<group>"; };
 		DDC19326A66CBE51045F2AF1 /* FoodPadUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -88,10 +94,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0B461ADE45D90C4C7DAC7227 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+				76256A2F07870C3DFB5E6D45 /* FoodSearchPresentation.swift */,
+			);
+			path = Search;
+			sourceTree = "<group>";
+		};
 		1887CFABD7BDBDD1DD3CDDC3 /* Features */ = {
 			isa = PBXGroup;
 			children = (
 				A16B8F03AA7367FF8F95A34C /* Journal */,
+				0B461ADE45D90C4C7DAC7227 /* Search */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -107,6 +122,7 @@
 		23A84289C27468379AFC7B7D /* Data */ = {
 			isa = PBXGroup;
 			children = (
+				D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */,
 				946066BE85C0B33AD1D253CA /* JournalRepository.swift */,
 				E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */,
 			);
@@ -218,6 +234,7 @@
 				364E79AF629F510D3BF7B0AE /* FoodDomainTests.swift */,
 				D5C461A77CBE94B4AB3BC69E /* FoodFormattingTests.swift */,
 				83D9E31533522E624522033B /* FoodPadTests.swift */,
+				07F18FBBB1C704052C22CF27 /* FoodSearchTests.swift */,
 				A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */,
 			);
 			path = FoodPadTests;
@@ -343,6 +360,7 @@
 				B42838D4F97871779FA9A929 /* FoodDomainTests.swift in Sources */,
 				BB75FFAD1F0313498465600F /* FoodFormattingTests.swift in Sources */,
 				18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */,
+				03D9C57AF3A87EF86684CA64 /* FoodSearchTests.swift in Sources */,
 				F3F9B10CD505FCE1DB379D4B /* JournalDataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -365,6 +383,8 @@
 				D7CFCC17B960CE1553B9CE2D /* FoodModels.swift in Sources */,
 				C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */,
 				1FB37F6F52128CA7982A40AB /* FoodParser.swift in Sources */,
+				CF822CBE5CEEC1EBDFEE75CE /* FoodSearchPresentation.swift in Sources */,
+				6A3846573D1DD6777DD24266 /* FoodSearchRepository.swift in Sources */,
 				BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */,
 				6E486777D06EB8CDC8B549AA /* JournalPresentation.swift in Sources */,
 				1E93BFCDBB684072CBB53D44 /* JournalRepository.swift in Sources */,
