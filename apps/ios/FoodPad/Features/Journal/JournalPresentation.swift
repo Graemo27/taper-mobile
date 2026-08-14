@@ -106,6 +106,7 @@ final class JournalModel: ObservableObject {
         do {
             entries = try await loadEntries().filter { !removedIDs.contains($0.id) }
             status = .ready
+            failedRemoval = nil
         } catch {
             status = .failed
         }
@@ -120,12 +121,12 @@ final class JournalModel: ObservableObject {
             if try await deleteEntry(entry.id) { confirmedRemovalIDs.insert(entry.id) }
         } catch {
             removedIDs.remove(entry.id)
-            failedRemoval = entry.name
             entries.insert(entry, at: min(position, entries.endIndex))
             await load()
             if !entries.contains(where: { $0.id == entry.id }) {
                 entries.insert(entry, at: min(position, entries.endIndex))
             }
+            failedRemoval = entry.name
         }
     }
 

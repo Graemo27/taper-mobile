@@ -225,6 +225,22 @@ final class JournalDataTests: XCTestCase {
     }
 
     @MainActor
+    func testASuccessfulReadClearsTheFailedRemovalMessage() async {
+        let row = entry(7, "2026-08-14")
+        let model = JournalModel(
+            entries: [row], today: "2026-08-14", loadEntries: { [row] },
+            deleteEntry: { _ in throw TestFailure.recoverable }
+        )
+        await model.remove(row)
+        XCTAssertEqual(model.failedRemoval, row.name)
+
+        await model.load()
+
+        XCTAssertNil(model.failedRemoval)
+        XCTAssertEqual(model.entries, [row])
+    }
+
+    @MainActor
     func testMidnightClockRearmsForFollowingDay() async {
         let clock = MidnightStub(dates: [date(2026, 8, 15), date(2026, 8, 16)])
         let model = JournalModel(today: "2026-08-14") { [] }

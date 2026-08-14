@@ -186,7 +186,7 @@ final class FoodPadUITests: XCTestCase {
         XCTAssertTrue(remove.waitForExistence(timeout: 3))
         remove.tap()
 
-        XCTAssertFalse(row.waitForExistence(timeout: 3))
+        XCTAssertTrue(row.waitForNonExistence(timeout: 3))
         XCTAssertTrue(app.otherElements["journal.database-delete-confirmed"].waitForExistence(timeout: 10))
     }
 
@@ -195,16 +195,15 @@ final class FoodPadUITests: XCTestCase {
         for _ in 0..<4 { file.deleteLastPathComponent() }
         file.appendPathComponent(".env")
         guard let contents = try? String(contentsOf: file, encoding: .utf8) else { return nil }
-        let values: [String: String] = Dictionary(
-            uniqueKeysWithValues: contents.split(separator: "\n").compactMap { line in
+        let pairs = contents.split(whereSeparator: \.isNewline).compactMap { line -> (String, String)? in
             let parts = line.split(separator: "=", maxSplits: 1).map {
                 String($0).trimmingCharacters(in: .whitespacesAndNewlines)
             }
-            guard parts.count == 2 else { return nil }
+            guard parts.count == 2, !parts[0].hasPrefix("#") else { return nil }
             let key = parts[0].replacingOccurrences(of: "export ", with: "")
             return (key, parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "'\"")))
         }
-        )
+        let values = Dictionary(pairs) { _, last in last }
         guard let url = values["EXPO_PUBLIC_SUPABASE_URL"],
               let key = values["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"], !key.isEmpty else { return nil }
         return (url, key)

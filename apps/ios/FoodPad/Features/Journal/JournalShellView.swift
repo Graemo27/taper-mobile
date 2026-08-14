@@ -115,7 +115,10 @@ private struct JournalEntryRow: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            Button(action: onRemove) {
+            Button {
+                offset = 0
+                onRemove()
+            } label: {
                 VStack(spacing: JournalToken.removeGap) {
                     Image(systemName: "trash")
                     Text("Remove").font(AppFont.medium(JournalToken.bodySize))
@@ -124,6 +127,7 @@ private struct JournalEntryRow: View {
                 .foregroundStyle(AppColor.onError).background(AppColor.error)
             }
             .buttonStyle(.plain).accessibilityIdentifier("journal.remove.\(entry.id)")
+            .allowsHitTesting(offset < 0).accessibilityHidden(offset == 0)
 
             HStack(spacing: JournalToken.rowGap) {
                 VStack(alignment: .leading, spacing: JournalToken.zeroGap) {
@@ -146,6 +150,7 @@ private struct JournalEntryRow: View {
             }.onEnded { value in
                 offset = value.translation.width < -JournalToken.removeThreshold ? -JournalToken.removeWidth : 0
             })
+            .onTapGesture { offset = 0 }
             .accessibilityElement(children: .combine).accessibilityIdentifier("journal.entry.\(entry.id)")
             .accessibilityAction(named: "Remove this entry", onRemove)
         }
