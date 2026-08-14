@@ -49,7 +49,18 @@ final class ConfigurationTests: XCTestCase {
     /// Every one of these would otherwise become a `Backend` that cannot reach
     /// anything, failing on each call as though the network were down.
     func testEveryUnsubstitutedShapeIsRejected() {
-        for raw in ["$(SUPABASE_URL_SCHEME)://$(SUPABASE_URL_HOST)", "https://", "://", "https:", "example.supabase.co"] {
+        let rejected = [
+            "$(SUPABASE_URL_SCHEME)://$(SUPABASE_URL_HOST)",
+            "https://",
+            "://",
+            "https:",
+            "example.supabase.co",
+            // A prefix test would accept this. Nothing generates it, but the
+            // whole point of this guard is to be the thing that notices when
+            // the build settings arrive wrong.
+            "httpx://example.supabase.co",
+        ]
+        for raw in rejected {
             XCTAssertNil(
                 AppConfiguration.resolve(
                     environment: [:],

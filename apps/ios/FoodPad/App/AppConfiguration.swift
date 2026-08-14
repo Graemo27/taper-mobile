@@ -35,11 +35,11 @@ enum AppConfiguration {
         guard let raw = value("EXPO_PUBLIC_SUPABASE_URL"),
               let key = value("EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
               let url = URL(string: raw),
-              // A build setting that never got substituted leaves the literal
-              // `$(SUPABASE_URL_SCHEME)://…` behind, and `URL(string:)` accepts
-              // it as a relative reference. Requiring a scheme and a host is
-              // what separates a configured build from a silently broken one.
-              url.scheme?.hasPrefix("http") == true,
+              // Requiring a known scheme and a host is what separates a
+              // configured build from a silently broken one. `https://` parses
+              // with a nil host, and a prefix test would accept `httpx`, so
+              // both checks are exact rather than approximate.
+              ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
               url.host()?.isEmpty == false
         else { return nil }
 
