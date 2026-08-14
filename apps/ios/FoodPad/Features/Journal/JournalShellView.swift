@@ -2,9 +2,11 @@ import SwiftUI
 
 struct JournalShellView: View {
     @StateObject private var model: JournalModel
+    private let onAdd: () -> Void
 
-    init(model: JournalModel) {
+    init(model: JournalModel, onAdd: @escaping () -> Void = {}) {
         _model = StateObject(wrappedValue: model)
+        self.onAdd = onAdd
     }
 
     var body: some View {
@@ -41,7 +43,7 @@ struct JournalShellView: View {
                 .padding(.top, JournalToken.contentTop)
             }
 
-            Button(action: {}) {
+            Button(action: onAdd) {
                 Label("Add something you ate", systemImage: "plus")
                     .font(AppFont.semibold(JournalToken.actionSize))
                     .frame(maxWidth: .infinity)

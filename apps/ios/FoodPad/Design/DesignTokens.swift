@@ -91,6 +91,24 @@ enum JournalToken {
     static let energyWidth = SpacingScale.values[19]
 }
 
+enum SearchToken {
+    static let zeroGap = SpacingScale.values[0]
+    static let compactGap = SpacingScale.values[3]
+    static let itemGap = SpacingScale.values[6]
+    static let screenInset = SpacingScale.values[8]
+    static let contentTop = SpacingScale.values[8]
+    static let cardInset = SpacingScale.values[8]
+    static let stateTop = SpacingScale.values[10]
+    static let fieldHeight = SpacingScale.values[15]
+    static let cardRadius = RadiusScale.values[5]
+    static let fieldRadius = RadiusScale.values[10]
+    static let titleSize = TypeScale.sizes[3]
+    static let bodySize = TypeScale.sizes[1]
+    static let fieldSize = TypeScale.sizes[2]
+    static let fieldBorder = 1.5
+    static let energyWidth = SpacingScale.values[19]
+}
+
 private extension Color {
     init(hex: String) {
         let value = UInt64(hex, radix: 16)!
