@@ -16,17 +16,17 @@ struct RecentFood: Decodable, Equatable, Identifiable, Sendable {
 }
 
 protocol RecentFoodsDataSource: Sendable {
-    func fetch(userID: UUID, limit: Int) async throws -> [RecentFood]
+    func fetch(userID: UUID, offset: Int, limit: Int) async throws -> [RecentFood]
 }
 
 struct SupabaseRecentFoodsDataSource: RecentFoodsDataSource {
     let client: SupabaseClient
 
-    func fetch(userID: UUID, limit: Int) async throws -> [RecentFood] {
+    func fetch(userID: UUID, offset: Int, limit: Int) async throws -> [RecentFood] {
         try await client.from("journal_entries").select("fdc_id,name,serving_label,kcal")
             .eq("user_id", value: userID.uuidString)
             .order("eaten_on", ascending: false).order("created_at", ascending: false)
-            .limit(limit).execute().value
+            .range(from: offset, to: offset + limit - 1).execute().value
     }
 }
 
@@ -36,10 +36,20 @@ struct RecentFoodsRepository: Sendable {
     let source: any RecentFoodsDataSource
 
     func list(limit: Int = 3) async throws -> [RecentFood] {
-        let rows = try await sessions.authenticated {
-            try await source.fetch(userID: $0, limit: Self.scanLimit)
+        try await sessions.authenticated { userID in
+            var offset = 0, result: [RecentFood] = []
+            var seen: Set<Int> = []
+            while result.count < limit {
+                let page = try await source.fetch(userID: userID, offset: offset, limit: Self.scanLimit)
+                for food in page where seen.insert(food.fdcID).inserted {
+                    result.append(food)
+                    if result.count == limit { return result }
+                }
+                guard page.count == Self.scanLimit else { return result }
+                offset += page.count
+            }
+            return result
         }
-        return Self.newestDistinct(rows, limit: limit)
     }
 
     static func newestDistinct(_ rows: [RecentFood], limit: Int) -> [RecentFood] {

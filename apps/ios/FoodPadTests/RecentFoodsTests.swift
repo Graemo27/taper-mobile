@@ -11,6 +11,21 @@ final class RecentFoodsTests: XCTestCase {
         XCTAssertEqual(result, [food(1, "new"), food(2, "two")])
     }
 
+    func testPagesPastFiftyDuplicatesToFindThreeDistinctFoods() async throws {
+        let source = PagedRecentSource(rows: Array(repeating: food(1, "new"), count: 50) + [
+            food(2, "two"), food(3, "three"),
+        ])
+        let repository = RecentFoodsRepository(
+            sessions: SessionCoordinator(auth: RecentAuthStub()), source: source
+        )
+
+        let result = try await repository.list()
+
+        XCTAssertEqual(result, [food(1, "new"), food(2, "two"), food(3, "three")])
+        let offsets = await source.offsets
+        XCTAssertEqual(offsets, [0, 50])
+    }
+
     @MainActor
     func testFailureIsSilentRetainsRowsAndRetries() async {
         let reader = FailingRecentReader()
@@ -34,7 +49,9 @@ final class RecentFoodsTests: XCTestCase {
         )
         let userID = UUID(uuidString: "00000000-0000-0000-0000-000000000007")!
 
-        let rows = try await SupabaseRecentFoodsDataSource(client: client).fetch(userID: userID, limit: 50)
+        let rows = try await SupabaseRecentFoodsDataSource(client: client).fetch(
+            userID: userID, offset: 0, limit: 50
+        )
 
         XCTAssertEqual(rows, [food(7, "1 medium")])
     }
@@ -51,6 +68,25 @@ private actor FailingRecentReader {
 
 private enum RecentTestError: Error { case failed }
 
+private actor PagedRecentSource: RecentFoodsDataSource {
+    let rows: [RecentFood]
+    private(set) var offsets: [Int] = []
+
+    init(rows: [RecentFood]) { self.rows = rows }
+
+    func fetch(userID: UUID, offset: Int, limit: Int) async throws -> [RecentFood] {
+        offsets.append(offset)
+        return Array(rows.dropFirst(offset).prefix(limit))
+    }
+}
+
+private actor RecentAuthStub: AnonymousAuthClient {
+    func validUserID() async throws -> UUID { UUID(uuidString: "00000000-0000-0000-0000-000000000007")! }
+    func signInAnonymously() async throws -> UUID { UUID() }
+    func clearSession() async {}
+    nonisolated func canRecover(from error: Error) -> Bool { false }
+}
+
 private final class RecentURLProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -59,7 +95,7 @@ private final class RecentURLProtocol: URLProtocol, @unchecked Sendable {
         guard query.contains("fdc_id%2Cname%2Cserving_label%2Ckcal"),
               query.contains("user_id=eq.00000000-0000-0000-0000-000000000007"),
               query.contains("order=eaten_on.desc.nullslast%2Ccreated_at.desc.nullslast"),
-              query.contains("limit=50") else {
+              query.contains("offset=0"), query.contains("limit=50") else {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL)); return
         }
         let response = HTTPURLResponse(
