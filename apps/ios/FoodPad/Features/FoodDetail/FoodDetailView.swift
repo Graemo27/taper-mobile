@@ -3,12 +3,14 @@ import SwiftUI
 struct FoodDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var model: FoodLookupModel
+    @StateObject private var saveModel: FoodSaveModel
     @State private var servings = 1
     let fdcID: Int
     let handedOff: Food?
 
-    init(model: FoodLookupModel, fdcID: Int, handedOff: Food? = nil) {
+    init(model: FoodLookupModel, saveModel: FoodSaveModel, fdcID: Int, handedOff: Food? = nil) {
         _model = StateObject(wrappedValue: model)
+        _saveModel = StateObject(wrappedValue: saveModel)
         self.fdcID = fdcID
         self.handedOff = handedOff
     }
@@ -59,7 +61,9 @@ struct FoodDetailView: View {
                     .accessibilityIdentifier("food.retry-button")
             }
         case .held:
-            if let food = model.food { FoodDetailContent(food: food, servings: $servings) }
+            if let food = model.food {
+                FoodDetailContent(food: food, servings: $servings, saveModel: saveModel)
+            }
         }
     }
 }
@@ -67,29 +71,51 @@ struct FoodDetailView: View {
 private struct FoodDetailContent: View {
     let food: Food
     @Binding var servings: Int
+    @ObservedObject var saveModel: FoodSaveModel
 
     private var nutrients: Nutrients {
         FoodParser.scale(food.per100g, toGrams: (food.portion?.grams ?? 100) * Double(servings))
     }
 
+    private var draft: JournalDraft {
+        JournalDraft(
+            fdcID: food.fdcId, name: food.name,
+            servingLabel: food.portion.map { FoodFormatting.servingSummary($0, servings: Double(servings)) }
+                ?? "\(100 * servings) g",
+            servings: servings, grams: (food.portion?.grams ?? 100) * Double(servings),
+            kcal: nutrients.kcal, proteinG: nutrients.proteinG, fibreG: nutrients.fibreG
+        )
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FoodDetailToken.itemGap) {
-                Color.clear.frame(height: FoodDetailToken.zeroGap)
-                    .accessibilityElement()
-                    .accessibilityLabel("Food detail")
-                    .accessibilityIdentifier("food.detail.\(food.fdcId)")
-                Text(food.name).font(AppFont.semibold(FoodDetailToken.titleSize))
-                ServingCard(food: food, servings: $servings)
-                HighInCard(claims: FoodClaims.highIn(food.per100g))
-                NutritionCard(nutrients: nutrients)
-                Text("USDA values, scaled from one standard serving. What you actually ate will vary — this is the shape of the thing, not a measurement.")
-                    .font(AppFont.regular(FoodDetailToken.bodySize))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .padding(.top, FoodDetailToken.compactGap)
+        VStack(spacing: FoodDetailToken.zeroGap) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: FoodDetailToken.itemGap) {
+                    Color.clear.frame(height: FoodDetailToken.zeroGap)
+                        .accessibilityElement().accessibilityLabel("Food detail")
+                        .accessibilityIdentifier("food.detail.\(food.fdcId)")
+                    Text(food.name).font(AppFont.semibold(FoodDetailToken.titleSize))
+                    ServingCard(
+                        food: food,
+                        servings: Binding(
+                            get: { servings },
+                            set: { servings = $0; saveModel.reset(for: food.fdcId) }
+                        ),
+                        disabled: saveModel.status(for: food.fdcId) == .saving
+                    )
+                    HighInCard(claims: FoodClaims.highIn(food.per100g))
+                    NutritionCard(nutrients: nutrients)
+                    Text("USDA values, scaled from one standard serving. What you actually ate will vary — this is the shape of the thing, not a measurement.")
+                        .font(AppFont.regular(FoodDetailToken.bodySize))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .padding(.top, FoodDetailToken.compactGap)
+                }
+                .padding(.horizontal, FoodDetailToken.screenInset)
+                .padding(.vertical, FoodDetailToken.contentTop)
             }
-            .padding(.horizontal, FoodDetailToken.screenInset)
-            .padding(.vertical, FoodDetailToken.contentTop)
+            SaveFooter(status: saveModel.status(for: food.fdcId)) {
+                Task { await saveModel.save(draft) }
+            }
         }
     }
 }
@@ -97,6 +123,7 @@ private struct FoodDetailContent: View {
 private struct ServingCard: View {
     let food: Food
     @Binding var servings: Int
+    let disabled: Bool
 
     var body: some View {
         HStack(spacing: FoodDetailToken.itemGap) {
@@ -111,19 +138,53 @@ private struct ServingCard: View {
             Button { servings = max(1, servings - 1) } label: { Image(systemName: "minus") }
                 .buttonStyle(.plain).frame(width: FoodDetailToken.controlSize, height: FoodDetailToken.controlSize)
                 .overlay { Circle().stroke(AppColor.border) }
-                .disabled(servings == 1)
+                .disabled(disabled || servings == 1)
                 .accessibilityLabel(food.portion == nil ? "100 grams fewer" : "One serving fewer")
                 .accessibilityIdentifier("food.servings.decrement")
             Button { servings = min(20, servings + 1) } label: { Image(systemName: "plus") }
                 .buttonStyle(.plain).frame(width: FoodDetailToken.controlSize, height: FoodDetailToken.controlSize)
                 .foregroundStyle(AppColor.onBrand).background(AppColor.brand).clipShape(Circle())
-                .disabled(servings == 20)
+                .disabled(disabled || servings == 20)
                 .accessibilityLabel(food.portion == nil ? "100 grams more" : "One serving more")
                 .accessibilityIdentifier("food.servings.increment")
         }
         .padding(FoodDetailToken.cardInset)
         .background(AppColor.surface)
         .clipShape(.rect(cornerRadius: FoodDetailToken.cardRadius))
+    }
+}
+
+private struct SaveFooter: View {
+    let status: FoodSaveModel.Status
+    let onSave: () -> Void
+
+    private var label: String {
+        switch status {
+        case .idle: "Save to today"
+        case .saving: "Saving…"
+        case .saved: "Saved to today"
+        case .failed: "Try saving again"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: FoodDetailToken.itemGap) {
+            Button(label, action: onSave)
+                .font(AppFont.semibold(FoodDetailToken.bodySize))
+                .frame(maxWidth: .infinity)
+                .padding(FoodDetailToken.cardInset)
+                .foregroundStyle(AppColor.onBrand).background(AppColor.brand)
+                .clipShape(.rect(cornerRadius: FoodDetailToken.controlRadius))
+                .disabled(status == .saving)
+                .accessibilityIdentifier("food.save-button")
+            if status == .failed {
+                Text("Your entry was not saved. Try again in a moment.")
+                    .font(AppFont.regular(FoodDetailToken.bodySize)).foregroundStyle(AppColor.error)
+            }
+        }
+        .padding(.horizontal, FoodDetailToken.screenInset)
+        .padding(.top, FoodDetailToken.itemGap)
+        .padding(.bottom, FoodDetailToken.sectionGap)
     }
 }
 

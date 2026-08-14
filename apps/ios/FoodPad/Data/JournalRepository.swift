@@ -24,6 +24,68 @@ protocol JournalDataSource: Sendable {
     func fetch(userID: UUID, from start: String, limit: Int) async throws -> JournalPage
 }
 
+struct JournalDraft: Equatable, Sendable {
+    let fdcID: Int
+    let name: String
+    let servingLabel: String
+    let servings: Int
+    let grams: Double
+    let kcal: Int?
+    let proteinG: Double?
+    let fibreG: Double?
+}
+
+protocol JournalWriteDataSource: Sendable {
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws
+}
+
+struct SupabaseJournalWriteDataSource: JournalWriteDataSource {
+    let client: SupabaseClient
+
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws {
+        try await client.from("journal_entries").insert(Row(
+            userID: userID, eatenOn: eatenOn, fdcID: draft.fdcID, name: draft.name,
+            servingLabel: draft.servingLabel, servings: draft.servings, grams: draft.grams,
+            kcal: draft.kcal, proteinG: draft.proteinG, fibreG: draft.fibreG
+        )).execute()
+    }
+
+    private struct Row: Encodable {
+        let userID: UUID
+        let eatenOn: String
+        let fdcID: Int
+        let name: String
+        let servingLabel: String
+        let servings: Int
+        let grams: Double
+        let kcal: Int?
+        let proteinG: Double?
+        let fibreG: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case name, servings, grams, kcal
+            case userID = "user_id"
+            case eatenOn = "eaten_on"
+            case fdcID = "fdc_id"
+            case servingLabel = "serving_label"
+            case proteinG = "protein_g"
+            case fibreG = "fibre_g"
+        }
+    }
+}
+
+struct JournalWriteRepository: Sendable {
+    let sessions: SessionCoordinator
+    let source: any JournalWriteDataSource
+
+    func save(_ draft: JournalDraft, at date: Date = .now, calendar: Calendar = .current) async throws {
+        let eatenOn = JournalRepository.localDate(date, calendar: calendar)
+        try await sessions.authenticated { userID in
+            try await source.save(userID: userID, eatenOn: eatenOn, draft: draft)
+        }
+    }
+}
+
 struct SupabaseJournalDataSource: JournalDataSource {
     let client: SupabaseClient
 

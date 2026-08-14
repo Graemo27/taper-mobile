@@ -5,17 +5,22 @@ struct SearchFlowView: View {
     @State private var selectedFood: Food?
     private let initialQuery: String
     private let fetch: @Sendable (Int) async throws -> Food
+    private let save: @Sendable (JournalDraft) async throws -> Void
 
     init(
         model: SearchModel,
         initialQuery: String = "",
         fetch: @escaping @Sendable (Int) async throws -> Food = { _ in
             throw FoodSearchError("Food lookup is unavailable right now.", kind: .http)
+        },
+        save: @escaping @Sendable (JournalDraft) async throws -> Void = { _ in
+            throw FoodSearchError("Could not save to your journal.", kind: .http)
         }
     ) {
         _model = StateObject(wrappedValue: model)
         self.initialQuery = initialQuery
         self.fetch = fetch
+        self.save = save
     }
 
     var body: some View {
@@ -24,6 +29,7 @@ struct SearchFlowView: View {
                 if let selectedFood {
                     FoodDetailView(
                         model: FoodLookupModel(fetch: fetch),
+                        saveModel: FoodSaveModel(save: save),
                         fdcID: selectedFood.fdcId,
                         handedOff: selectedFood
                     )
