@@ -20,6 +20,7 @@
 		4C4699757724182072B06D75 /* FoodFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 536B3EB6EC3A6671771BED62 /* FoodFormatting.swift */; };
 		6A3846573D1DD6777DD24266 /* FoodSearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */; };
 		6E486777D06EB8CDC8B549AA /* JournalPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7519DB0AE818225FAE4DBF9B /* JournalPresentation.swift */; };
+		765263A8982EE0282A41ACCB /* RecentFoodsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E19BCCE9C38D4C609BF05AD /* RecentFoodsTests.swift */; };
 		9BBA6AC463435CD2DCCB6345 /* FavouritesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EEAD219B772238D4DA1FB2C /* FavouritesModel.swift */; };
 		A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */; };
 		AAF65A9B72EA866D5F305C29 /* Geist-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */; };
@@ -37,6 +38,8 @@
 		D7CFCC17B960CE1553B9CE2D /* FoodModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC80CF493565ED67DEC62532 /* FoodModels.swift */; };
 		E29D2780B1DD86E0C4847DF0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 55AC15C90E021EE096518756 /* Supabase */; };
 		F3F9B10CD505FCE1DB379D4B /* JournalDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */; };
+		F89BFFF19A0D6CDFCBC94135 /* RecentFoodsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B86949CD7A35EAFA171B21BC /* RecentFoodsRepository.swift */; };
+		F8BD438D10C42417A933E080 /* RecentFoodsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5BD020444D6814AB51014EA /* RecentFoodsModel.swift */; };
 		FBCB63E209540337F5FDDC87 /* FavouritesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4736F7B45B15479C5AFC2CF /* FavouritesTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -63,6 +66,7 @@
 		0EEAD219B772238D4DA1FB2C /* FavouritesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavouritesModel.swift; sourceTree = "<group>"; };
 		21658D2B2C9A136C07991D21 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-SemiBold.ttf"; sourceTree = "<group>"; };
+		2E19BCCE9C38D4C609BF05AD /* RecentFoodsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFoodsTests.swift; sourceTree = "<group>"; };
 		2FA5B82E3572EF3739D3129B /* FoodParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodParser.swift; sourceTree = "<group>"; };
 		364E79AF629F510D3BF7B0AE /* FoodDomainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDomainTests.swift; sourceTree = "<group>"; };
 		3C9533148B383912C0BCE0B0 /* JournalShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalShellView.swift; sourceTree = "<group>"; };
@@ -83,7 +87,9 @@
 		A1E5FD7FE2355ACE000A0013 /* Geist-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Bold.ttf"; sourceTree = "<group>"; };
 		AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Regular.ttf"; sourceTree = "<group>"; };
 		B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
+		B86949CD7A35EAFA171B21BC /* RecentFoodsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFoodsRepository.swift; sourceTree = "<group>"; };
 		C31D44570D65A30DA3894B57 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C5BD020444D6814AB51014EA /* RecentFoodsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFoodsModel.swift; sourceTree = "<group>"; };
 		D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSearchRepository.swift; sourceTree = "<group>"; };
 		D5C461A77CBE94B4AB3BC69E /* FoodFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodFormattingTests.swift; sourceTree = "<group>"; };
 		DC80CF493565ED67DEC62532 /* FoodModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodModels.swift; sourceTree = "<group>"; };
@@ -110,6 +116,7 @@
 			isa = PBXGroup;
 			children = (
 				76256A2F07870C3DFB5E6D45 /* FoodSearchPresentation.swift */,
+				C5BD020444D6814AB51014EA /* RecentFoodsModel.swift */,
 				98B06BC7094AFD2E6BD826EF /* SearchView.swift */,
 			);
 			path = Search;
@@ -140,6 +147,7 @@
 				0E10EE0F7F7593A6B8F03D63 /* FavouritesRepository.swift */,
 				D2A16F1EEF3E9B407F6671DA /* FoodSearchRepository.swift */,
 				946066BE85C0B33AD1D253CA /* JournalRepository.swift */,
+				B86949CD7A35EAFA171B21BC /* RecentFoodsRepository.swift */,
 				E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */,
 			);
 			path = Data;
@@ -262,6 +270,7 @@
 				83D9E31533522E624522033B /* FoodPadTests.swift */,
 				07F18FBBB1C704052C22CF27 /* FoodSearchTests.swift */,
 				A053F89DCED47DC3E04AD351 /* JournalDataTests.swift */,
+				2E19BCCE9C38D4C609BF05AD /* RecentFoodsTests.swift */,
 			);
 			path = FoodPadTests;
 			sourceTree = "<group>";
@@ -389,6 +398,7 @@
 				18513629ECCF11D2BC9D57E4 /* FoodPadTests.swift in Sources */,
 				03D9C57AF3A87EF86684CA64 /* FoodSearchTests.swift in Sources */,
 				F3F9B10CD505FCE1DB379D4B /* JournalDataTests.swift in Sources */,
+				765263A8982EE0282A41ACCB /* RecentFoodsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -420,6 +430,8 @@
 				6E486777D06EB8CDC8B549AA /* JournalPresentation.swift in Sources */,
 				1E93BFCDBB684072CBB53D44 /* JournalRepository.swift in Sources */,
 				CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */,
+				F8BD438D10C42417A933E080 /* RecentFoodsModel.swift in Sources */,
+				F89BFFF19A0D6CDFCBC94135 /* RecentFoodsRepository.swift in Sources */,
 				C0C0CF61099DF71F29AC1A6F /* SearchView.swift in Sources */,
 				A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */,
 			);

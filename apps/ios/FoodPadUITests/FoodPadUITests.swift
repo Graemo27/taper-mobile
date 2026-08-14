@@ -140,6 +140,19 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
+    func testRecentFoodsOpenByIDAndRefreshOnReturn() {
+        let app = launchSearch("idle", recent: "refreshes")
+        XCTAssertTrue(app.buttons["search.recent.101"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["1 medium"].exists)
+
+        app.buttons["search.recent.101"].tap()
+        XCTAssertTrue(app.otherElements["food.detail.101"].waitForExistence(timeout: 3))
+        app.buttons["Back to search"].tap()
+
+        XCTAssertTrue(app.staticTexts["2 medium"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     private func launch(_ fixture: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPJournalFixture", fixture]
@@ -148,10 +161,13 @@ final class FoodPadUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchSearch(_ fixture: String, favourite: String? = nil) -> XCUIApplication {
+    private func launchSearch(
+        _ fixture: String, favourite: String? = nil, recent: String? = nil
+    ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FPSearchFixture", fixture]
         if let favourite { app.launchArguments += ["-FPFavouriteFixture", favourite] }
+        if let recent { app.launchArguments += ["-FPRecentFixture", recent] }
         app.launch()
         return app
     }

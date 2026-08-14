@@ -2,13 +2,15 @@ import SwiftUI
 
 struct SearchFlowView: View {
     @StateObject private var model: SearchModel
-    @State private var selectedFood: Food?
+    @StateObject private var recent: RecentFoodsModel
+    @State private var selection: FoodSelection?
     private let initialQuery: String
     private let fetch: @Sendable (Int) async throws -> Food
     private let save: @Sendable (JournalDraft) async throws -> Void
 
     init(
         model: SearchModel,
+        recent: RecentFoodsModel,
         initialQuery: String = "",
         fetch: @escaping @Sendable (Int) async throws -> Food = { _ in
             throw FoodSearchError("Food lookup is unavailable right now.", kind: .http)
@@ -18,42 +20,58 @@ struct SearchFlowView: View {
         }
     ) {
         _model = StateObject(wrappedValue: model)
+        _recent = StateObject(wrappedValue: recent)
         self.initialQuery = initialQuery
         self.fetch = fetch
         self.save = save
     }
 
     var body: some View {
-        SearchView(model: model, initialQuery: initialQuery) { selectedFood = $0 }
+        SearchView(
+            model: model, recent: recent, initialQuery: initialQuery,
+            onSelect: { selection = FoodSelection(id: $0.fdcId, handedOff: $0) },
+            onSelectRecent: { selection = FoodSelection(id: $0) }
+        )
             .navigationDestination(isPresented: selectionIsPresented) {
-                if let selectedFood {
+                if let selection {
                     FoodDetailView(
                         model: FoodLookupModel(fetch: fetch),
                         saveModel: FoodSaveModel(save: save),
-                        fdcID: selectedFood.fdcId,
-                        handedOff: selectedFood
+                        fdcID: selection.id,
+                        handedOff: selection.handedOff
                     )
                 }
             }
     }
 
     private var selectionIsPresented: Binding<Bool> {
-        Binding(get: { selectedFood != nil }, set: { if !$0 { selectedFood = nil } })
+        Binding(get: { selection != nil }, set: { visible in
+            if !visible { selection = nil; Task { await recent.load() } }
+        })
     }
 }
+
+private struct FoodSelection { let id: Int; var handedOff: Food? }
 
 struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var favourites: FavouritesModel
     @ObservedObject var model: SearchModel
+    @ObservedObject var recent: RecentFoodsModel
     @State private var query: String
     @FocusState private var fieldIsFocused: Bool
     let onSelect: (Food) -> Void
+    let onSelectRecent: (Int) -> Void
 
-    init(model: SearchModel, initialQuery: String = "", onSelect: @escaping (Food) -> Void) {
+    init(
+        model: SearchModel, recent: RecentFoodsModel, initialQuery: String = "",
+        onSelect: @escaping (Food) -> Void, onSelectRecent: @escaping (Int) -> Void
+    ) {
         self.model = model
+        self.recent = recent
         _query = State(initialValue: initialQuery)
         self.onSelect = onSelect
+        self.onSelectRecent = onSelectRecent
     }
 
     var body: some View {
@@ -97,6 +115,7 @@ struct SearchView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { fieldIsFocused = true }
         .task { await favourites.load() }
+        .task { await recent.load() }
         .task(id: query) {
             do {
                 try await Task.sleep(for: .milliseconds(400))
@@ -108,7 +127,10 @@ struct SearchView: View {
     @ViewBuilder private var content: some View {
         switch model.status {
         case .idle:
-            Color.clear.accessibilityIdentifier("search.idle-state")
+            RecentFoodsView(
+                foods: recent.foods, favourites: favourites.ids,
+                onSelect: { fieldIsFocused = false; onSelectRecent($0) }
+            )
         case .loading:
             VStack(alignment: .leading, spacing: SearchToken.itemGap) {
                 Text("Searching…").font(AppFont.regular(SearchToken.bodySize))
@@ -167,6 +189,48 @@ struct SearchView: View {
                     Text("Reference \(requestID)").font(AppFont.regular(SearchToken.bodySize))
                         .foregroundStyle(AppColor.textSecondary)
                 }
+            }
+        }
+    }
+}
+
+private struct RecentFoodsView: View {
+    let foods: [RecentFood]
+    let favourites: Set<Int>
+    let onSelect: (Int) -> Void
+
+    var body: some View {
+        if !foods.isEmpty {
+            VStack(alignment: .leading, spacing: SearchToken.itemGap) {
+                Text("Recent").font(AppFont.semibold(SearchToken.bodySize))
+                VStack(spacing: SearchToken.zeroGap) {
+                    ForEach(Array(foods.enumerated()), id: \.element.id) { index, food in
+                        if index > 0 { Divider().padding(.horizontal, SearchToken.cardInset) }
+                        HStack {
+                            VStack(alignment: .leading, spacing: SearchToken.compactGap) {
+                                Text(food.name).font(AppFont.medium(SearchToken.fieldSize))
+                                if let serving = food.servingLabel {
+                                    Text(serving).font(AppFont.regular(SearchToken.bodySize))
+                                        .foregroundStyle(AppColor.textSecondary)
+                                }
+                            }
+                            Spacer()
+                            if let kcal = food.kcal {
+                                Text("\(kcal) kcal").foregroundStyle(AppColor.textSecondary)
+                            }
+                            if favourites.contains(food.fdcID) {
+                                Image(systemName: "star.fill").foregroundStyle(AppColor.favourite)
+                                    .accessibilityLabel("favourite")
+                            }
+                            Image(systemName: "chevron.right").foregroundStyle(AppColor.textSecondary)
+                        }
+                        .padding(SearchToken.cardInset).contentShape(Rectangle())
+                        .onTapGesture { onSelect(food.fdcID) }
+                        .accessibilityElement(children: .combine).accessibilityAddTraits(.isButton)
+                        .accessibilityIdentifier("search.recent.\(food.fdcID)")
+                    }
+                }
+                .background(AppColor.surface).clipShape(.rect(cornerRadius: SearchToken.cardRadius))
             }
         }
     }
