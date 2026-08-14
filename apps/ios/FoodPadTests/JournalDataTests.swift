@@ -124,6 +124,16 @@ final class JournalDataTests: XCTestCase {
         XCTAssertEqual(calls, 3)
     }
 
+    @MainActor
+    func testMidnightClockCorrectsDateBeforeWaiting() async {
+        let model = JournalModel(today: "stale") { [] }
+        await model.followMidnights(
+            clock: MidnightStub(dates: []), calendar: testCalendar, startingAt: date(2026, 8, 14)
+        )
+
+        XCTAssertEqual(model.today, "2026-08-14")
+    }
+
     private func makeRepository(page: JournalPage) -> JournalRepository {
         JournalRepository(
             sessions: SessionCoordinator(auth: AuthStub(valid: .success(UUID()))),

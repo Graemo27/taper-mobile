@@ -105,8 +105,9 @@ final class JournalModel: ObservableObject {
         }
     }
 
-    func followMidnights(clock: any MidnightClock, calendar: Calendar) async {
-        var date = Date.now
+    func followMidnights(clock: any MidnightClock, calendar: Calendar, startingAt: Date = .now) async {
+        var date = startingAt
+        today = JournalRepository.localDate(date, calendar: calendar)
         while !Task.isCancelled {
             do { date = try await clock.nextMidnight(after: date, calendar: calendar) }
             catch { return }

@@ -14,10 +14,11 @@ struct FoodPadApp: App {
 private enum JournalComposition {
     static func makeModel() -> JournalModel {
         let calendar = Calendar.current
-        let today = JournalRepository.localDate(.now, calendar: calendar)
+        let launchedAt = Date.now
+        let today = JournalRepository.localDate(launchedAt, calendar: calendar)
         let arguments = ProcessInfo.processInfo.arguments
         if let marker = arguments.firstIndex(of: "-FPJournalFixture"), arguments.indices.contains(marker + 1) {
-            return fixture(arguments[marker + 1], today: today, calendar: calendar)
+            return fixture(arguments[marker + 1], today: today, launchedAt: launchedAt, calendar: calendar)
         }
 
         let environment = ProcessInfo.processInfo.environment
@@ -33,8 +34,8 @@ private enum JournalComposition {
         return JournalModel(today: today) { try await repository.listEntries() }
     }
 
-    private static func fixture(_ name: String, today: String, calendar: Calendar) -> JournalModel {
-        let yesterdayDate = calendar.date(byAdding: .day, value: -1, to: Date.now)!
+    private static func fixture(_ name: String, today: String, launchedAt: Date, calendar: Calendar) -> JournalModel {
+        let yesterdayDate = calendar.date(byAdding: .day, value: -1, to: launchedAt)!
         let yesterday = JournalRepository.localDate(yesterdayDate, calendar: calendar)
         let rows = [
             JournalEntry(id: 101, eatenOn: today, name: "Apple", servingLabel: "1 medium", kcal: 95),
