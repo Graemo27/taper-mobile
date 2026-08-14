@@ -11,7 +11,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MinusIcon, PlusIcon } from '@/components/icons';
 import { servingSummary } from '@/lib/food/format';
-import type { Portion } from '@/lib/food/types';
+import type { Portion } from '../../supabase/functions/food-search/food/types.ts';
 import { colors, elevation, fontFamily, fontSize, radius, spacing } from '@/theme';
 
 /**

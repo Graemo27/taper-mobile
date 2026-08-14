@@ -14,7 +14,7 @@
  * `Food` through the URL would put a nutrient table in the address bar.
  */
 
-import type { Food } from './types.ts';
+import type { Food } from '../../../supabase/functions/food-search/food/types.ts';
 
 let selected: Food | null = null;
 

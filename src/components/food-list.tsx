@@ -14,7 +14,7 @@ import { FoodCard, FoodCardRow } from '@/components/food-card';
 import { servingSummary } from '@/lib/food/format';
 import { selectFood } from '@/lib/food/selection';
 import { useFavourites } from '@/lib/supabase/favourites';
-import type { Food } from '@/lib/food/types';
+import type { Food } from '../../supabase/functions/food-search/food/types.ts';
 
 export function FoodList({ foods }: { foods: Food[] }) {
   const favourites = useFavourites();

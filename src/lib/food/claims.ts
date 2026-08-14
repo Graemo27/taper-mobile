@@ -29,7 +29,7 @@
  * thing this file exists to avoid.
  */
 
-import type { Nutrients } from './types.ts';
+import type { Nutrients } from '../../../supabase/functions/food-search/food/types.ts';
 
 /** FDA Daily Values for adults, 2016 labelling rules. */
 interface Claim {

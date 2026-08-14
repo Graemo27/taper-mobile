@@ -10,7 +10,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { energy, grams } from '@/lib/food/format';
-import type { Nutrients } from '@/lib/food/types';
+import type { Nutrients } from '../../supabase/functions/food-search/food/types.ts';
 import { colors, elevation, fontFamily, fontSize, letterSpacing, radius, spacing, tracking } from '@/theme';
 
 function Figure({ value, label }: { value: string; label: string }) {

@@ -1,13 +1,14 @@
 /**
  * App-side food search — the only way the UI reaches FoodData Central.
  *
- * Deliberately not in `src/lib/food/`: that directory is uploaded to Deno by
- * `supabase functions deploy` and runs server-side. This runs on the device.
+ * Deliberately not in the food lookup library: that code is uploaded to Deno by
+ * `supabase functions deploy` and runs server-side, and now lives beside the
+ * function at `supabase/functions/food-search/food/`. This runs on the device.
  * Only the *types* cross the boundary, and types are erased, so importing them
  * pulls nothing into the function bundle.
  */
 
-import type { Food } from '../food/types.ts';
+import type { Food } from '../../../supabase/functions/food-search/food/types.ts';
 import { supabase } from './client.ts';
 import { ensureSession } from './session.ts';
 

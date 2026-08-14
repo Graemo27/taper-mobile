@@ -7,7 +7,7 @@
  * which is why the read here asks for nothing the screen does not draw.
  */
 
-import type { Food, Nutrients } from '../food/types.ts';
+import type { Food, Nutrients } from '../../../supabase/functions/food-search/food/types.ts';
 import { localDate } from '../journal/days.ts';
 import { supabase } from './client.ts';
 import { ensureSession } from './session.ts';

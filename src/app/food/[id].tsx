@@ -22,12 +22,12 @@ import { SaveFooter, type SaveState } from '@/components/save-footer';
 import { MAX_SERVINGS, MIN_SERVINGS, ServingCard } from '@/components/serving-card';
 import { highIn } from '@/lib/food/claims';
 import { servingSummary } from '@/lib/food/format';
-import { scaleTo } from '@/lib/food/parse';
+import { scaleTo } from '../../../supabase/functions/food-search/food/parse.ts';
 import { fetchFood, FoodSearchError } from '@/lib/supabase/food-search';
 import { toggleFavourite, useFavourites } from '@/lib/supabase/favourites';
 import { saveEntry } from '@/lib/supabase/journal';
 import { selectedFood } from '@/lib/food/selection';
-import type { Food } from '@/lib/food/types';
+import type { Food } from '../../../supabase/functions/food-search/food/types.ts';
 import { colors, fontFamily, fontSize, letterSpacing, radius, spacing, tracking } from '@/theme';
 
 const CAPTION =
