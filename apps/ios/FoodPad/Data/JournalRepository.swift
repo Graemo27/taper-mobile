@@ -36,18 +36,31 @@ struct JournalDraft: Equatable, Sendable {
 }
 
 protocol JournalWriteDataSource: Sendable {
-    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws -> JournalEntry
+}
+
+protocol JournalDeleteDataSource: Sendable {
+    func remove(userID: UUID, id: Int) async throws
+}
+
+struct SupabaseJournalDeleteDataSource: JournalDeleteDataSource {
+    let client: SupabaseClient
+
+    func remove(userID: UUID, id: Int) async throws {
+        try await client.from("journal_entries").delete()
+            .eq("id", value: id).eq("user_id", value: userID.uuidString).execute()
+    }
 }
 
 struct SupabaseJournalWriteDataSource: JournalWriteDataSource {
     let client: SupabaseClient
 
-    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws {
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) async throws -> JournalEntry {
         try await client.from("journal_entries").insert(Row(
             userID: userID, eatenOn: eatenOn, fdcID: draft.fdcID, name: draft.name,
             servingLabel: draft.servingLabel, servings: draft.servings, grams: draft.grams,
             kcal: draft.kcal, proteinG: draft.proteinG, fibreG: draft.fibreG
-        )).execute()
+        )).select("id,eaten_on,name,serving_label,kcal").single().execute().value
     }
 
     private struct Row: Encodable {
@@ -78,11 +91,22 @@ struct JournalWriteRepository: Sendable {
     let sessions: SessionCoordinator
     let source: any JournalWriteDataSource
 
-    func save(_ draft: JournalDraft, at date: Date = .now, calendar: Calendar = .current) async throws {
+    func save(
+        _ draft: JournalDraft, at date: Date = .now, calendar: Calendar = .current
+    ) async throws -> JournalEntry {
         let eatenOn = JournalRepository.localDate(date, calendar: calendar)
-        try await sessions.authenticated { userID in
+        return try await sessions.authenticated { userID in
             try await source.save(userID: userID, eatenOn: eatenOn, draft: draft)
         }
+    }
+}
+
+struct JournalDeleteRepository: Sendable {
+    let sessions: SessionCoordinator
+    let source: any JournalDeleteDataSource
+
+    func remove(id: Int) async throws {
+        try await sessions.authenticated { try await source.remove(userID: $0, id: id) }
     }
 }
 

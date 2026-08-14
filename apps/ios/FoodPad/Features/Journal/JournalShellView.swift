@@ -14,7 +14,18 @@ struct JournalShellView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: JournalToken.emptyGap) {
                     ForEach(JournalPresentation.days(from: model.entries)) { day in
-                        JournalDayView(day: day, today: model.today)
+                        JournalDayView(day: day, today: model.today) { entry in
+                            Task { await model.remove(entry) }
+                        }
+                    }
+                    if let name = model.failedRemoval {
+                        Text("\(name) is still here — removing it did not go through.")
+                            .font(AppFont.regular(JournalToken.bodySize)).foregroundStyle(AppColor.error)
+                    }
+                    if !model.confirmedRemovalIDs.isEmpty {
+                        Color.clear.frame(width: 1, height: 1)
+                            .accessibilityElement()
+                            .accessibilityIdentifier("journal.database-delete-confirmed")
                     }
                     if model.entries.isEmpty && model.status == .loading { JournalSkeleton() }
                     if model.entries.isEmpty && model.status == .ready {
@@ -72,12 +83,14 @@ struct JournalShellView: View {
 private struct JournalDayView: View {
     let day: JournalDay
     let today: String
+    let onRemove: (JournalEntry) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: JournalToken.dayGap) {
             HStack(alignment: .firstTextBaseline, spacing: JournalToken.emptyGap) {
                 Text(JournalPresentation.heading(for: day.date, today: today))
                     .font(AppFont.semibold(JournalToken.headingSize))
+                    .accessibilityIdentifier("journal.day.\(day.date)")
                 Text(JournalPresentation.thingCount(day.entries.count))
                     .font(AppFont.regular(JournalToken.bodySize))
                     .foregroundStyle(AppColor.textSecondary)
@@ -85,31 +98,63 @@ private struct JournalDayView: View {
             VStack(spacing: JournalToken.zeroGap) {
                 ForEach(Array(day.entries.enumerated()), id: \.element.id) { index, entry in
                     if index > 0 { Divider().padding(.horizontal, JournalToken.screenInset) }
-                    HStack(spacing: JournalToken.rowGap) {
-                        VStack(alignment: .leading, spacing: JournalToken.zeroGap) {
-                            Text(entry.name).font(AppFont.medium(JournalToken.actionSize)).lineLimit(1)
-                            if let serving = entry.servingLabel {
-                                Text(serving).font(AppFont.regular(JournalToken.bodySize))
-                                    .foregroundStyle(AppColor.textSecondary).lineLimit(1)
-                            }
-                        }
-                        Spacer()
-                        if let kcal = entry.kcal {
-                            Text("\(kcal) kcal").font(AppFont.medium(JournalToken.bodySize))
-                                .foregroundStyle(AppColor.textSecondary)
-                        }
-                    }
-                    .padding(.horizontal, JournalToken.screenInset)
-                    .padding(.vertical, JournalToken.rowVertical)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("journal.entry.\(entry.id)")
+                    JournalEntryRow(entry: entry) { onRemove(entry) }
                 }
             }
             .background(AppColor.surface)
             .clipShape(.rect(cornerRadius: JournalToken.cardRadius))
         }
-        .accessibilityIdentifier("journal.day.\(day.date)")
         .padding(.bottom, JournalToken.sectionGap)
+    }
+}
+
+private struct JournalEntryRow: View {
+    let entry: JournalEntry
+    let onRemove: () -> Void
+    @State private var offset = 0.0
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Button {
+                offset = 0
+                onRemove()
+            } label: {
+                VStack(spacing: JournalToken.removeGap) {
+                    Image(systemName: "trash")
+                    Text("Remove").font(AppFont.medium(JournalToken.bodySize))
+                }
+                .frame(width: JournalToken.removeWidth).frame(maxHeight: .infinity)
+                .foregroundStyle(AppColor.onError).background(AppColor.error)
+            }
+            .buttonStyle(.plain).accessibilityIdentifier("journal.remove.\(entry.id)")
+            .allowsHitTesting(offset < 0).accessibilityHidden(offset == 0)
+
+            HStack(spacing: JournalToken.rowGap) {
+                VStack(alignment: .leading, spacing: JournalToken.zeroGap) {
+                    Text(entry.name).font(AppFont.medium(JournalToken.actionSize)).lineLimit(1)
+                    if let serving = entry.servingLabel {
+                        Text(serving).font(AppFont.regular(JournalToken.bodySize))
+                            .foregroundStyle(AppColor.textSecondary).lineLimit(1)
+                    }
+                }
+                Spacer()
+                if let kcal = entry.kcal {
+                    Text("\(kcal) kcal").font(AppFont.medium(JournalToken.bodySize))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+            }
+            .padding(.horizontal, JournalToken.screenInset).padding(.vertical, JournalToken.rowVertical)
+            .background(AppColor.surface).contentShape(Rectangle()).offset(x: offset)
+            .gesture(DragGesture().onChanged { value in
+                offset = min(0, max(-JournalToken.removeWidth, value.translation.width))
+            }.onEnded { value in
+                offset = value.translation.width < -JournalToken.removeThreshold ? -JournalToken.removeWidth : 0
+            })
+            .onTapGesture { offset = 0 }
+            .accessibilityElement(children: .combine).accessibilityIdentifier("journal.entry.\(entry.id)")
+            .accessibilityAction(named: "Remove this entry", onRemove)
+        }
+        .animation(.easeOut(duration: 0.2), value: offset)
     }
 }
 

@@ -71,7 +71,7 @@ final class JournalDataTests: XCTestCase {
         )
         let draft = saveDraft(7)
 
-        try await repository.save(draft, at: date(2026, 8, 14), calendar: testCalendar)
+        _ = try await repository.save(draft, at: date(2026, 8, 14), calendar: testCalendar)
 
         let call = await source.call
         XCTAssertEqual(call, .init(userID: userID, eatenOn: "2026-08-14", draft: draft))
@@ -142,9 +142,23 @@ final class JournalDataTests: XCTestCase {
             options: .init(global: .init(session: URLSession(configuration: configuration)))
         )
 
-        try await SupabaseJournalWriteDataSource(client: client).save(
+        _ = try await SupabaseJournalWriteDataSource(client: client).save(
             userID: UUID(uuidString: "00000000-0000-0000-0000-000000000007")!,
             eatenOn: "2026-08-14", draft: saveDraft(7)
+        )
+    }
+
+    func testSupabaseDeleteScopesTheEntryToItsUser() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [JournalURLProtocol.self]
+        let client = SupabaseClient(
+            supabaseURL: URL(string: "https://project.supabase.co")!,
+            supabaseKey: "sb_publishable_test",
+            options: .init(global: .init(session: URLSession(configuration: configuration)))
+        )
+
+        try await SupabaseJournalDeleteDataSource(client: client).remove(
+            userID: UUID(uuidString: "00000000-0000-0000-0000-000000000007")!, id: 7
         )
     }
 
@@ -175,6 +189,55 @@ final class JournalDataTests: XCTestCase {
 
         XCTAssertEqual(model.entries, rows)
         XCTAssertEqual(model.status, .failed)
+    }
+
+    @MainActor
+    func testStaleReadCannotRestoreAnEntryRemovedWhileItWasLoading() async {
+        let row = entry(7, "2026-08-14")
+        let gate = JournalReadGate()
+        let model = JournalModel(
+            entries: [row], today: "2026-08-14", loadEntries: { await gate.load() },
+            deleteEntry: { _ in false }
+        )
+        let loading = Task { await model.load() }
+        await gate.waitUntilStarted()
+
+        await model.remove(row)
+        await gate.finish(with: [row])
+        await loading.value
+
+        XCTAssertTrue(model.entries.isEmpty)
+    }
+
+    @MainActor
+    func testFailedRemovalRestoresTheEntryAndShowsItsName() async {
+        let row = entry(7, "2026-08-14")
+        let model = JournalModel(
+            entries: [row], today: "2026-08-14", loadEntries: { throw TestFailure.recoverable },
+            deleteEntry: { _ in throw TestFailure.recoverable }
+        )
+
+        await model.remove(row)
+
+        XCTAssertEqual(model.entries, [row])
+        XCTAssertEqual(model.failedRemoval, row.name)
+        XCTAssertEqual(model.status, .failed)
+    }
+
+    @MainActor
+    func testASuccessfulReadClearsTheFailedRemovalMessage() async {
+        let row = entry(7, "2026-08-14")
+        let model = JournalModel(
+            entries: [row], today: "2026-08-14", loadEntries: { [row] },
+            deleteEntry: { _ in throw TestFailure.recoverable }
+        )
+        await model.remove(row)
+        XCTAssertEqual(model.failedRemoval, row.name)
+
+        await model.load()
+
+        XCTAssertNil(model.failedRemoval)
+        XCTAssertEqual(model.entries, [row])
     }
 
     @MainActor
@@ -267,8 +330,9 @@ private actor JournalWriteStub: JournalWriteDataSource {
     }
 
     private(set) var call: Call?
-    func save(userID: UUID, eatenOn: String, draft: JournalDraft) {
+    func save(userID: UUID, eatenOn: String, draft: JournalDraft) -> JournalEntry {
         call = Call(userID: userID, eatenOn: eatenOn, draft: draft)
+        return JournalEntry(id: 7, eatenOn: eatenOn, name: draft.name, servingLabel: draft.servingLabel, kcal: draft.kcal)
     }
 }
 
@@ -285,11 +349,40 @@ private actor MidnightStub: MidnightClock {
     }
 }
 
+private actor JournalReadGate {
+    private var continuation: CheckedContinuation<[JournalEntry], Never>?
+
+    func load() async -> [JournalEntry] {
+        await withCheckedContinuation { continuation = $0 }
+    }
+
+    func waitUntilStarted() async {
+        while continuation == nil { await Task.yield() }
+    }
+
+    func finish(with entries: [JournalEntry]) {
+        continuation?.resume(returning: entries)
+        continuation = nil
+    }
+}
+
 private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
+        if request.httpMethod == "DELETE",
+           request.url?.query?.contains("id=eq.7") == true,
+           request.url?.query?.contains("user_id=eq.00000000-0000-0000-0000-000000000007") == true {
+            let response = HTTPURLResponse(
+                url: request.url!, statusCode: 204, httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
         if request.httpMethod == "POST", let data = bodyData(),
+           request.value(forHTTPHeaderField: "Prefer")?.contains("return=representation") == true,
            let json = try? JSONSerialization.jsonObject(with: data),
            let row = (json as? [String: Any]) ?? (json as? [[String: Any]])?.first,
            row["user_id"] as? String == "00000000-0000-0000-0000-000000000007",
@@ -303,7 +396,9 @@ private final class JournalURLProtocol: URLProtocol, @unchecked Sendable {
                 headerFields: ["Content-Type": "application/json"]
             )!
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: Data("[]".utf8))
+            client?.urlProtocol(self, didLoad: Data(
+                #"{"id":7,"eaten_on":"2026-08-14","name":"Apple","serving_label":"2 medium · 364 g","kcal":189}"#.utf8
+            ))
             client?.urlProtocolDidFinishLoading(self)
             return
         }
