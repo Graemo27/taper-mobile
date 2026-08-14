@@ -120,7 +120,7 @@ private struct FoodDetailContent: View {
                 status: saveModel.status(for: food.fdcId),
                 isFavourite: favourites.ids.contains(food.fdcId),
                 onSave: { Task { await saveModel.save(draft) } },
-                onFavourite: { Task { await favourites.toggle(food.fdcId) } }
+                onFavourite: { favourites.toggle(food.fdcId) }
             )
         }
     }

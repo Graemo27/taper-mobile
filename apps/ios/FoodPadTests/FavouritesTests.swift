@@ -23,27 +23,31 @@ final class FavouritesTests: XCTestCase {
     func testPressDuringLoadWinsOverStaleResponse() async {
         let gate = ValueGate<Set<Int>>()
         let model = FavouritesModel(read: { await gate.wait() }, persist: { _, _ in })
+        let beforeLoad = model.toggle(7)
         let loading = Task { await model.load() }
         await Task.yield()
 
-        await model.toggle(7)
+        let duringLoad = model.toggle(8)
         await gate.open([1])
+        await beforeLoad.value
+        await duringLoad.value
         await loading.value
 
-        XCTAssertEqual(model.ids, [1, 7])
+        XCTAssertEqual(model.ids, [1, 7, 8])
     }
 
     @MainActor
-    func testRapidPressesPersistInOrder() async {
+    func testRapidPressesStayImmediateAndOrderedWhenFirstWriteFails() async {
         let firstWrite = ValueGate<Void>()
         let writes = WriteRecorder(gate: firstWrite)
         let model = FavouritesModel(read: { [] }, persist: { on, id in
-            await writes.record(on, id: id)
+            try await writes.record(on, id: id)
         })
 
-        let first = Task { await model.toggle(7) }
+        let first = model.toggle(7)
         while await writes.values.isEmpty { await Task.yield() }
-        let second = Task { await model.toggle(7) }
+        let second = model.toggle(7)
+        XCTAssertFalse(model.ids.contains(7))
         await firstWrite.open(())
         await first.value
         await second.value
@@ -63,7 +67,7 @@ final class FavouritesTests: XCTestCase {
 
         await model.load()
         await model.load()
-        await model.toggle(7)
+        await model.toggle(7).value
 
         let count = await reads.count
         XCTAssertEqual(count, 2)
@@ -91,9 +95,9 @@ private actor WriteRecorder {
     let gate: ValueGate<Void>
     init(gate: ValueGate<Void>) { self.gate = gate }
 
-    func record(_ on: Bool, id: Int) async {
+    func record(_ on: Bool, id: Int) async throws {
         values.append(on)
-        if values.count == 1 { await gate.wait() }
+        if values.count == 1 { await gate.wait(); throw TestError.failed }
     }
 }
 
