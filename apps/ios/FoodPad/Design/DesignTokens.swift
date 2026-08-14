@@ -67,7 +67,13 @@ enum AppFont {
 }
 
 enum JournalToken {
+    static let zeroGap = SpacingScale.values[0]
     static let screenInset = SpacingScale.values[8]
+    static let contentTop = SpacingScale.values[8]
+    static let sectionGap = SpacingScale.values[6]
+    static let dayGap = SpacingScale.values[6]
+    static let rowGap = SpacingScale.values[6]
+    static let rowVertical = SpacingScale.values[7]
     static let emptyTop = SpacingScale.values[10]
     static let emptyGap = SpacingScale.values[4]
     static let bodyMeasureInset = SpacingScale.values[11]
@@ -76,9 +82,13 @@ enum JournalToken {
     static let actionGap = SpacingScale.values[4]
     static let actionPadding = SpacingScale.values[8]
     static let actionRadius = RadiusScale.values[10]
+    static let cardRadius = RadiusScale.values[8]
+    static let skeletonRadius = RadiusScale.values[4]
     static let headingSize = TypeScale.sizes[3]
     static let bodySize = TypeScale.sizes[1]
     static let actionSize = TypeScale.sizes[2]
+    static let skeletonHeight = SpacingScale.values[15]
+    static let energyWidth = SpacingScale.values[19]
 }
 
 private extension Color {

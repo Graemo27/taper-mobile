@@ -13,6 +13,7 @@
 		1E93BFCDBB684072CBB53D44 /* JournalRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946066BE85C0B33AD1D253CA /* JournalRepository.swift */; };
 		292EBDA20645558E60F557A0 /* FoodPadUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */; };
 		2C46EF3A0D0CC8B2949422CC /* Geist-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D8C55EF13AA0567154D2F45 /* Geist-SemiBold.ttf */; };
+		6E486777D06EB8CDC8B549AA /* JournalPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7519DB0AE818225FAE4DBF9B /* JournalPresentation.swift */; };
 		A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E33734AF0C81467FFDCF0948 /* SessionCoordinator.swift */; };
 		AAF65A9B72EA866D5F305C29 /* Geist-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AC9E73CF5F186088BD75C29B /* Geist-Regular.ttf */; };
 		BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78F2842F71B9A1984AA52D9 /* HTTPClient.swift */; };
@@ -48,6 +49,7 @@
 		40AA048EFEC85F11DE8AFF19 /* FoodPadTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FoodPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		437903947F46E0547A55FF96 /* Geist-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Geist-Medium.ttf"; sourceTree = "<group>"; };
 		641EBD2D07391AFC013D190A /* FoodPad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FoodPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7519DB0AE818225FAE4DBF9B /* JournalPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalPresentation.swift; sourceTree = "<group>"; };
 		83D9E31533522E624522033B /* FoodPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadTests.swift; sourceTree = "<group>"; };
 		8514BEAD0C2D96F3D760DEA2 /* FoodPadUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPadUITests.swift; sourceTree = "<group>"; };
 		946066BE85C0B33AD1D253CA /* JournalRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalRepository.swift; sourceTree = "<group>"; };
@@ -157,6 +159,7 @@
 		A16B8F03AA7367FF8F95A34C /* Journal */ = {
 			isa = PBXGroup;
 			children = (
+				7519DB0AE818225FAE4DBF9B /* JournalPresentation.swift */,
 				3C9533148B383912C0BCE0B0 /* JournalShellView.swift */,
 			);
 			path = Journal;
@@ -331,6 +334,7 @@
 				0A423BC0A3FAADC49ED3C3E2 /* DesignTokens.swift in Sources */,
 				C8478AAF04FDDFDBA628A55E /* FoodPadApp.swift in Sources */,
 				BC6677B190D5CE8DC9CBC7D8 /* HTTPClient.swift in Sources */,
+				6E486777D06EB8CDC8B549AA /* JournalPresentation.swift in Sources */,
 				1E93BFCDBB684072CBB53D44 /* JournalRepository.swift in Sources */,
 				CE44B7195F0AFDD741B60CC9 /* JournalShellView.swift in Sources */,
 				A9ABBDE6E10C3DB9C428D204 /* SessionCoordinator.swift in Sources */,
