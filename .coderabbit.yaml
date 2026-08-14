@@ -7,8 +7,8 @@
 #
 # The repository's documentation rule, decided 2026-08-14 with PR #52:
 #
-#   - Every top-level (internal) type and protocol carries a one-line `///`
-#     saying what it is for.
+#   - Every top-level type and protocol carries a brief `///` — one or two
+#     sentences — saying what it is for.
 #   - Private and nested implementation does not, unless something about it is
 #     non-obvious — in which case it gets a *why* comment, which is the
 #     convention this codebase values most (many record measurements or

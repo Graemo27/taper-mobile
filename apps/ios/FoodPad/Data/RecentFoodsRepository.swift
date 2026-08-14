@@ -35,8 +35,9 @@ struct SupabaseRecentFoodsDataSource: RecentFoodsDataSource {
     }
 }
 
-/// The three newest distinct foods, deduplicating after ordering and widening
-/// the read until it has enough or the rows run out.
+/// The newest distinct foods up to the requested limit (three by default),
+/// deduplicating after ordering and widening the read until it has enough or
+/// the rows run out.
 struct RecentFoodsRepository: Sendable {
     static let scanLimit = 50
     let sessions: SessionCoordinator

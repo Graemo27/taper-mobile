@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Search plus its push to Food detail, handing the resolved food across so
-/// detail has nothing to fetch.
+/// Search plus its push to Food detail. A tapped result hands its resolved
+/// food across so detail fetches nothing; a tapped Recent row carries only an
+/// id, so detail fetches by it.
 struct SearchFlowView: View {
     @StateObject private var model: SearchModel
     @StateObject private var recent: RecentFoodsModel
