@@ -51,6 +51,27 @@ live database, swipes it away for real, and confirms the deletion through a fres
 read — and it skips itself when `.env` is missing. A run reporting zero failures and
 a nonzero skip count means that test quietly did not run.
 
+### The Edge Function
+
+```sh
+cd supabase/functions && deno task verify   # typecheck, then run the tests
+```
+
+Needs [Deno](https://deno.land). Supabase Edge Functions run on Deno, so this
+covers module resolution and the web globals the function uses, and the tests
+drive the real handler against a stubbed `fetch` — no Docker, no deploy, no FDC
+quota spent.
+
+Treat it as compatibility coverage rather than parity. `deno.lock` pins
+dependencies, not the Deno version, and the Supabase Edge Runtime is a separate
+build pinned nowhere in this repository. Anything that depends on the deployed
+runtime — cold starts, its own globals, resource limits — still needs a deploy
+to verify.
+
+This did not exist until the function had already been shipped and changed
+twice, and its absence had a cost: two correct review findings were deferred
+purely because nothing could prove a change was safe.
+
 ### Device builds
 
 Signing uses a free personal Apple team, so provisioning profiles expire after seven
