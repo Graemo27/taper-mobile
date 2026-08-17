@@ -44,6 +44,8 @@ could not start were compatible states.
   change them together or not at all.
 - **Verification is running, not building.** A PR that compiles and has not been driven is
   not verified. Run every check against the unfixed code first and confirm it fails.
+  The Edge Function is drivable too — `cd supabase/functions && deno task verify` — so
+  "it cannot be tested without deploying" is no longer a reason to defer a backend change.
 - **Never commit or print a secret.** `FDC_API_KEY` is an Edge Function secret and must never
   reach the client.
 - **Never bulk-delete Supabase rows.** Every user in this project is anonymous, including

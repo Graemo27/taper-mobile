@@ -1,0 +1,15 @@
+{
+  "//": "Edge Function tooling. Deno is the runtime Supabase actually uses, so checking and testing here exercises the same resolver and the same globals as production, without Docker and without deploying.",
+  "tasks": {
+    "check": "deno check food-search/index.ts food-search/handler.ts",
+    "test": "deno test --allow-env food-search/",
+    "verify": "deno task check && deno task test"
+  },
+  "fmt": {
+    "singleQuote": true,
+    "lineWidth": 100
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.9"
+  }
+}

@@ -51,6 +51,21 @@ live database, swipes it away for real, and confirms the deletion through a fres
 read — and it skips itself when `.env` is missing. A run reporting zero failures and
 a nonzero skip count means that test quietly did not run.
 
+### The Edge Function
+
+```sh
+cd supabase/functions && deno task verify   # typecheck, then run the tests
+```
+
+Needs [Deno](https://deno.land) — the runtime Supabase actually serves this on,
+so `deno check` resolves modules and globals exactly as production does. The
+tests drive the real handler against a stubbed `fetch`, which means no Docker,
+no deploy, and no FDC quota spent.
+
+This did not exist until the function had already been shipped and changed
+twice, and its absence had a cost: two correct review findings were deferred
+purely because nothing could prove a change was safe.
+
 ### Device builds
 
 Signing uses a free personal Apple team, so provisioning profiles expire after seven
