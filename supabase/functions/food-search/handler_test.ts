@@ -257,3 +257,19 @@ Deno.test('the FDC key never reaches the response, on success or failure', async
     },
   );
 });
+
+Deno.test('JSON that is valid but not an object is rejected, not crashed on', async () => {
+  // `await req.json()` happily returns null, [] or "abc". Only the parse is
+  // inside the try, so a null body reaches `body.fdcId` and throws there.
+  for (const raw of ['null', '[]', '"abc"', '42', 'true']) {
+    const res = await handle(
+      new Request('https://example.test/food-search', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${user}` },
+        body: raw,
+      }),
+    );
+    assertEquals(res.status, 400, `body ${raw} -> ${res.status}`);
+    assertEquals((await res.json()).error, 'Body must be JSON.');
+  }
+});

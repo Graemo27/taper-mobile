@@ -142,9 +142,17 @@ export async function handle(req: Request): Promise<Response> {
     return json({ error: 'Sign in required.' }, 401);
   }
 
+  // `null`, `[]`, `"abc"` and `42` are all valid JSON, so the parse succeeds and
+  // the guard below is what stops them. Without it a `null` body reached
+  // `body.fdcId` and threw a TypeError outside this try, which the runtime
+  // answered as a 500 — an input error reported as a server fault.
   let body: { query?: unknown; limit?: unknown; fdcId?: unknown };
   try {
-    body = await req.json();
+    const parsed: unknown = await req.json();
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return json({ error: 'Body must be JSON.' }, 400);
+    }
+    body = parsed as { query?: unknown; limit?: unknown; fdcId?: unknown };
   } catch {
     return json({ error: 'Body must be JSON.' }, 400);
   }

@@ -57,10 +57,16 @@ a nonzero skip count means that test quietly did not run.
 cd supabase/functions && deno task verify   # typecheck, then run the tests
 ```
 
-Needs [Deno](https://deno.land) — the runtime Supabase actually serves this on,
-so `deno check` resolves modules and globals exactly as production does. The
-tests drive the real handler against a stubbed `fetch`, which means no Docker,
-no deploy, and no FDC quota spent.
+Needs [Deno](https://deno.land). Supabase Edge Functions run on Deno, so this
+covers module resolution and the web globals the function uses, and the tests
+drive the real handler against a stubbed `fetch` — no Docker, no deploy, no FDC
+quota spent.
+
+Treat it as compatibility coverage rather than parity. `deno.lock` pins
+dependencies, not the Deno version, and the Supabase Edge Runtime is a separate
+build pinned nowhere in this repository. Anything that depends on the deployed
+runtime — cold starts, its own globals, resource limits — still needs a deploy
+to verify.
 
 This did not exist until the function had already been shipped and changed
 twice, and its absence had a cost: two correct review findings were deferred
