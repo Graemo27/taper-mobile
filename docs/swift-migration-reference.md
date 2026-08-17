@@ -4,6 +4,12 @@ This is the product and technical half of the Swift migration brief. The operati
 will link it in the follow-up documentation PR. Section numbering begins at §4 so the two
 halves form one stable brief when that split is complete.
 
+> **Completed 2026-08-14.** The Swift app reached parity, was confirmed on device, and the
+> React Native app was deleted in PR #53. This document is kept as the record of how that was
+> done and why. **Every path under `src/` in it refers to code that no longer exists** — read
+> those as citations, not as places to look. The architecture, backend contract and design
+> decisions it describes are current.
+
 ---
 
 ## 4. Target architecture

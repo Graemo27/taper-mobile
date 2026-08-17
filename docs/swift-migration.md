@@ -3,6 +3,12 @@
 **Owner of this work: Codex.** Graem is working on M2 design in parallel and is not editing
 app code while this runs.
 
+> **Completed 2026-08-14.** The Swift app reached parity, was confirmed on device, and the
+> React Native app was deleted in PR #53. This document is kept as the record of how that was
+> done and why. **Every path under `src/` in it refers to code that no longer exists** — read
+> those as citations, not as places to look. The architecture, backend contract and design
+> decisions it describes are current.
+
 This document and `swift-migration-reference.md` are the complete brief. They assume no
 knowledge of the conversations that produced the current app — everything required is in
 them or in one of the places they point at.

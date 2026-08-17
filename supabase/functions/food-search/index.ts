@@ -1,30 +1,47 @@
 /**
  * Food search proxy.
  *
- * Exists because the FDC key cannot ship to the client. Expo inlines every
- * `EXPO_PUBLIC_*` var into the JS bundle, where it is extractable from any
- * install, and USDA deactivates keys it finds published. So the key lives here
- * as a Supabase secret and the app never sees it.
+ * Exists because the FDC key cannot ship to the client. Any key inside a client
+ * build is extractable from any install — this was written when Expo inlined
+ * `EXPO_PUBLIC_*` into the JS bundle, and a native build is no better, only
+ * less convenient to unpack. USDA deactivates keys it finds published. So the
+ * key lives here as a Supabase secret and the app never sees it.
  *
- * The whole N+1 fan-out runs server-side. FDC has no batch endpoint that
- * includes portions, so a five-row result costs six requests; doing that from
- * the device would mean six round trips over mobile network instead of one, and
- * would leak the shape of the quota to anyone watching.
+ * The whole N+1 fan-out runs server-side: a five-row result costs six requests.
+ * Doing that from the device would mean six round trips over mobile network
+ * instead of one, and would leak the shape of the quota to anyone watching.
  *
- * The lookup logic is imported, not reimplemented — `./food` is the same code
- * the Node harness runs, so `npm run food` stays a faithful test of what this
- * serves.
+ * **The fan-out itself is not necessary, and this comment used to claim it
+ * was.** `GET /v1/foods?fdcIds=…` returns full records *including*
+ * `foodPortions`, for Foundation and SR Legacy alike — measured against the
+ * live API on 2026-08-14. The original claim is true only of
+ * `format=abridged`, which does omit portions and is the likely source of the
+ * mistake. Collapsing search + N lookups into two requests is a real
+ * improvement and deliberately not made here: it changes behaviour in a
+ * deployed function, and this repository still cannot drive an Edge Function
+ * locally to prove it. See the follow-up on PR #54.
  *
- * That directory used to live at `src/lib/food/`, inside the React Native app.
- * It moved here because the app is being deleted and this function is not: a
- * `git rm -r src` would otherwise have taken the lookup logic with it and left
- * this import pointing at nothing. Deno bundles it from either place; the
- * difference is only that the function's dependencies now all sit beneath it.
+ * The lookup logic lives in `./food` rather than inline. It was originally
+ * split out to be shared with a Node harness (`npm run food`) that exercised it
+ * without deploying; that harness went with the React Native app in PR #53. The
+ * split is kept because it is still the only way to read this logic without a
+ * request handler wrapped around it.
+ *
+ * `./food` sat at `src/lib/food/` until PR #50, inside the app that PR #53 then
+ * deleted. Moving it first is the only reason deleting the app did not quietly
+ * take the backend's lookup logic with it — the deployed function would have
+ * kept serving from its existing bundle, and the loss would have surfaced at
+ * some later redeploy with nothing to connect it to.
  */
 
 import { FdcError, getFood, searchWithServings } from './food/index.ts';
 
-/** Expo also targets web, where a browser will preflight this. */
+/**
+ * Retained from the Expo build, which also targeted web and so preflighted.
+ * The native client does not, but `supabase functions serve` and any browser
+ * used to poke at this still do, and removing headers is a behaviour change
+ * with no upside.
+ */
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
