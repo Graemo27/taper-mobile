@@ -1,11 +1,18 @@
-# Food Pad — agent instructions
+# Taper — agent instructions
 
 ## The app
 
-Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and one Edge Function
-in `supabase/functions/food-search/`. Start from `README.md` for how to build and run it,
-including the `write-config.sh` step that gives the running app its backend configuration.
-Skipping it does not fail the build — it produces an app that launches with no backend.
+Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and Edge Functions in
+`supabase/functions/`. Start from `README.md` for how to build and run it, including the
+`write-config.sh` step that gives the running app its backend configuration. Skipping it does
+not fail the build — it produces an app that launches with no backend.
+
+**The pivot is half done, and the halves disagree.** Taper's backend exists — `nrt-search`
+and the `taper_plans` / `pad_keys` / `check_ins` schema — while `apps/ios/` is still the Food
+Pad build, named `FoodPad` throughout. That is deliberate: the Xcode targets are renamed in
+the change that replaces the app, not on their way to deletion. `food-search` and the food
+tables are retired. References to "Food Pad" under `docs/` are historical and accurate; leave
+them alone.
 
 The SwiftUI migration completed on 2026-08-14 and the React Native app was deleted in PR #53.
 `docs/swift-migration.md` and `docs/swift-migration-reference.md` remain the record of how it
@@ -57,8 +64,8 @@ could not start were compatible states.
   are quitting during onboarding and can add to it later, because a source they cannot log
   is a cap that silently lies — but that path is a plain type-and-mg entry the user types
   themselves, never a search against a catalogue of brands.
-- **Never commit or print a secret.** `FDC_API_KEY` is an Edge Function secret and must never
-  reach the client.
+- **Never commit or print a secret.** `OPENFDA_API_KEY` — and `FDC_API_KEY` while it lasts —
+  are Edge Function secrets and must never reach the client.
 - **Never bulk-delete Supabase rows.** Every user in this project is anonymous, including
   Graem's phone. Delete only rows you created, by id.
 - **Production actions need explicit authorisation** — `supabase db push`,

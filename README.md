@@ -1,20 +1,39 @@
-# Food Pad
+# Taper
 
-A food journal that does not grade you. You write down what you ate; it shows you
-the days, and nothing else. No daily total, no goal, no streak — that constraint is
-the product, not an unfinished feature, and the reasoning behind it is in the
-project's knowledge base rather than in this file.
+A nicotine tracker that helps you come down rather than keep score. You log what
+you use against a ceiling that descends, and the app supports the descent with
+licensed nicotine replacement therapy — the thing the evidence says makes a
+reduction schedule work at all. The reasoning is in the project's knowledge base
+rather than in this file.
 
-Native iOS, SwiftUI, with a Supabase backend and one Edge Function.
+Two ledgers, and the distinction is the product: **treatment** is licensed NRT —
+gum, lozenge, patch, inhaler, spray — and **source** is what you are quitting.
+Product search reaches only the first of those, by design. See the standing
+constraint in `AGENTS.md`.
+
+Native iOS, SwiftUI, with a Supabase backend and Edge Functions.
 
 ## Layout
 
 ```text
 apps/ios/            The app. SwiftUI, iOS 26, XcodeGen-generated project
-supabase/functions/  food-search — the FDC proxy, Deno/TypeScript
+supabase/functions/  nrt-search — the openFDA lookup, Deno/TypeScript
 supabase/migrations/ Schema, applied in order
 docs/                The SwiftUI migration brief and its reference
 ```
+
+## The pivot is in progress
+
+This repository was Food Pad, a food journal, until August 2026. The backend has
+moved: `nrt-search` and the `taper_plans` / `pad_keys` / `check_ins` schema are
+Taper's. **The iOS app has not** — `apps/ios/` is still the Food Pad build, which
+is why the Xcode project, scheme and test targets below are named `FoodPad`. They
+are renamed in the same change that replaces the app, rather than renamed on their
+way to being deleted.
+
+`food-search` and the food tables are retired. Anything under `docs/` that says
+"Food Pad" is a historical record of the SwiftUI migration and is accurate as
+written — do not rewrite it to say Taper.
 
 The React Native app this replaced lived in `src/` and was deleted once the Swift
 app reached parity on device. `docs/swift-migration.md` records how that was done
