@@ -1,4 +1,4 @@
-# Only the settings Food Pad deliberately chooses. `supabase init` generates 400
+# Only the settings Taper deliberately chooses. `supabase init` generates 400
 # lines of commented defaults; carrying them makes the handful of real decisions
 # invisible, so they are omitted and the CLI defaults apply.
 #
@@ -7,7 +7,7 @@
 # in the dashboard without adding it to this file means the next push silently
 # reverts it. Add the key here first.
 
-project_id = "food-pad"
+project_id = "taper-mobile"
 
 # Local ports, moved off the CLI defaults (54321–54327).
 #
@@ -43,7 +43,7 @@ port = 55327
 # that claim rather than `auth.role()`, which cannot tell the two apart.
 enable_anonymous_sign_ins = true
 
-# The three blocks below are not choices Food Pad is making — they restate the
+# The three blocks below are not choices Taper is making — they restate the
 # platform defaults so that pushing this file cannot silently lower them.
 #
 # This is the caveat at the top of the file, learned the hard way: `config push`
