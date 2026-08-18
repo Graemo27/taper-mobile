@@ -46,6 +46,17 @@ could not start were compatible states.
   not verified. Run every check against the unfixed code first and confirm it fails.
   The Edge Function is drivable too — `cd supabase/functions && deno task verify` — so
   "it cannot be tested without deploying" is no longer a reason to defer a backend change.
+- **Product search returns licensed NRT only — never a tobacco product.** Any surface that
+  lets a user *discover* a nicotine product — search, autocomplete, suggestions, a browsable
+  catalogue, "did you mean" — is restricted to FDA-regulated nicotine replacement therapy:
+  gum, lozenge, patch, inhaler, nasal spray. Pouches, vapes, cigarettes and dip must never
+  appear in a result set, be suggested, or be completed from a brand list, and no backend
+  route may be capable of returning them. The app must not help anyone shop for nicotine it
+  is not licensed to recommend.
+  This is a rule about *discovery*, not about *recording*. The user still declares what they
+  are quitting during onboarding and can add to it later, because a source they cannot log
+  is a cap that silently lies — but that path is a plain type-and-mg entry the user types
+  themselves, never a search against a catalogue of brands.
 - **Never commit or print a secret.** `FDC_API_KEY` is an Edge Function secret and must never
   reach the client.
 - **Never bulk-delete Supabase rows.** Every user in this project is anonymous, including
