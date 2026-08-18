@@ -1,7 +1,7 @@
 {
   "//": "Edge Function tooling. Supabase Edge Functions run on Deno, so checking and testing here covers module resolution and the web globals this code uses, without Docker and without deploying. It is compatibility coverage, not parity: this lock pins dependencies, not the Deno version, and the Supabase Edge Runtime is a separate build whose version is not pinned anywhere in this repository. Behaviour that depends on the deployed runtime still has to be verified by deploying.",
   "tasks": {
-    "check": "deno check food-search/index.ts food-search/handler.ts nrt-search/nrt/openfda.ts",
+    "check": "deno check food-search/index.ts food-search/handler.ts nrt-search/index.ts nrt-search/handler.ts",
     "test": "deno test --allow-env food-search/ nrt-search/",
     "verify": "deno task check && deno task test"
   },

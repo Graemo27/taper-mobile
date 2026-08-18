@@ -55,3 +55,11 @@ anonymous_users = 30
 # valid JWT and it ships inside the app bundle. The function re-checks the
 # claims; see the comment in its handler.
 verify_jwt = true
+
+[functions.nrt-search]
+# Same reasoning as above: platform verification proves the signature, and the
+# function re-checks the claims because the anon key is itself a valid JWT that
+# ships in the bundle. Stated explicitly rather than left to the default,
+# because an unauthenticated product lookup would let anyone spend the openFDA
+# daily quota this project shares.
+verify_jwt = true
