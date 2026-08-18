@@ -4,8 +4,12 @@
  * The NDC endpoint rather than the drug label one because it carries
  * `active_ingredients[].strength` as a field — a key needs a number, and parsing
  * "each piece contains 4 mg" out of label prose would be a guess dressed as
- * data. No API key is required; the optional `OPENFDA_API_KEY` only raises the
- * anonymous per-IP rate limit, which is one more reason this runs server-side.
+ * data.
+ *
+ * No API key is required. openFDA rate-limits anonymous callers by IP, which is
+ * a further reason this runs server-side: one function's IP is a known quantity
+ * to reason about when the limit bites, where every device having its own would
+ * not be. The optional `OPENFDA_API_KEY` raises the ceiling and is never needed.
  */
 
 import { FORMS, type NrtProduct } from './types.ts';
@@ -39,8 +43,9 @@ interface NdcRecord {
  *
  * Removed rather than escaped: escaping preserves the characters and relies on
  * getting openFDA's rules exactly right, where removal means the worst a crafted
- * query can do is match nothing. A term able to close a quote could append its
- * own clause, which is the one thing this module must not allow.
+ * query can do is match nothing. The nicotine clause is not built from this
+ * string in any case, but a term able to close a quote could append its own,
+ * and that is the one thing this module must not allow.
  */
 function sanitise(term: string): string {
   return term
