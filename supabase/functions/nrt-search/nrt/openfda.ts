@@ -6,10 +6,12 @@
  * "each piece contains 4 mg" out of label prose would be a guess dressed as
  * data.
  *
- * No API key is required. openFDA rate-limits anonymous callers by IP, which is
- * a further reason this runs server-side: one function's IP is a known quantity
- * to reason about when the limit bites, where every device having its own would
- * not be. The optional `OPENFDA_API_KEY` raises the ceiling and is never needed.
+ * `OPENFDA_API_KEY` is optional to *run* and required in practice. Without it
+ * openFDA allows 1,000 requests a day per IP; with it, 120,000 per key. Worse
+ * than the number suggests: Edge Functions egress from shared Deno Deploy
+ * addresses, so an anonymous deployment is spending a budget it does not own
+ * and can be exhausted by traffic that is not ours, producing 429s with no
+ * traceable cause. Keyless is for local runs and tests, not for production.
  */
 
 import { FORMS, type NrtProduct } from './types.ts';
