@@ -9,6 +9,30 @@
 
 project_id = "food-pad"
 
+# Local ports, moved off the CLI defaults (54321–54327).
+#
+# Those defaults are per-machine, not per-project, so any second local Supabase
+# stack collides with the first — `supabase start` fails on "port is already
+# allocated" and, worse, whichever project is already running looks like the
+# culprit. Another project on this machine holds the default range, so this one
+# is explicit. Nothing here affects the hosted project; these ports exist only
+# while `supabase start` is running.
+
+[api]
+port = 55321
+
+[db]
+port = 55322
+
+[studio]
+port = 55323
+
+[local_smtp]
+port = 55324
+
+[analytics]
+port = 55327
+
 [auth]
 # Anonymous sign-in gives every user a real JWT — and therefore a real `sub` to
 # hang a journal off later — without a login screen in front of a food lookup.
