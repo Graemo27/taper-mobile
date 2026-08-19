@@ -7,12 +7,11 @@ Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and Ed
 `write-config.sh` step that gives the running app its backend configuration. Skipping it does
 not fail the build — it produces an app that launches with no backend.
 
-**The pivot is half done, and the halves disagree.** Taper's backend exists — `nrt-search`
-and the `taper_plans` / `pad_keys` / `check_ins` schema — while `apps/ios/` is still the Food
-Pad build, named `FoodPad` throughout. That is deliberate: the Xcode targets are renamed in
-the change that replaces the app, not on their way to deletion. `food-search` and the food
-tables are retired. References to "Food Pad" under `docs/` are historical and accurate; leave
-them alone.
+**The backend is Taper's; the UI does not exist yet.** `nrt-search` and the `taper_plans` /
+`pad_keys` / `check_ins` schema are in place, the food code is deleted and the iOS targets are
+named Taper — but the app launches to a bare root with no screens. Building those is the work
+in front of us. References to "Food Pad" under `docs/` are historical and accurate; leave them
+alone.
 
 The SwiftUI migration completed on 2026-08-14 and the React Native app was deleted in PR #53.
 `docs/swift-migration.md` and `docs/swift-migration-reference.md` remain the record of how it

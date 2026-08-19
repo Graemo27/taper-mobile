@@ -24,12 +24,13 @@ docs/                The SwiftUI migration brief and its reference
 
 ## The pivot is in progress
 
-This repository was Food Pad, a food journal, until August 2026. The backend has
-moved: `nrt-search` and the `taper_plans` / `pad_keys` / `check_ins` schema are
-Taper's. **The iOS app has not** — `apps/ios/` is still the Food Pad build, which
-is why the Xcode project, scheme and test targets below are named `FoodPad`. They
-are renamed in the same change that replaces the app, rather than renamed on their
-way to being deleted.
+This repository was Food Pad, a food journal, until August 2026. The pivot is
+complete in the sense that nothing food-related is left running: the food UI,
+domain and repositories are deleted, `food-search` and the food tables are
+retired, and the iOS targets are named Taper.
+
+What is *not* done is Taper's own UI. The app currently launches to a bare root
+that signs in and reports whether it has a backend — see `Taper/App/TaperApp.swift`.
 
 `food-search` and the food tables are retired. Anything under `docs/` that says
 "Food Pad" is a historical record of the SwiftUI migration and is accurate as
@@ -47,7 +48,7 @@ You need Xcode 26.4+, [XcodeGen](https://github.com/yonaskolb/XcodeGen), and a
 ```sh
 apps/ios/Scripts/write-config.sh   # .env -> apps/ios/Config.xcconfig
 cd apps/ios && xcodegen generate
-open FoodPad.xcodeproj
+open Taper.xcodeproj
 ```
 
 **Do not skip the first step.** It writes the Supabase settings into the build, the
@@ -62,7 +63,7 @@ caught only by running the app on a phone.
 
 ```sh
 cd apps/ios
-xcodebuild test -scheme FoodPad -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -scheme Taper -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
 **Watch the skip count, not just the failures.** One test creates a real row in the

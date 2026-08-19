@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "46E202CB129D0EF5941B2BC4"
-               BuildableName = "FoodPad.app"
-               BlueprintName = "FoodPad"
-               ReferencedContainer = "container:FoodPad.xcodeproj">
+               BlueprintIdentifier = "EE06B5AE23DD110257F93A16"
+               BuildableName = "Taper.app"
+               BlueprintName = "Taper"
+               ReferencedContainer = "container:Taper.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "50F7707B1F0E0041252E56B4"
-               BuildableName = "FoodPadTests.xctest"
-               BlueprintName = "FoodPadTests"
-               ReferencedContainer = "container:FoodPad.xcodeproj">
+               BlueprintIdentifier = "68AB04279C4D6D1204D0EECD"
+               BuildableName = "TaperTests.xctest"
+               BlueprintName = "TaperTests"
+               ReferencedContainer = "container:Taper.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,10 +46,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "46E202CB129D0EF5941B2BC4"
-            BuildableName = "FoodPad.app"
-            BlueprintName = "FoodPad"
-            ReferencedContainer = "container:FoodPad.xcodeproj">
+            BlueprintIdentifier = "EE06B5AE23DD110257F93A16"
+            BuildableName = "Taper.app"
+            BlueprintName = "Taper"
+            ReferencedContainer = "container:Taper.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -58,10 +58,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "50F7707B1F0E0041252E56B4"
-               BuildableName = "FoodPadTests.xctest"
-               BlueprintName = "FoodPadTests"
-               ReferencedContainer = "container:FoodPad.xcodeproj">
+               BlueprintIdentifier = "68AB04279C4D6D1204D0EECD"
+               BuildableName = "TaperTests.xctest"
+               BlueprintName = "TaperTests"
+               ReferencedContainer = "container:Taper.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -82,10 +82,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "46E202CB129D0EF5941B2BC4"
-            BuildableName = "FoodPad.app"
-            BlueprintName = "FoodPad"
-            ReferencedContainer = "container:FoodPad.xcodeproj">
+            BlueprintIdentifier = "EE06B5AE23DD110257F93A16"
+            BuildableName = "Taper.app"
+            BlueprintName = "Taper"
+            ReferencedContainer = "container:Taper.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -99,10 +99,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "46E202CB129D0EF5941B2BC4"
-            BuildableName = "FoodPad.app"
-            BlueprintName = "FoodPad"
-            ReferencedContainer = "container:FoodPad.xcodeproj">
+            BlueprintIdentifier = "EE06B5AE23DD110257F93A16"
+            BuildableName = "Taper.app"
+            BlueprintName = "Taper"
+            ReferencedContainer = "container:Taper.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

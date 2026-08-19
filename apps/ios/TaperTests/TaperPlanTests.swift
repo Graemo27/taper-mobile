@@ -1,5 +1,5 @@
 import Testing
-@testable import FoodPad
+@testable import Taper
 
 /// The plan generator is where the research constraints bite, so these tests are
 /// mostly assertions that it refuses to do the harmful thing rather than that it
