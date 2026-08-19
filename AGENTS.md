@@ -4,7 +4,7 @@
 
 Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and Edge Functions in
 `supabase/functions/`. Start from `README.md` for how to build and run it, including the
-`write-config.sh` step that gives the running app its backend configuration. Skipping it does
+`apps/ios/Scripts/write-config.sh` step that gives the running app its backend configuration. Skipping it does
 not fail the build — it produces an app that launches with no backend.
 
 **The backend is Taper's; the UI does not exist yet.** `nrt-search` and the `taper_plans` /

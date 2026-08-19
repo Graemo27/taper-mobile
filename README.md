@@ -30,7 +30,7 @@ domain and repositories are deleted, `food-search` and the food tables are
 retired, and the iOS targets are named Taper.
 
 What is *not* done is Taper's own UI. The app currently launches to a bare root
-that signs in and reports whether it has a backend — see `Taper/App/TaperApp.swift`.
+that signs in and reports whether it has a backend — see `apps/ios/Taper/App/TaperApp.swift`.
 
 `food-search` and the food tables are retired. Anything under `docs/` that says
 "Food Pad" is a historical record of the SwiftUI migration and is accurate as
@@ -57,7 +57,7 @@ compiles, installs and launches perfectly well with no backend, and every screen
 reports what looks like a network outage. That exact omission shipped once and was
 caught only by running the app on a phone.
 
-`Config.xcconfig` is gitignored, like the `.env` it derives from.
+`apps/ios/Config.xcconfig` is gitignored, like the `.env` it derives from.
 
 ### Tests
 
