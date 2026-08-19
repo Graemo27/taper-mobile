@@ -263,6 +263,12 @@ final class OnboardingAnswers {
     /// that invariant lives in `toggle(_:)`.
     private(set) var priorAttempts: Set<PriorAttempt> = []
 
+    /// Whether the run ends at a date or holds where it is (O9).
+    ///
+    /// Optional because unanswered is not the same as choosing to reduce, and
+    /// only one of those may decide whether the next screen is shown.
+    var planShape: PlanShape?
+
     /// True once O5 has an answer either way.
     ///
     /// On the model rather than in the view because it is the gate on Continue,
@@ -401,6 +407,29 @@ final class OnboardingAnswers {
             treatments.insert(form)
         }
         defersTreatment = false
+    }
+
+    /// Whether a step has anything to ask, given what has been said so far.
+    ///
+    /// On the answers rather than in the flow because a skipped screen is
+    /// invisible from the outside: nothing renders, nothing errors, and the
+    /// only evidence is a question the user was never asked. Here it can be
+    /// asserted directly.
+    func shouldAsk(_ step: OnboardingStep) -> Bool {
+        switch step {
+        case .strength:
+            // A per-piece question. A run naming only cigarettes or a vape has
+            // no per-piece figure to give, and asking anyway would make them
+            // invent one for the plan to be built on.
+            return sources.contains { $0.usesPerUnitStrength }
+        case .quitDate:
+            // Someone who said "date later" has already declined. Showing the
+            // picker anyway would ask them to decline a second time, which
+            // reads as the app not having listened.
+            return planShape?.needsQuitDate ?? false
+        default:
+            return true
+        }
     }
 
     /// Picks or unpicks something tried before.

@@ -99,6 +99,12 @@ struct OnboardingFlow: View {
                 onContinue: { advance(from: step) },
                 onBack: goBack
             )
+        case .readiness:
+            ReadinessView(
+                answers: answers,
+                onContinue: { advance(from: step) },
+                onBack: goBack
+            )
         default:
             // Explicit rather than silent. An unbuilt step used to be an empty
             // closure on an enabled button, which left the run looking broken
@@ -115,17 +121,10 @@ struct OnboardingFlow: View {
     }
 
     /// Whether a step has anything to ask, given what the user has said.
-    ///
-    /// Only strength branches today: it is a per-piece question, and a run that
-    /// names only cigarettes or a vape has no per-piece figure to give. Asking
-    /// anyway would make them invent one, and the plan would be built on it.
+    /// Lives on the answers, not here, so a skip can be asserted in a test —
+    /// a screen the run silently walks past is invisible from the outside.
     private func applies(_ step: OnboardingStep) -> Bool {
-        switch step {
-        case .strength:
-            return answers.sources.contains { $0.usesPerUnitStrength }
-        default:
-            return true
-        }
+        answers.shouldAsk(step)
     }
 
     private func goBack() {

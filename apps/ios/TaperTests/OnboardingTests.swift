@@ -1077,3 +1077,85 @@ struct PriorAttemptTests {
         #expect(before.replacement.patchMg == after.replacement.patchMg)
     }
 }
+
+/// Covers O9, the one question that changes what the run does next. A skipped
+/// screen is invisible from the outside — nothing renders and nothing errors —
+/// so the routing is asserted here rather than inferred from driving the app.
+struct ReadinessTests {
+    @Test("the question starts unanswered rather than defaulted either way")
+    func startsNil() {
+        // Defaulting to a date addresses someone who has not agreed to one;
+        // defaulting to reduction quietly removes the screen that asks.
+        #expect(OnboardingAnswers().planShape == nil)
+    }
+
+    @Test("choosing a date is what makes the date screen appear")
+    func aDateIsAsked() {
+        let answers = OnboardingAnswers()
+        answers.planShape = .quitDate
+        #expect(answers.shouldAsk(.quitDate))
+    }
+
+    @Test("saying date later skips the picker rather than showing it to decline")
+    func reduceFirstSkipsTheDate() {
+        // Asking someone to decline twice reads as the app not having listened.
+        let answers = OnboardingAnswers()
+        answers.planShape = .reduceFirst
+        #expect(answers.shouldAsk(.quitDate) == false)
+    }
+
+    @Test("an unanswered fork does not open the date screen by default")
+    func unansweredDoesNotAsk() {
+        #expect(OnboardingAnswers().shouldAsk(.quitDate) == false)
+    }
+
+    @Test("every other step is asked unless it has a reason not to be")
+    func nothingElseIsSkippedByAccident() {
+        // A skip is a decision. Any step quietly dropped here is a question the
+        // user never sees and nobody notices missing.
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.planShape = .quitDate
+        for step in OnboardingStep.allCases {
+            #expect(answers.shouldAsk(step), "\(step) was skipped without a reason")
+        }
+    }
+
+    @Test("a run with nothing that prints a strength skips that question")
+    func strengthStillSkipsForCigarettesOnly() {
+        // The pre-existing branch, now assertable rather than buried in the
+        // flow's private helper.
+        let answers = OnboardingAnswers()
+        answers.toggle(.cigarettes)
+        #expect(answers.shouldAsk(.strength) == false)
+        answers.toggle(.nrt)
+        #expect(answers.shouldAsk(.strength))
+    }
+
+    @Test("both options describe what the app will actually do")
+    func bothOptionsAreRealPlans() {
+        // "Both are real plans" is the helper's claim, so neither option may be
+        // a placeholder. The conditional phrasing on the second is the framing
+        // the one trial aimed at not-yet-ready users scored best on.
+        #expect(PlanShape.allCases.count == 2)
+        #expect(PlanShape.allCases.allSatisfy { !$0.detail.isEmpty })
+        #expect(PlanShape.reduceFirst.detail.contains("if and when you're ready"))
+        #expect(PlanShape.quitDate.needsQuitDate)
+        #expect(PlanShape.reduceFirst.needsQuitDate == false)
+    }
+
+    @Test("reducing without a date is a plan the planner supports")
+    func reductionOnlyProducesAPlan() {
+        // If a nil date produced no plan, "reduce first" would be an option
+        // that leads nowhere — and the screen would be offering a dead end as
+        // one of two real choices.
+        let plan = TaperPlanner.plan(for: TaperInput(
+            startingCapMg: 18,
+            minutesToFirstUse: 20,
+            usesWhenIllInBed: true,
+            weeksUntilQuitDate: nil
+        ))
+        #expect(plan.weeklyCapsMg == [18])
+        #expect(plan.reachesZero == false)
+    }
+}
