@@ -1404,6 +1404,10 @@ struct PlanPreviewTests {
         answers.usesWhenIllInBed = true
         answers.planShape = weeksOut == nil ? .reduceFirst : .quitDate
         answers.quitDate = weeksOut.map { QuitDate.date(weeksFrom: day, weeks: $0) }
+        // A completed run has answered O5a. Leaving it silent here would have
+        // every other test in this suite exercising a state the model is
+        // supposed to refuse.
+        answers.deferTreatment()
         return answers
     }
 
@@ -1539,10 +1543,35 @@ struct PlanPreviewTests {
         #expect(answers.planPreview?.quitDate == QuitDate.date(weeksFrom: day, weeks: 8))
     }
 
+    @Test("someone holding both fast-acting forms is told about both")
+    func bothFastActingFormsAreNamed() {
+        // Nothing stops a user picking gum and lozenges together, and naming
+        // only the first is the same failure as describing a lozenge to
+        // someone who declined one — quieter, and therefore easier to ship.
+        let answers = answers()
+        answers.toggle(.lozenge)
+        answers.toggle(.gum)
+        let landing = answers.planPreview?.milestones.last?.detail
+        #expect(landing?.contains("2 mg lozenge or gum") == true)
+    }
+
     @Test("a half-answered run has no plan to preview")
     func incompleteRunPreviewsNothing() {
         let answers = answers()
         answers.usesWhenIllInBed = nil
+        #expect(answers.planPreview == nil)
+    }
+
+    @Test("an unanswered treatment question is not read as declining one")
+    func silenceOnTreatmentIsNotAnAnswer() {
+        // An empty treatments set means "has not said", and the landing copy
+        // reads it identically to "said no" — so a run that walked past O5a
+        // would be told it has nothing to come off, which is a sentence about
+        // an answer nobody gave.
+        let answers = answers()
+        answers.toggle(.lozenge)
+        answers.toggle(.lozenge)
+        #expect(answers.hasAnsweredTreatment == false)
         #expect(answers.planPreview == nil)
     }
 }

@@ -144,9 +144,19 @@ struct PlanPreview: Equatable, Sendable {
     /// outright. The last is a real answer rather than an unfinished one, and
     /// telling that user about a lozenge they said no to is the screen not
     /// having listened.
+    ///
+    /// Every fast-acting form the user picked is named, in declaration order.
+    /// Taking only the first would drop a product they chose — the same failure
+    /// as the branch below it, in quieter form. Joined with "or" rather than
+    /// "and": gum's role is *instead of* the lozenge, so someone holding both
+    /// has two ways to answer one craving, not two doses to take.
     private static func landingDetail(treatments: Set<TreatmentForm>, fastActingMg: Int) -> String {
-        if let form = TreatmentForm.allCases.first(where: { treatments.contains($0) && !$0.isPatch }) {
-            return "Land at 0, with \(fastActingMg) mg \(form.label.lowercased()) for the cravings that outlast the taper."
+        let fastActing = TreatmentForm.allCases
+            .filter { treatments.contains($0) && !$0.isPatch }
+            .map { $0.label.lowercased() }
+        if !fastActing.isEmpty {
+            let named = fastActing.joined(separator: " or ")
+            return "Land at 0, with \(fastActingMg) mg \(named) for the cravings that outlast the taper."
         }
         if treatments.contains(.patch) {
             return "Land at 0. The patch is the last thing to come off."

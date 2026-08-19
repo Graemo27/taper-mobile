@@ -406,6 +406,7 @@ final class OnboardingAnswers {
     /// product addressing the wrong person.
     var weeksUntilQuitDate: Int? { weeksUntilQuitDate(asOf: now()) }
 
+    /// The same runway, reckoned against a day the caller has already read.
     func weeksUntilQuitDate(asOf today: Date) -> Int? {
         guard planShape?.needsQuitDate == true, let quitDate else { return nil }
         return QuitDate.weeks(from: today, to: quitDate)
@@ -576,9 +577,15 @@ final class OnboardingAnswers {
     /// One clock read, shared by the plan and by the date on its last
     /// milestone. Taking two would let a run that crosses midnight between them
     /// print a countdown that does not reach the day beside it.
+    ///
+    /// Gated on `hasAnsweredTreatment` as well as on the planner's inputs. An
+    /// empty `treatments` set means "has not said", not "said no" — and the
+    /// preview reads the two the same way, so an unanswered run would be told
+    /// it has nothing to come off. The gate belongs here rather than on the
+    /// screen before it: a rule enforced only by a view is one no test can see.
     var planPreview: PlanPreview? {
         let today = now()
-        guard let input = taperInput(asOf: today) else { return nil }
+        guard hasAnsweredTreatment, let input = taperInput(asOf: today) else { return nil }
         return PlanPreview(
             plan: TaperPlanner.plan(for: input),
             today: today,
