@@ -403,3 +403,154 @@ struct AmountTests {
         #expect(answers.amount(for: .vape) % NicotineSource.vape.step == 0)
     }
 }
+
+/// Covers O4, whose risk is not the screen but the join to the planner: the
+/// wording promises the answer sizes the steps, so each option has to land in
+/// the dependence band its words imply.
+struct FirstUseTests {
+    private func plan(_ option: FirstUseOption, capMg: Double = 12) -> TaperPlan {
+        TaperPlanner.plan(for: TaperInput(
+            startingCapMg: capMg,
+            minutesToFirstUse: option.minutes,
+            usesWhenIllInBed: false,
+            weeksUntilQuitDate: 1
+        ))
+    }
+
+    private func option(_ label: String) -> FirstUseOption {
+        FirstUseOption.all.first { $0.label == label }!
+    }
+
+    @Test("reaching for it on waking reads as high dependence on its own")
+    func firstThingIsHigh() {
+        // The strongest single item in the index, and sufficient by itself —
+        // a light daily total must not outvote it.
+        #expect(plan(option("It's the first thing I do"), capMg: 6).dependence == .high)
+    }
+
+    @Test("an afternoon habit does not")
+    func afternoonIsNotHigh() {
+        #expect(plan(option("Afternoon or later"), capMg: 6).dependence == .low)
+    }
+
+    @Test("the options run from most to least dependent, without ties")
+    func optionsAreOrderedAndDistinct() {
+        // Ordered because the list reads as a scale; distinct because two
+        // options resolving to the same minutes would be two ways to say one
+        // thing, which is a question with a redundant answer.
+        let minutes = FirstUseOption.all.map(\.minutes)
+        #expect(minutes == minutes.sorted())
+        #expect(Set(minutes).count == minutes.count)
+    }
+
+    @Test("each option sits inside its band, not on the edge")
+    func valuesAreNotOnThresholds() {
+        // 20 rather than 30 for "within 30 minutes", so shifting a threshold
+        // later cannot silently reclassify an answer someone already gave.
+        for boundary in [6, 31, 61] {
+            #expect(!FirstUseOption.all.contains { $0.minutes == boundary })
+            #expect(!FirstUseOption.all.contains { $0.minutes == boundary - 1 })
+        }
+    }
+
+    @Test("answering moves the plan's floor, which is what the helper promises")
+    func theAnswerChangesTheSchedule() {
+        // "This sizes your steps" has to be true, or the copy is a claim the
+        // product does not honour.
+        let earliest = plan(option("It's the first thing I do"), capMg: 24)
+        let latest = plan(option("Afternoon or later"), capMg: 24)
+        #expect(earliest.weeklyCapsMg.count > latest.weeklyCapsMg.count)
+    }
+}
+
+/// Covers the seam between what onboarding collects and what the planner takes.
+///
+/// The mapping is the risk: `minutesToFirstUse` is a number the user never sees
+/// and never types, so nothing on screen would look wrong if it were wired to
+/// the wrong option.
+struct TaperInputBridgeTests {
+    private func answered() -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(6, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+        return answers
+    }
+
+    @Test("a complete run maps every answer to the field the planner reads")
+    func completeRunMaps() {
+        let input = answered().taperInput
+        #expect(input?.startingCapMg == 18)
+        #expect(input?.minutesToFirstUse == 20)
+        #expect(input?.usesWhenIllInBed == true)
+        // Reduction-only is a supported state, not a missing answer.
+        #expect(input?.weeksUntilQuitDate == nil)
+    }
+
+    @Test("an unanswered question yields no input rather than a default")
+    func incompleteRunYieldsNothing() {
+        // There is no default here that would not be an invention. A plan built
+        // partly on values nobody supplied is the failure this flow is shaped
+        // to avoid, so the bridge refuses rather than filling gaps.
+        let noFirstUse = answered(); noFirstUse.firstUse = nil
+        #expect(noFirstUse.taperInput == nil)
+
+        let noSickInBed = answered(); noSickInBed.usesWhenIllInBed = nil
+        #expect(noSickInBed.taperInput == nil)
+
+        let noAmount = answered(); noAmount.setAmount(0, for: .pouches)
+        #expect(noAmount.taperInput == nil)
+    }
+
+    @Test("a cap that leaves out a named source is not a cap")
+    func aPartlyAnsweredMixedRunYieldsNothing() {
+        // Cigarettes need no strength question, so they carry the cap on their
+        // own. That makes the total positive while the pouches the user also
+        // named contribute nothing — a figure that looks whole and is short by
+        // a whole product. The bridge has to refuse it, because the screen
+        // downstream cannot tell the difference.
+        let answers = answered()
+        answers.toggle(.cigarettes)
+        answers.setAmount(10, for: .cigarettes)
+        answers.strengths[.pouches] = nil
+        #expect(answers.startingCapMg > 0)
+        #expect(answers.taperInput == nil)
+
+        // Answering it completes the run, and the cap now includes both.
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        #expect(answers.taperInput?.startingCapMg == 33)
+    }
+
+    @Test("a floor is not a strength")
+    func anUnNarrowedFloorYieldsNothing() {
+        // "8 mg or more" is the one answer that plans low: taking the floor
+        // would size the cap for 8 when the tin might say 12.
+        let answers = answered()
+        answers.strengths[.pouches] = StrengthOption.pouch.first(where: \.isAtLeast)
+        #expect(answers.taperInput == nil)
+
+        answers.exactStrengths[.pouches] = 12
+        #expect(answers.taperInput?.startingCapMg == 72)
+    }
+
+    @Test("answering no is not the same as not answering")
+    func falseIsAnAnswer() {
+        let answers = answered()
+        answers.usesWhenIllInBed = false
+        #expect(answers.taperInput?.usesWhenIllInBed == false)
+        #expect(answers.taperInput != nil)
+    }
+
+    @Test("the answer the user gave is the one the plan is built from")
+    func theBridgeCarriesTheAnswerThrough() {
+        // End to end: pick the earliest band, and the plan that comes out the
+        // far side is the dependent one. Nothing on screen would look wrong if
+        // this were miswired, which is why it is asserted here.
+        let answers = answered()
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 3 }
+        let plan = answers.taperInput.map(TaperPlanner.plan(for:))
+        #expect(plan?.dependence == .high)
+    }
+}

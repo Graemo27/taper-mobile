@@ -150,6 +150,31 @@ struct StrengthOption: Identifiable, Equatable, Sendable {
     }
 }
 
+/// How soon after waking the first one happens.
+///
+/// The single most predictive item in the standard dependence index, which is
+/// why `TaperPlanner` treats the earliest band as sufficient for high
+/// dependence on its own rather than merely weighting it.
+///
+/// Each option carries the minutes the planner reasons about, so the wording
+/// and the arithmetic cannot drift apart. The values sit inside their band
+/// rather than on its edge — 20 for "within 30 minutes" rather than 30 — so a
+/// later change to a threshold does not silently reclassify an answer.
+struct FirstUseOption: Identifiable, Equatable, Sendable {
+    let minutes: Int
+    let label: String
+
+    var id: String { label }
+
+    static let all: [FirstUseOption] = [
+        FirstUseOption(minutes: 3, label: "It's the first thing I do"),
+        FirstUseOption(minutes: 20, label: "Within 30 minutes"),
+        FirstUseOption(minutes: 45, label: "Within an hour"),
+        FirstUseOption(minutes: 180, label: "A few hours in"),
+        FirstUseOption(minutes: 360, label: "Afternoon or later"),
+    ]
+}
+
 /// Everything onboarding collects, accumulated as the user moves through it.
 ///
 /// One object rather than a value threaded screen to screen: the run branches —
@@ -168,6 +193,11 @@ final class OnboardingAnswers {
     var exactStrengths: [NicotineSource: Double] = [:]
     /// How much of each source, in that source's own unit.
     var amounts: [NicotineSource: Int] = [:]
+    /// How soon after waking the first one happens (O4).
+    var firstUse: FirstUseOption?
+    /// Whether they use it while ill in bed (O5). Optional because unanswered
+    /// and "no" are different states, and only one of them may reach the plan.
+    var usesWhenIllInBed: Bool?
 
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
@@ -238,6 +268,41 @@ final class OnboardingAnswers {
             let perUnit = source.estimatedMgPerUnit ?? strengthMgPerUnit(for: source) ?? 0
             return total + perUnit * Double(amount(for: source))
         }
+    }
+
+    /// True once every source that prints a strength has one that resolves.
+    ///
+    /// Guards a quiet failure rather than a visible one. `startingCapMg` folds
+    /// an unanswered source in as zero, so a run naming both cigarettes and
+    /// pouches has a positive cap from the cigarettes alone — a number that
+    /// looks complete and silently leaves out a product the user named. A cap
+    /// short by a whole source is a cap they blow in the first week.
+    var strengthsAreComplete: Bool {
+        sourcesWithPrintedStrength.allSatisfy { strengthMgPerUnit(for: $0) != nil }
+            && sourcesNeedingExactStrength.isEmpty
+    }
+
+    /// What the planner needs, or nil while any of it is still unanswered.
+    ///
+    /// Optional on purpose. Every field here is something the user said, and
+    /// there is no default that would not be an invention — "no" to the
+    /// sick-in-bed question is an answer, and its absence is not the same
+    /// thing. Returning nil keeps the run from producing a plan built partly
+    /// on values nobody supplied, which is the failure this whole flow has
+    /// been shaped to avoid.
+    ///
+    /// `weeksUntilQuitDate` stays nil legitimately: a reduction-only run has
+    /// no date, and the planner treats that as a supported state rather than
+    /// a missing answer.
+    var taperInput: TaperInput? {
+        guard let firstUse, let usesWhenIllInBed,
+              strengthsAreComplete, startingCapMg > 0 else { return nil }
+        return TaperInput(
+            startingCapMg: startingCapMg,
+            minutesToFirstUse: firstUse.minutes,
+            usesWhenIllInBed: usesWhenIllInBed,
+            weeksUntilQuitDate: nil
+        )
     }
 
     func toggle(_ source: NicotineSource) {
