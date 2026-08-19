@@ -462,3 +462,64 @@ struct FirstUseTests {
         #expect(earliest.weeklyCapsMg.count > latest.weeklyCapsMg.count)
     }
 }
+
+/// Covers the seam between what onboarding collects and what the planner takes.
+///
+/// The mapping is the risk: `minutesToFirstUse` is a number the user never sees
+/// and never types, so nothing on screen would look wrong if it were wired to
+/// the wrong option.
+struct TaperInputBridgeTests {
+    private func answered() -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(6, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+        return answers
+    }
+
+    @Test("a complete run maps every answer to the field the planner reads")
+    func completeRunMaps() {
+        let input = answered().taperInput
+        #expect(input?.startingCapMg == 18)
+        #expect(input?.minutesToFirstUse == 20)
+        #expect(input?.usesWhenIllInBed == true)
+        // Reduction-only is a supported state, not a missing answer.
+        #expect(input?.weeksUntilQuitDate == nil)
+    }
+
+    @Test("an unanswered question yields no input rather than a default")
+    func incompleteRunYieldsNothing() {
+        // There is no default here that would not be an invention. A plan built
+        // partly on values nobody supplied is the failure this flow is shaped
+        // to avoid, so the bridge refuses rather than filling gaps.
+        let noFirstUse = answered(); noFirstUse.firstUse = nil
+        #expect(noFirstUse.taperInput == nil)
+
+        let noSickInBed = answered(); noSickInBed.usesWhenIllInBed = nil
+        #expect(noSickInBed.taperInput == nil)
+
+        let noAmount = answered(); noAmount.setAmount(0, for: .pouches)
+        #expect(noAmount.taperInput == nil)
+    }
+
+    @Test("answering no is not the same as not answering")
+    func falseIsAnAnswer() {
+        let answers = answered()
+        answers.usesWhenIllInBed = false
+        #expect(answers.taperInput?.usesWhenIllInBed == false)
+        #expect(answers.taperInput != nil)
+    }
+
+    @Test("the answer the user gave is the one the plan is built from")
+    func theBridgeCarriesTheAnswerThrough() {
+        // End to end: pick the earliest band, and the plan that comes out the
+        // far side is the dependent one. Nothing on screen would look wrong if
+        // this were miswired, which is why it is asserted here.
+        let answers = answered()
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 3 }
+        let plan = answers.taperInput.map(TaperPlanner.plan(for:))
+        #expect(plan?.dependence == .high)
+    }
+}

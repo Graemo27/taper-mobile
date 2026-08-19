@@ -195,6 +195,9 @@ final class OnboardingAnswers {
     var amounts: [NicotineSource: Int] = [:]
     /// How soon after waking the first one happens (O4).
     var firstUse: FirstUseOption?
+    /// Whether they use it while ill in bed (O5). Optional because unanswered
+    /// and "no" are different states, and only one of them may reach the plan.
+    var usesWhenIllInBed: Bool?
 
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
@@ -265,6 +268,28 @@ final class OnboardingAnswers {
             let perUnit = source.estimatedMgPerUnit ?? strengthMgPerUnit(for: source) ?? 0
             return total + perUnit * Double(amount(for: source))
         }
+    }
+
+    /// What the planner needs, or nil while any of it is still unanswered.
+    ///
+    /// Optional on purpose. Every field here is something the user said, and
+    /// there is no default that would not be an invention — "no" to the
+    /// sick-in-bed question is an answer, and its absence is not the same
+    /// thing. Returning nil keeps the run from producing a plan built partly
+    /// on values nobody supplied, which is the failure this whole flow has
+    /// been shaped to avoid.
+    ///
+    /// `weeksUntilQuitDate` stays nil legitimately: a reduction-only run has
+    /// no date, and the planner treats that as a supported state rather than
+    /// a missing answer.
+    var taperInput: TaperInput? {
+        guard let firstUse, let usesWhenIllInBed, startingCapMg > 0 else { return nil }
+        return TaperInput(
+            startingCapMg: startingCapMg,
+            minutesToFirstUse: firstUse.minutes,
+            usesWhenIllInBed: usesWhenIllInBed,
+            weeksUntilQuitDate: nil
+        )
     }
 
     func toggle(_ source: NicotineSource) {
