@@ -25,7 +25,11 @@ struct OnboardingScaffold<Content: View>: View {
             questionBlock
 
             ScrollView {
-                content.padding(.top, AppSpacing.xxl)
+                content
+                    .padding(.top, AppSpacing.xxl)
+                    // Clears the CTA below. Without it the last answer sits
+                    // flush against the button and reads as cut off.
+                    .padding(.bottom, AppSpacing.xxl)
             }
             .scrollBounceBehavior(.basedOnSize)
 

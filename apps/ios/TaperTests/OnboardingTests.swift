@@ -100,3 +100,146 @@ struct OnboardingStepTests {
         #expect(OnboardingStep.planPreview.next == nil)
     }
 }
+
+/// Covers the strength answer, whose whole subtlety is that "not sure" has to
+/// produce a usable number without pretending the user supplied it.
+struct StrengthTests {
+    @Test("a stated strength is used as given")
+    func statedStrengthIsUsed() {
+        let answers = OnboardingAnswers()
+        answers.strength = StrengthOption.pouch.first { $0.mg == 6 }
+        #expect(answers.strengthMgPerUnit == 6)
+        #expect(answers.strengthIsAssumed == false)
+    }
+
+    @Test("not sure still yields a number, and is flagged as assumed")
+    func unsureResolvesButIsFlagged() {
+        // Refusing to continue until someone fetches a tin is how a run gets
+        // abandoned — but a number the app invented must not be presented back
+        // as one the user gave.
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strength = StrengthOption.pouch.first { $0.mg == nil }
+        #expect(answers.strengthMgPerUnit == 3)
+        #expect(answers.strengthIsAssumed)
+    }
+
+    @Test("an unanswered question yields nothing at all")
+    func unansweredIsNil() {
+        let answers = OnboardingAnswers()
+        #expect(answers.strengthMgPerUnit == nil)
+        // Not "assumed" either — nothing has been assumed yet.
+        #expect(answers.strengthIsAssumed == false)
+    }
+
+    @Test("the assumed value is one the matching picker actually offers")
+    func assumptionMatchesAnOffer() {
+        // The helper text names this number. If it drifted from the options the
+        // screen would promise one thing and the arithmetic do another — and an
+        // assumption must always be an answer the user could have given.
+        #expect(StrengthOption.pouch.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: [.pouches]) })
+        #expect(StrengthOption.nrt.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: [.nrt]) })
+    }
+
+    @Test("exactly one option is the unsure one, in every set")
+    func oneUnsureOption() {
+        for set in [StrengthOption.pouch, StrengthOption.nrt] {
+            #expect(set.filter { $0.mg == nil }.count == 1)
+            #expect(set.last?.mg == nil, "unsure belongs at the end, after the real answers")
+        }
+    }
+
+    @Test("a gum user is only offered strengths gum is sold in")
+    func nrtSetMatchesTheProduct() {
+        // 3 and 6 mg are pouch strengths; every option must be an answer
+        // someone could read off a pack.
+        #expect(StrengthOption.options(for: [.nrt]) == StrengthOption.nrt)
+        #expect(!StrengthOption.nrt.contains { $0.mg == 3 || $0.mg == 6 })
+        #expect(StrengthOption.nrt.contains { $0.mg == 1.5 })
+    }
+
+    @Test("pouches win a mixed selection")
+    func pouchesWinMixed() {
+        // The primary product, and O3 collects each source separately anyway.
+        #expect(StrengthOption.options(for: [.pouches, .nrt]) == StrengthOption.pouch)
+        #expect(StrengthOption.options(for: [.pouches, .cigarettes]) == StrengthOption.pouch)
+    }
+
+    @Test("deselecting the last per-unit source clears its strength answer")
+    func staleStrengthIsCleared() {
+        // The routing skips the screen for a cigarette-only run, so a stale
+        // answer would never be shown or corrected — just used.
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strength = StrengthOption.pouch.first { $0.isAtLeast }
+        answers.exactStrengthMg = 12
+        answers.toggle(.pouches)
+        answers.toggle(.cigarettes)
+        #expect(answers.strength == nil)
+        #expect(answers.exactStrengthMg == nil)
+        #expect(answers.strengthMgPerUnit == nil)
+    }
+
+    @Test("a strength survives a source change that keeps its basis")
+    func strengthSurvivesWhileBasisRemains() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.toggle(.cigarettes)
+        answers.strength = StrengthOption.pouch.first { $0.mg == 6 }
+        answers.toggle(.cigarettes)
+        #expect(answers.strengthMgPerUnit == 6)
+    }
+}
+
+/// Covers the two review findings: an open-ended strength must not be planned
+/// on as an exact value, and the question must not be asked of a source that
+/// cannot answer it.
+struct StrengthRangeTests {
+    private func atLeastEight() -> StrengthOption {
+        StrengthOption.pouch.first { $0.isAtLeast }!
+    }
+
+    @Test("an unnarrowed floor does not pass as a stated strength")
+    func floorIsNotAStatedValue() {
+        // Planning on 8 for a 12 mg pouch sets a cap below what the user
+        // actually uses — one they blow on day one, which the evidence says is
+        // worse than never being given a schedule.
+        let answers = OnboardingAnswers()
+        answers.strength = atLeastEight()
+        #expect(answers.strengthIsAssumed)
+        #expect(answers.needsExactStrength)
+    }
+
+    @Test("the run cannot continue on a floor alone")
+    func floorBlocksContinue() {
+        let answers = OnboardingAnswers()
+        answers.strength = atLeastEight()
+        #expect(answers.needsExactStrength)
+        answers.exactStrengthMg = 12
+        #expect(answers.needsExactStrength == false)
+        #expect(answers.strengthMgPerUnit == 12)
+        #expect(answers.strengthIsAssumed == false)
+    }
+
+    @Test("an exact figure only applies to the open-ended option")
+    func exactIgnoredForClosedOptions() {
+        // A stale value left over from a previous answer must not override a
+        // strength the user has since stated plainly.
+        let answers = OnboardingAnswers()
+        answers.exactStrengthMg = 12
+        answers.strength = StrengthOption.pouch.first { $0.mg == 2 }
+        #expect(answers.strengthMgPerUnit == 2)
+    }
+
+    @Test("only sources with a printed per-piece figure are asked")
+    func strengthAppliesPerSource() {
+        // A cigarette's dose is a property of the cigarette, not a choice, and
+        // a vape is mg/mL against unmeasured puffs. Asking either would make
+        // the user invent a number the plan is then built on.
+        #expect(NicotineSource.pouches.usesPerUnitStrength)
+        #expect(NicotineSource.nrt.usesPerUnitStrength)
+        for source in [NicotineSource.cigarettes, .vape, .dip, .other] {
+            #expect(source.usesPerUnitStrength == false, "\(source) has no per-piece figure to pick")
+        }
+    }
+}
