@@ -504,6 +504,37 @@ struct TaperInputBridgeTests {
         #expect(noAmount.taperInput == nil)
     }
 
+    @Test("a cap that leaves out a named source is not a cap")
+    func aPartlyAnsweredMixedRunYieldsNothing() {
+        // Cigarettes need no strength question, so they carry the cap on their
+        // own. That makes the total positive while the pouches the user also
+        // named contribute nothing — a figure that looks whole and is short by
+        // a whole product. The bridge has to refuse it, because the screen
+        // downstream cannot tell the difference.
+        let answers = answered()
+        answers.toggle(.cigarettes)
+        answers.setAmount(10, for: .cigarettes)
+        answers.strengths[.pouches] = nil
+        #expect(answers.startingCapMg > 0)
+        #expect(answers.taperInput == nil)
+
+        // Answering it completes the run, and the cap now includes both.
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        #expect(answers.taperInput?.startingCapMg == 33)
+    }
+
+    @Test("a floor is not a strength")
+    func anUnNarrowedFloorYieldsNothing() {
+        // "8 mg or more" is the one answer that plans low: taking the floor
+        // would size the cap for 8 when the tin might say 12.
+        let answers = answered()
+        answers.strengths[.pouches] = StrengthOption.pouch.first(where: \.isAtLeast)
+        #expect(answers.taperInput == nil)
+
+        answers.exactStrengths[.pouches] = 12
+        #expect(answers.taperInput?.startingCapMg == 72)
+    }
+
     @Test("answering no is not the same as not answering")
     func falseIsAnAnswer() {
         let answers = answered()

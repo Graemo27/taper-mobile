@@ -270,6 +270,18 @@ final class OnboardingAnswers {
         }
     }
 
+    /// True once every source that prints a strength has one that resolves.
+    ///
+    /// Guards a quiet failure rather than a visible one. `startingCapMg` folds
+    /// an unanswered source in as zero, so a run naming both cigarettes and
+    /// pouches has a positive cap from the cigarettes alone — a number that
+    /// looks complete and silently leaves out a product the user named. A cap
+    /// short by a whole source is a cap they blow in the first week.
+    var strengthsAreComplete: Bool {
+        sourcesWithPrintedStrength.allSatisfy { strengthMgPerUnit(for: $0) != nil }
+            && sourcesNeedingExactStrength.isEmpty
+    }
+
     /// What the planner needs, or nil while any of it is still unanswered.
     ///
     /// Optional on purpose. Every field here is something the user said, and
@@ -283,7 +295,8 @@ final class OnboardingAnswers {
     /// no date, and the planner treats that as a supported state rather than
     /// a missing answer.
     var taperInput: TaperInput? {
-        guard let firstUse, let usesWhenIllInBed, startingCapMg > 0 else { return nil }
+        guard let firstUse, let usesWhenIllInBed,
+              strengthsAreComplete, startingCapMg > 0 else { return nil }
         return TaperInput(
             startingCapMg: startingCapMg,
             minutesToFirstUse: firstUse.minutes,
