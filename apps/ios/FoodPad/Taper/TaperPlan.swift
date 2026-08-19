@@ -88,10 +88,14 @@ enum TaperPlanner {
         // product addressing the wrong person — so the cap holds where they are
         // and the app waits to be asked.
         guard let requested = input.weeksUntilQuitDate else {
+            // One entry, because there is no schedule to describe — the ceiling
+            // holds where they are until they choose a date. An earlier version
+            // repeated it five times, which invented a horizon the user had not
+            // agreed to and silently truncated at week five.
             return TaperPlan(
                 dependence: dependence,
                 replacement: replacement,
-                weeklyCapsMg: Array(repeating: input.startingCapMg, count: 5),
+                weeklyCapsMg: [actionable(input.startingCapMg)],
                 stretchedFromRequestedWeeks: nil,
                 intakeLooksImplausible: implausible
             )
@@ -112,10 +116,16 @@ enum TaperPlanner {
     // MARK: - Dependence
 
     private static func dependence(for input: TaperInput) -> Dependence {
+        // Sufficient on its own rather than merely weighted. Time to the first
+        // use of the day is the single most predictive item in the standard
+        // index, and an additive score cannot express that — under one, a very
+        // early first use could be outvoted by a modest daily total, which is
+        // the opposite of what the item is for.
+        if input.minutesToFirstUse < 6 { return .high }
+
         var score = 0
 
         switch input.minutesToFirstUse {
-        case ..<6: score += 3
         case ..<31: score += 2
         case ..<61: score += 1
         default: break
@@ -176,12 +186,19 @@ enum TaperPlanner {
 
     private static func descent(from start: Double, over weeks: Int) -> [Double] {
         (0...weeks).map { week in
-            guard week > 0 else { return start }
             guard week < weeks else { return 0 }
-            // Rounded to the half-milligram: a cap is something someone counts
-            // pouches against, and 14.4 is not a number anyone can act on.
-            let raw = start * (1 - Double(week) / Double(weeks))
-            return (raw * 2).rounded() / 2
+            return actionable(week == 0 ? start : start * (1 - Double(week) / Double(weeks)))
         }
+    }
+
+    /// Rounds to the half-milligram.
+    ///
+    /// A cap is something someone counts pouches against, and 14.4 is not a
+    /// number anyone can act on. Applied to the first week too: a stated intake
+    /// summed across sources is as capable of landing on 14.4 as any later step,
+    /// and exempting week zero would show the user the one unactionable figure
+    /// in the plan on the day they start.
+    private static func actionable(_ mg: Double) -> Double {
+        (mg * 2).rounded() / 2
     }
 }

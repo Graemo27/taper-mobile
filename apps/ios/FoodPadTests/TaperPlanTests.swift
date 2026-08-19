@@ -82,11 +82,21 @@ struct TaperPlanTests {
     func dependenceSetsThePace() {
         // One taper curve cannot fit everyone: dose matters much more to a
         // dependent user, so their descent is not allowed to be as steep.
-        // Both ask for the same impossible date, so what differs is only the
-        // floor each is allowed to be stretched to.
-        let heavy = TaperPlanner.plan(for: input(capMg: 30, minutesToFirstUse: 2, usesWhenIllInBed: true, weeksUntilQuitDate: 1))
-        let light = TaperPlanner.plan(for: input(capMg: 30, minutesToFirstUse: 120, weeksUntilQuitDate: 1))
-        #expect(heavy.weeklyCapsMg.count > light.weeklyCapsMg.count)
+        // All three ask for the same impossible date, so what differs is only
+        // the floor each is allowed to be stretched to. Covering .low as well
+        // as .high, because the four-week floor is otherwise never reached.
+        let high = TaperPlanner.plan(for: input(capMg: 30, minutesToFirstUse: 2, usesWhenIllInBed: true, weeksUntilQuitDate: 1))
+        let moderate = TaperPlanner.plan(for: input(capMg: 30, minutesToFirstUse: 120, weeksUntilQuitDate: 1))
+        let low = TaperPlanner.plan(for: input(capMg: 6, minutesToFirstUse: 120, weeksUntilQuitDate: 1))
+
+        #expect(high.dependence == .high)
+        #expect(moderate.dependence == .moderate)
+        #expect(low.dependence == .low)
+
+        // Week counts are floor + 1, so 8 / 6 / 5 for floors of 7 / 5 / 4.
+        #expect(high.weeklyCapsMg.count == 8)
+        #expect(moderate.weeklyCapsMg.count == 6)
+        #expect(low.weeklyCapsMg.count == 5)
     }
 
     @Test("a quit date sooner than is safe is stretched, not compressed")
@@ -133,13 +143,36 @@ struct TaperPlanTests {
         #expect(TaperPlanner.plan(for: input(capMg: -5)).weeklyCapsMg.isEmpty)
     }
 
-    @Test("the plan never claims to be proven")
+    @Test("the plan carries no field a view could render as an efficacy claim")
     func noEfficacyClaim() {
         // The taper itself is not established — a small, uncertain,
-        // probably-not-harmful benefit. Copy derived from this must not say
-        // otherwise, so the generator exposes no confidence or success figure
-        // for a view to render.
+        // probably-not-harmful benefit — so there must be nothing here for a
+        // view to turn into a promise. Asserted structurally rather than by
+        // behaviour, because the risk is a field being *added* later; an
+        // earlier version of this test checked a week count, which would not
+        // have noticed.
         let plan = TaperPlanner.plan(for: input(capMg: 18, weeksUntilQuitDate: 8))
-        #expect(plan.weeklyCapsMg.count == 9)
+        let fields = Mirror(reflecting: plan).children.compactMap(\.label).map { $0.lowercased() }
+        let claimLike = ["success", "efficacy", "odds", "confidence", "likelihood", "probability", "chance"]
+        for field in fields {
+            #expect(!claimLike.contains { field.contains($0) }, "\(field) invites an efficacy claim")
+        }
+        #expect(!fields.isEmpty) // guards against the mirror silently returning nothing
+    }
+
+    @Test("a starting cap that is not a countable number is rounded from week zero")
+    func startingCapIsActionable() {
+        // Mixed sources sum to awkward totals. Week zero used to escape the
+        // rounding every later week got, so the plan opened on the one figure
+        // nobody could act on.
+        let plan = TaperPlanner.plan(for: input(capMg: 14.4, weeksUntilQuitDate: 6))
+        #expect(plan.weeklyCapsMg.first == 14.5)
+        #expect(plan.weeklyCapsMg.allSatisfy { ($0 * 2).rounded() / 2 == $0 })
+    }
+
+    @Test("a reduction-only plan describes one held ceiling, not an invented horizon")
+    func reductionOnlyHasNoHorizon() {
+        let plan = TaperPlanner.plan(for: input(capMg: 18, weeksUntilQuitDate: nil))
+        #expect(plan.weeklyCapsMg == [18])
     }
 }
