@@ -78,19 +78,20 @@ struct StrengthOption: Identifiable, Equatable, Sendable {
         StrengthOption(mg: nil, label: "Not sure"),
     ]
 
-    /// The set to offer, given what the user is quitting. Pouches win a mixed
-    /// selection: they are the product this app is primarily for, and O3
-    /// collects each source's amount separately regardless.
-    static func options(for sources: Set<NicotineSource>) -> [StrengthOption] {
-        sources.contains(.pouches) ? pouch : nrt
+    /// The set to offer for one source. Keyed by source rather than by the
+    /// selection as a whole: someone quitting pouches *and* gum has two printed
+    /// strengths to give, and answering once for both would apply a 6 mg pouch
+    /// to gum that comes in 2 and 4.
+    static func options(for source: NicotineSource) -> [StrengthOption] {
+        source == .pouches ? pouch : nrt
     }
 
-    /// What an unsure answer is worth, per product family — the mid-range
-    /// pouch, or the common gum. Named in the helper text, so the screen and
-    /// the maths cannot disagree; and always a value from the matching options
-    /// list, because the assumption must be an answer the user could have given.
-    static func assumedWhenUnsure(for sources: Set<NicotineSource>) -> Double {
-        sources.contains(.pouches) ? 3 : 2
+    /// What an unsure answer is worth for that source — the mid-range pouch, or
+    /// the common gum. Named in the helper text, so the screen and the maths
+    /// cannot disagree; and always a value from the matching options list,
+    /// because an assumption must be an answer the user could have given.
+    static func assumedWhenUnsure(for source: NicotineSource) -> Double {
+        source == .pouches ? 3 : 2
     }
 }
 
@@ -106,39 +107,52 @@ struct StrengthOption: Identifiable, Equatable, Sendable {
 @Observable
 final class OnboardingAnswers {
     var sources: Set<NicotineSource> = []
-    var strength: StrengthOption?
-    /// The exact figure, once an open-ended option has been narrowed down.
-    var exactStrengthMg: Double?
+    /// The printed strength given for each source that has one.
+    var strengths: [NicotineSource: StrengthOption] = [:]
+    /// The exact figure per source, once an open-ended option is narrowed down.
+    var exactStrengths: [NicotineSource: Double] = [:]
 
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
 
-    /// The strength to plan with, in label milligrams.
+    /// The strength to plan with for one source, in label milligrams.
     ///
-    /// Nil only while the question is unanswered. Once answered it always
-    /// resolves to a number, because "not sure" is an answer — it means "use
-    /// the middle of the range and let me correct it later", not "stop".
-    var strengthMgPerUnit: Double? {
-        guard let strength else { return nil }
-        if let exact = exactStrengthMg, strength.isAtLeast { return exact }
-        return strength.mg ?? StrengthOption.assumedWhenUnsure(for: sources)
+    /// Nil only while that source's question is unanswered. Once answered it
+    /// always resolves to a number, because "not sure" is an answer — it means
+    /// "use the middle of the range and let me correct it later", not "stop".
+    func strengthMgPerUnit(for source: NicotineSource) -> Double? {
+        guard let option = strengths[source] else { return nil }
+        if let exact = exactStrengths[source], option.isAtLeast { return exact }
+        return option.mg ?? StrengthOption.assumedWhenUnsure(for: source)
     }
 
-    /// True when the strength above is an assumption rather than something the
-    /// user read off a tin. The app owes them a chance to correct it, and a
+    /// True when that source's strength is an assumption rather than something
+    /// read off a pack. The app owes the user a chance to correct it, and a
     /// number it invented must not be presented as one they gave.
-    var strengthIsAssumed: Bool {
-        guard let strength else { return false }
-        if strength.mg == nil { return true }
+    func strengthIsAssumed(for source: NicotineSource) -> Bool {
+        guard let option = strengths[source] else { return false }
+        if option.mg == nil { return true }
         // A floor that has not been narrowed down is still an assumption, and
         // the least safe kind: it under-states rather than over-states.
-        return strength.isAtLeast && exactStrengthMg == nil
+        return option.isAtLeast && exactStrengths[source] == nil
     }
 
-    /// True while an open-ended answer still needs a number before the run can
-    /// continue. Distinct from "not sure", which resolves on its own.
-    var needsExactStrength: Bool {
-        (strength?.isAtLeast ?? false) && exactStrengthMg == nil
+    /// The sources still owing a number before the run can continue.
+    var sourcesNeedingExactStrength: [NicotineSource] {
+        orderedSources.filter { source in
+            (strengths[source]?.isAtLeast ?? false) && exactStrengths[source] == nil
+        }
+    }
+
+    /// Every source that should be asked for a printed strength.
+    var sourcesWithPrintedStrength: [NicotineSource] {
+        orderedSources.filter(\.usesPerUnitStrength)
+    }
+
+    /// The sources to ask about, in a stable order. A `Set` has none, and rows
+    /// that reshuffle between renders are unusable.
+    var orderedSources: [NicotineSource] {
+        NicotineSource.allCases.filter { sources.contains($0) }
     }
 
     func toggle(_ source: NicotineSource) {
@@ -150,9 +164,7 @@ final class OnboardingAnswers {
         // A strength for a deselected source must not survive into the plan.
         // The routing skips the screen for such runs, so a stale value would
         // never be shown or corrected — just used.
-        if !sources.contains(where: { $0.usesPerUnitStrength }) {
-            strength = nil
-            exactStrengthMg = nil
-        }
+        strengths = strengths.filter { sources.contains($0.key) }
+        exactStrengths = exactStrengths.filter { sources.contains($0.key) }
     }
 }

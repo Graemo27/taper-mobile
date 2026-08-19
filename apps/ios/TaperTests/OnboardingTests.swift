@@ -107,9 +107,10 @@ struct StrengthTests {
     @Test("a stated strength is used as given")
     func statedStrengthIsUsed() {
         let answers = OnboardingAnswers()
-        answers.strength = StrengthOption.pouch.first { $0.mg == 6 }
-        #expect(answers.strengthMgPerUnit == 6)
-        #expect(answers.strengthIsAssumed == false)
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 6 }
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 6)
+        #expect(answers.strengthIsAssumed(for: .pouches) == false)
     }
 
     @Test("not sure still yields a number, and is flagged as assumed")
@@ -119,17 +120,17 @@ struct StrengthTests {
         // as one the user gave.
         let answers = OnboardingAnswers()
         answers.toggle(.pouches)
-        answers.strength = StrengthOption.pouch.first { $0.mg == nil }
-        #expect(answers.strengthMgPerUnit == 3)
-        #expect(answers.strengthIsAssumed)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == nil }
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 3)
+        #expect(answers.strengthIsAssumed(for: .pouches))
     }
 
     @Test("an unanswered question yields nothing at all")
     func unansweredIsNil() {
         let answers = OnboardingAnswers()
-        #expect(answers.strengthMgPerUnit == nil)
+        #expect(answers.strengthMgPerUnit(for: .pouches) == nil)
         // Not "assumed" either — nothing has been assumed yet.
-        #expect(answers.strengthIsAssumed == false)
+        #expect(answers.strengthIsAssumed(for: .pouches) == false)
     }
 
     @Test("the assumed value is one the matching picker actually offers")
@@ -137,8 +138,8 @@ struct StrengthTests {
         // The helper text names this number. If it drifted from the options the
         // screen would promise one thing and the arithmetic do another — and an
         // assumption must always be an answer the user could have given.
-        #expect(StrengthOption.pouch.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: [.pouches]) })
-        #expect(StrengthOption.nrt.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: [.nrt]) })
+        #expect(StrengthOption.pouch.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: .pouches) })
+        #expect(StrengthOption.nrt.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: .nrt) })
     }
 
     @Test("exactly one option is the unsure one, in every set")
@@ -149,20 +150,28 @@ struct StrengthTests {
         }
     }
 
+    @Test("every strength survives being formatted for display")
+    func strengthsFormatLosslessly() {
+        // The screen prints these and the planner uses them, so a formatter
+        // that loses precision makes the two disagree — 1.5 mg reading as
+        // "1 mg" while the plan is built on 1.5. Integer truncation passes
+        // unnoticed today because 3 and 2 are whole; the lozenge set is where
+        // it would bite.
+        for option in StrengthOption.pouch + StrengthOption.nrt {
+            guard let mg = option.mg else { continue }
+            #expect(Double(mg.clean) == mg, "\(mg) formats as \(mg.clean)")
+        }
+        #expect(1.5.clean == "1.5")
+        #expect(3.0.clean == "3")
+    }
+
     @Test("a gum user is only offered strengths gum is sold in")
     func nrtSetMatchesTheProduct() {
         // 3 and 6 mg are pouch strengths; every option must be an answer
         // someone could read off a pack.
-        #expect(StrengthOption.options(for: [.nrt]) == StrengthOption.nrt)
+        #expect(StrengthOption.options(for: .nrt) == StrengthOption.nrt)
         #expect(!StrengthOption.nrt.contains { $0.mg == 3 || $0.mg == 6 })
         #expect(StrengthOption.nrt.contains { $0.mg == 1.5 })
-    }
-
-    @Test("pouches win a mixed selection")
-    func pouchesWinMixed() {
-        // The primary product, and O3 collects each source separately anyway.
-        #expect(StrengthOption.options(for: [.pouches, .nrt]) == StrengthOption.pouch)
-        #expect(StrengthOption.options(for: [.pouches, .cigarettes]) == StrengthOption.pouch)
     }
 
     @Test("deselecting the last per-unit source clears its strength answer")
@@ -171,13 +180,13 @@ struct StrengthTests {
         // answer would never be shown or corrected — just used.
         let answers = OnboardingAnswers()
         answers.toggle(.pouches)
-        answers.strength = StrengthOption.pouch.first { $0.isAtLeast }
-        answers.exactStrengthMg = 12
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.isAtLeast }
+        answers.exactStrengths[.pouches] = 12
         answers.toggle(.pouches)
         answers.toggle(.cigarettes)
-        #expect(answers.strength == nil)
-        #expect(answers.exactStrengthMg == nil)
-        #expect(answers.strengthMgPerUnit == nil)
+        #expect(answers.strengths.isEmpty)
+        #expect(answers.exactStrengths.isEmpty)
+        #expect(answers.strengthMgPerUnit(for: .pouches) == nil)
     }
 
     @Test("a strength survives a source change that keeps its basis")
@@ -185,9 +194,9 @@ struct StrengthTests {
         let answers = OnboardingAnswers()
         answers.toggle(.pouches)
         answers.toggle(.cigarettes)
-        answers.strength = StrengthOption.pouch.first { $0.mg == 6 }
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 6 }
         answers.toggle(.cigarettes)
-        #expect(answers.strengthMgPerUnit == 6)
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 6)
     }
 }
 
@@ -205,20 +214,22 @@ struct StrengthRangeTests {
         // actually uses — one they blow on day one, which the evidence says is
         // worse than never being given a schedule.
         let answers = OnboardingAnswers()
-        answers.strength = atLeastEight()
-        #expect(answers.strengthIsAssumed)
-        #expect(answers.needsExactStrength)
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = atLeastEight()
+        #expect(answers.strengthIsAssumed(for: .pouches))
+        #expect(answers.sourcesNeedingExactStrength == [.pouches])
     }
 
     @Test("the run cannot continue on a floor alone")
     func floorBlocksContinue() {
         let answers = OnboardingAnswers()
-        answers.strength = atLeastEight()
-        #expect(answers.needsExactStrength)
-        answers.exactStrengthMg = 12
-        #expect(answers.needsExactStrength == false)
-        #expect(answers.strengthMgPerUnit == 12)
-        #expect(answers.strengthIsAssumed == false)
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = atLeastEight()
+        #expect(answers.sourcesNeedingExactStrength == [.pouches])
+        answers.exactStrengths[.pouches] = 12
+        #expect(answers.sourcesNeedingExactStrength.isEmpty)
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 12)
+        #expect(answers.strengthIsAssumed(for: .pouches) == false)
     }
 
     @Test("an exact figure only applies to the open-ended option")
@@ -226,9 +237,10 @@ struct StrengthRangeTests {
         // A stale value left over from a previous answer must not override a
         // strength the user has since stated plainly.
         let answers = OnboardingAnswers()
-        answers.exactStrengthMg = 12
-        answers.strength = StrengthOption.pouch.first { $0.mg == 2 }
-        #expect(answers.strengthMgPerUnit == 2)
+        answers.toggle(.pouches)
+        answers.exactStrengths[.pouches] = 12
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 2 }
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 2)
     }
 
     @Test("only sources with a printed per-piece figure are asked")
@@ -243,3 +255,4 @@ struct StrengthRangeTests {
         }
     }
 }
+
