@@ -56,9 +56,7 @@ struct StrengthOption: Identifiable, Equatable, Sendable {
 
     var id: String { label }
 
-    /// Pouch strengths, which is what the design asks for. Other sources need
-    /// their own sets and their own question — a cigarette has no meaningful
-    /// "per piece" strength to choose.
+    /// Strengths pouches are actually sold in.
     static let pouch: [StrengthOption] = [
         StrengthOption(mg: 2, label: "2 mg"),
         StrengthOption(mg: 3, label: "3 mg"),
@@ -68,10 +66,32 @@ struct StrengthOption: Identifiable, Equatable, Sendable {
         StrengthOption(mg: nil, label: "Not sure"),
     ]
 
-    /// What an unsure answer is worth. The mid-range pouch, and the number the
-    /// helper text tells the user it will assume, so the screen and the maths
-    /// cannot disagree.
-    static let assumedWhenUnsure: Double = 3
+    /// Strengths licensed gum and lozenges are sold in. Separate, because
+    /// offering a gum user 3 or 6 mg — pouch strengths their product does not
+    /// come in — quietly asks them to fabricate: every option must be an answer
+    /// someone could read off a pack.
+    static let nrt: [StrengthOption] = [
+        StrengthOption(mg: 1, label: "1 mg"),
+        StrengthOption(mg: 1.5, label: "1.5 mg"),
+        StrengthOption(mg: 2, label: "2 mg"),
+        StrengthOption(mg: 4, label: "4 mg"),
+        StrengthOption(mg: nil, label: "Not sure"),
+    ]
+
+    /// The set to offer, given what the user is quitting. Pouches win a mixed
+    /// selection: they are the product this app is primarily for, and O3
+    /// collects each source's amount separately regardless.
+    static func options(for sources: Set<NicotineSource>) -> [StrengthOption] {
+        sources.contains(.pouches) ? pouch : nrt
+    }
+
+    /// What an unsure answer is worth, per product family — the mid-range
+    /// pouch, or the common gum. Named in the helper text, so the screen and
+    /// the maths cannot disagree; and always a value from the matching options
+    /// list, because the assumption must be an answer the user could have given.
+    static func assumedWhenUnsure(for sources: Set<NicotineSource>) -> Double {
+        sources.contains(.pouches) ? 3 : 2
+    }
 }
 
 /// Everything onboarding collects, accumulated as the user moves through it.
@@ -101,7 +121,7 @@ final class OnboardingAnswers {
     var strengthMgPerUnit: Double? {
         guard let strength else { return nil }
         if let exact = exactStrengthMg, strength.isAtLeast { return exact }
-        return strength.mg ?? StrengthOption.assumedWhenUnsure
+        return strength.mg ?? StrengthOption.assumedWhenUnsure(for: sources)
     }
 
     /// True when the strength above is an assumption rather than something the
@@ -126,6 +146,13 @@ final class OnboardingAnswers {
             sources.remove(source)
         } else {
             sources.insert(source)
+        }
+        // A strength for a deselected source must not survive into the plan.
+        // The routing skips the screen for such runs, so a stale value would
+        // never be shown or corrected — just used.
+        if !sources.contains(where: { $0.usesPerUnitStrength }) {
+            strength = nil
+            exactStrengthMg = nil
         }
     }
 }

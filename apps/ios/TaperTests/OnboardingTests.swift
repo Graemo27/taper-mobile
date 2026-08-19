@@ -118,8 +118,9 @@ struct StrengthTests {
         // abandoned — but a number the app invented must not be presented back
         // as one the user gave.
         let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
         answers.strength = StrengthOption.pouch.first { $0.mg == nil }
-        #expect(answers.strengthMgPerUnit == StrengthOption.assumedWhenUnsure)
+        #expect(answers.strengthMgPerUnit == 3)
         #expect(answers.strengthIsAssumed)
     }
 
@@ -131,17 +132,62 @@ struct StrengthTests {
         #expect(answers.strengthIsAssumed == false)
     }
 
-    @Test("the assumed value is one the picker actually offers")
+    @Test("the assumed value is one the matching picker actually offers")
     func assumptionMatchesAnOffer() {
         // The helper text names this number. If it drifted from the options the
-        // screen would promise one thing and the arithmetic do another.
-        #expect(StrengthOption.pouch.contains { $0.mg == StrengthOption.assumedWhenUnsure })
+        // screen would promise one thing and the arithmetic do another — and an
+        // assumption must always be an answer the user could have given.
+        #expect(StrengthOption.pouch.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: [.pouches]) })
+        #expect(StrengthOption.nrt.contains { $0.mg == StrengthOption.assumedWhenUnsure(for: [.nrt]) })
     }
 
-    @Test("exactly one option is the unsure one")
+    @Test("exactly one option is the unsure one, in every set")
     func oneUnsureOption() {
-        #expect(StrengthOption.pouch.filter { $0.mg == nil }.count == 1)
-        #expect(StrengthOption.pouch.last?.mg == nil, "unsure belongs at the end, after the real answers")
+        for set in [StrengthOption.pouch, StrengthOption.nrt] {
+            #expect(set.filter { $0.mg == nil }.count == 1)
+            #expect(set.last?.mg == nil, "unsure belongs at the end, after the real answers")
+        }
+    }
+
+    @Test("a gum user is only offered strengths gum is sold in")
+    func nrtSetMatchesTheProduct() {
+        // 3 and 6 mg are pouch strengths; every option must be an answer
+        // someone could read off a pack.
+        #expect(StrengthOption.options(for: [.nrt]) == StrengthOption.nrt)
+        #expect(!StrengthOption.nrt.contains { $0.mg == 3 || $0.mg == 6 })
+        #expect(StrengthOption.nrt.contains { $0.mg == 1.5 })
+    }
+
+    @Test("pouches win a mixed selection")
+    func pouchesWinMixed() {
+        // The primary product, and O3 collects each source separately anyway.
+        #expect(StrengthOption.options(for: [.pouches, .nrt]) == StrengthOption.pouch)
+        #expect(StrengthOption.options(for: [.pouches, .cigarettes]) == StrengthOption.pouch)
+    }
+
+    @Test("deselecting the last per-unit source clears its strength answer")
+    func staleStrengthIsCleared() {
+        // The routing skips the screen for a cigarette-only run, so a stale
+        // answer would never be shown or corrected — just used.
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strength = StrengthOption.pouch.first { $0.isAtLeast }
+        answers.exactStrengthMg = 12
+        answers.toggle(.pouches)
+        answers.toggle(.cigarettes)
+        #expect(answers.strength == nil)
+        #expect(answers.exactStrengthMg == nil)
+        #expect(answers.strengthMgPerUnit == nil)
+    }
+
+    @Test("a strength survives a source change that keeps its basis")
+    func strengthSurvivesWhileBasisRemains() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.toggle(.cigarettes)
+        answers.strength = StrengthOption.pouch.first { $0.mg == 6 }
+        answers.toggle(.cigarettes)
+        #expect(answers.strengthMgPerUnit == 6)
     }
 }
 

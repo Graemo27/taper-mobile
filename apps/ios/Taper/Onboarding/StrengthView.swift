@@ -24,14 +24,14 @@ struct StrengthView: View {
             section: "What you use",
             progress: OnboardingStep.strength.progress,
             question: "What strength, per piece?",
-            helper: "The mg number on the Drug Facts panel. Not sure is fine — we'll assume \(Int(StrengthOption.assumedWhenUnsure)) mg and you can correct it later.",
+            helper: "The mg number on the Drug Facts panel. Not sure is fine — we'll assume \(Int(StrengthOption.assumedWhenUnsure(for: answers.sources))) mg and you can correct it later.",
             cta: "Continue",
             onContinue: canContinue ? onContinue : nil,
             onBack: onBack
         ) {
             ScrollViewReader { proxy in
                 VStack(spacing: AppSpacing.smPlus) {
-                ForEach(StrengthOption.pouch) { option in
+                ForEach(StrengthOption.options(for: answers.sources)) { option in
                     OptionCard(
                         label: option.label,
                         isSelected: answers.strength == option
@@ -98,7 +98,7 @@ struct StrengthView: View {
     }
 
     private func adjust(_ delta: Double) {
-        let floor = answers.strength?.mg ?? StrengthOption.assumedWhenUnsure
+        let floor = answers.strength?.mg ?? StrengthOption.assumedWhenUnsure(for: answers.sources)
         let current = answers.exactStrengthMg ?? floor
         // Never below the floor the user already chose — they said "or more".
         answers.exactStrengthMg = max(floor, min(current + delta, 60))
