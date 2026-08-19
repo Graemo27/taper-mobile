@@ -35,20 +35,6 @@
                ReferencedContainer = "container:FoodPad.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "DD439CBBA878760524415079"
-               BuildableName = "FoodPadUITests.xctest"
-               BlueprintName = "FoodPadUITests"
-               ReferencedContainer = "container:FoodPad.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -75,17 +61,6 @@
                BlueprintIdentifier = "50F7707B1F0E0041252E56B4"
                BuildableName = "FoodPadTests.xctest"
                BlueprintName = "FoodPadTests"
-               ReferencedContainer = "container:FoodPad.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "DD439CBBA878760524415079"
-               BuildableName = "FoodPadUITests.xctest"
-               BlueprintName = "FoodPadUITests"
                ReferencedContainer = "container:FoodPad.xcodeproj">
             </BuildableReference>
          </TestableReference>
