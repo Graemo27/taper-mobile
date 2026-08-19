@@ -25,6 +25,61 @@ enum NicotineSource: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The unit this source is counted in, in the words its user already uses.
+    ///
+    /// Nobody knows their vape in milligrams, so nobody is asked for them.
+    /// `modality-shapes-data` is direct about why this matters: whatever a
+    /// tracker appears to want, it will get — a milligram field produces an
+    /// invented milligram, and the plan is then built on it.
+    var unitLabel: String {
+        switch self {
+        case .pouches: return "Pouches a day"
+        case .cigarettes: return "Cigarettes a day"
+        case .vape: return "Puffs a day"
+        case .dip: return "Packs a day"
+        case .nrt: return "Pieces a day"
+        case .other: return "Times a day"
+        }
+    }
+
+    /// How much one tap moves the count. Puffs run to dozens, so stepping them
+    /// one at a time would make the honest answer the tedious one.
+    var step: Int {
+        self == .vape ? 5 : 1
+    }
+
+    /// Where the stepper opens. A plausible middle, so the common case is a
+    /// nudge rather than a climb from zero.
+    var defaultAmount: Int {
+        switch self {
+        case .vape: return 40
+        case .cigarettes: return 10
+        case .pouches, .nrt: return 6
+        case .dip, .other: return 3
+        }
+    }
+
+    /// Estimated milligrams per unit, for sources with nothing printed to read.
+    ///
+    /// Only the cigarette figure has a source: an average cigarette delivers
+    /// 1–3 mg and 20 a day absorbs 20–40 mg, so 1.5 is the midpoint consistent
+    /// with both (`nicotine-dose-reference`). **The vape and dip figures are
+    /// estimates with no source behind them** — the vault holds no
+    /// pharmacokinetic data for per-puff or per-portion delivery, which is
+    /// filed as G9 under Q12. They are deliberately rough, and that roughness
+    /// is part of why the app moves people onto something with a printed
+    /// number. Do not present any of these to the user as a measurement.
+    var estimatedMgPerUnit: Double? {
+        switch self {
+        case .cigarettes: return 1.5
+        case .vape: return 0.15
+        case .dip: return 3
+        case .other: return 1
+        // Printed on the pack — the user tells us, we do not guess.
+        case .pouches, .nrt: return nil
+        }
+    }
+
     var label: String {
         switch self {
         case .pouches: return "Pouches"
@@ -109,6 +164,8 @@ final class OnboardingAnswers {
     var strength: StrengthOption?
     /// The exact figure, once an open-ended option has been narrowed down.
     var exactStrengthMg: Double?
+    /// How much of each source, in that source's own unit.
+    var amounts: [NicotineSource: Int] = [:]
 
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
@@ -141,6 +198,40 @@ final class OnboardingAnswers {
         (strength?.isAtLeast ?? false) && exactStrengthMg == nil
     }
 
+    /// The sources to ask about, in a stable order. A `Set` has none, and rows
+    /// that reshuffle between renders are unusable.
+    var orderedSources: [NicotineSource] {
+        NicotineSource.allCases.filter { sources.contains($0) }
+    }
+
+    func amount(for source: NicotineSource) -> Int {
+        amounts[source] ?? source.defaultAmount
+    }
+
+    func setAmount(_ value: Int, for source: NicotineSource) {
+        amounts[source] = max(0, value)
+    }
+
+    /// The starting daily figure the planner works from.
+    ///
+    /// An index rather than a dose, and knowingly so. Pouches contribute label
+    /// milligrams off the pack; everything else contributes an estimate, and
+    /// two of those estimates have no source (Q12/G9). Summing across products
+    /// is already an index rather than a measurement per
+    /// `label-dose-is-not-delivered-dose`; summing across *bases* — label for
+    /// one, estimated delivery for another — is a second mixing on top.
+    ///
+    /// It is accepted because the alternative is asking people for numbers they
+    /// do not have, and because the roughness applies only to the sources the
+    /// app is steering them off anyway. It must never be shown as a precise
+    /// figure.
+    var startingCapMg: Double {
+        orderedSources.reduce(0) { total, source in
+            let perUnit = source.estimatedMgPerUnit ?? strengthMgPerUnit ?? 0
+            return total + perUnit * Double(amount(for: source))
+        }
+    }
+
     func toggle(_ source: NicotineSource) {
         if sources.contains(source) {
             sources.remove(source)
@@ -154,5 +245,8 @@ final class OnboardingAnswers {
             strength = nil
             exactStrengthMg = nil
         }
+        // Amounts for sources no longer named would otherwise keep counting
+        // toward the starting figure from off-screen.
+        amounts = amounts.filter { sources.contains($0.key) }
     }
 }
