@@ -1311,3 +1311,72 @@ struct QuitDateBoundsTests {
         #expect(QuitDate.weeks(from: day, to: day) == 1)
     }
 }
+
+/// Covers what happens when the clock moves under the screen, and when the
+/// user leaves a date behind and comes back to it.
+struct QuitDateContinuityTests {
+    private let day = Date(timeIntervalSince1970: 1_760_000_000)
+
+    private func answers(_ clock: @escaping () -> Date) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.now = clock
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(6, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+        answers.planShape = .quitDate
+        return answers
+    }
+
+    @Test("the plan and the sentence under it use the same runway")
+    func oneClockReadPerSummary() {
+        // The summary used to read the clock twice — once through the planner's
+        // input and once for the caption. A day turning over between the two
+        // reads has the planner working from one number while the sentence
+        // quotes another, and nothing on screen would look wrong.
+        //
+        // The clock here jumps a week per read, which is the same defect
+        // magnified until it is visible.
+        var reads = 0
+        let answers = answers {
+            defer { reads += 1 }
+            return Calendar.current.date(byAdding: .day, value: reads * 7, to: self.day)!
+        }
+        answers.quitDate = QuitDate.date(weeksFrom: day, weeks: 8)
+
+        // Eight weeks on the first read, seven on a second. The pill has to
+        // report the one the plan was actually built from.
+        #expect(answers.quitDateSummary?.runway == "8 weeks out")
+    }
+
+    @Test("a date the user chose survives a trip back through the run")
+    func aDeliberateChoiceIsKept() {
+        // Going back to change an earlier answer should not silently discard a
+        // later one.
+        let answers = answers { self.day }
+        let chosen = QuitDate.date(weeksFrom: day, weeks: 9)
+        answers.quitDate = chosen
+        answers.settleQuitDate()
+        #expect(answers.quitDate == chosen)
+    }
+
+    @Test("a date that has gone stale is replaced rather than shown")
+    func aPastDateIsReplaced() {
+        // A date picked before a detour through the rest of the run can be in
+        // the past by the time they come back, and the picker cannot even
+        // display it — the row would show a date the control refuses to select.
+        let answers = answers { self.day }
+        answers.quitDate = Calendar.current.date(byAdding: .day, value: -3, to: day)!
+        answers.settleQuitDate()
+        #expect(answers.quitDate == answers.defaultQuitDate())
+        #expect(answers.quitDateSummary?.isStretched == false)
+    }
+
+    @Test("an unset date settles on the default")
+    func anEmptyDateGetsTheDefault() {
+        let answers = answers { self.day }
+        answers.settleQuitDate()
+        #expect(answers.quitDate == answers.defaultQuitDate())
+    }
+}

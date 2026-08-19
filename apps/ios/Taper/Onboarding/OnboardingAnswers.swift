@@ -404,7 +404,11 @@ final class OnboardingAnswers {
     /// What O10 says about the date currently chosen, or nil before there is
     /// one to describe.
     var quitDateSummary: QuitDateSummary? {
-        guard let input = taperInput, let weeks = weeksUntilQuitDate else { return nil }
+        // The runway is read back off the input rather than recomputed. Both
+        // paths call the clock, and between two calls the day can turn over —
+        // which would have the planner working from one number while the
+        // sentence under the date quotes another.
+        guard let input = taperInput, let weeks = input.weeksUntilQuitDate else { return nil }
         return QuitDateSummary(
             plan: TaperPlanner.plan(for: input),
             requestedWeeks: weeks,
@@ -421,6 +425,18 @@ final class OnboardingAnswers {
     /// `QuitDate.weeks` reads it as a week of runway rather than as zero.
     func earliestQuitDate(calendar: Calendar = .current) -> Date {
         calendar.startOfDay(for: now())
+    }
+
+    /// Settles on a date to show when the picker opens.
+    ///
+    /// Keeps a date the user already chose, because they chose it — going back
+    /// to change an earlier answer should not silently discard a later one.
+    /// Replaces it only when it has gone stale: a date picked before a detour
+    /// through the rest of the run can be in the past by the time they return,
+    /// and the picker cannot even display it.
+    func settleQuitDate() {
+        if let quitDate, quitDate >= earliestQuitDate() { return }
+        quitDate = defaultQuitDate()
     }
 
     /// The date to open the picker on: the soonest the plan can actually

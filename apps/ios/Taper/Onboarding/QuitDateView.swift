@@ -36,7 +36,7 @@ struct QuitDateView: View {
             .padding(.horizontal, AppLayout.gutter)
             // The picker opens on a date the plan can actually reach, so nobody
             // starts on a warning about a choice they have not made.
-            .onAppear { if answers.quitDate == nil { answers.quitDate = answers.defaultQuitDate() } }
+            .onAppear { answers.settleQuitDate() }
         }
     }
 
