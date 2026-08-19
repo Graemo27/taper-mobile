@@ -243,6 +243,20 @@ final class OnboardingAnswers {
     /// the app owes them a run that proceeds rather than a screen that waits.
     private(set) var defersTreatment = false
 
+    /// The moments they reach for one (O7).
+    ///
+    /// Deliberately not gated, and the only question in the run that is not.
+    /// Nothing downstream requires a trigger, and someone whose moments are not
+    /// on the list would otherwise have to tick one that is false to get past
+    /// the screen — which is the same fabrication the strength and amount
+    /// screens are built to avoid, in categorical form.
+    ///
+    /// An empty set therefore means "none of these", "none at all" and "did not
+    /// say" alike. That is acceptable here precisely because nothing reads it
+    /// as a number: all three produce the same behaviour, which is no
+    /// personalisation.
+    private(set) var triggers: Set<Trigger> = []
+
     /// True once O5 has an answer either way.
     ///
     /// On the model rather than in the view because it is the gate on Continue,
@@ -381,6 +395,22 @@ final class OnboardingAnswers {
             treatments.insert(form)
         }
         defersTreatment = false
+    }
+
+    /// Picks or unpicks a trigger. No exclusivity to keep here — the moments
+    /// are independent, and most people have several.
+    func toggle(_ trigger: Trigger) {
+        if triggers.contains(trigger) {
+            triggers.remove(trigger)
+        } else {
+            triggers.insert(trigger)
+        }
+    }
+
+    /// The triggers in a stable order. A `Set` has none, and rows that
+    /// reshuffle between renders are unusable.
+    var orderedTriggers: [Trigger] {
+        Trigger.allCases.filter { triggers.contains($0) }
     }
 
     /// Records that the user is starting without a treatment, clearing anything

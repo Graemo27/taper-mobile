@@ -87,6 +87,12 @@ struct OnboardingFlow: View {
             } else {
                 OnboardingPlaceholderView(step: step, onBack: goBack)
             }
+        case .triggers:
+            TriggersView(
+                answers: answers,
+                onContinue: { advance(from: step) },
+                onBack: goBack
+            )
         default:
             // Explicit rather than silent. An unbuilt step used to be an empty
             // closure on an enabled button, which left the run looking broken
