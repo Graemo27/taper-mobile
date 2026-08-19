@@ -263,6 +263,16 @@ final class OnboardingAnswers {
     /// that invariant lives in `toggle(_:)`.
     private(set) var priorAttempts: Set<PriorAttempt> = []
 
+    /// The clock, injected rather than read.
+    ///
+    /// A date question needs to know what day it is, and a suite that cannot
+    /// control that either guesses or drifts. Nothing else in the model reads
+    /// the current time.
+    var now: () -> Date = { Date() }
+
+    /// The chosen quit date (O10), or nil for a run holding where it is.
+    var quitDate: Date?
+
     /// Whether the run ends at a date or holds where it is (O9).
     ///
     /// Optional because unanswered is not the same as choosing to reduce, and
@@ -377,8 +387,68 @@ final class OnboardingAnswers {
             startingCapMg: startingCapMg,
             minutesToFirstUse: firstUse.minutes,
             usesWhenIllInBed: usesWhenIllInBed,
-            weeksUntilQuitDate: nil
+            weeksUntilQuitDate: weeksUntilQuitDate
         )
+    }
+
+    /// Weeks of runway to the chosen date, or nil for a reduction-only run.
+    ///
+    /// Nil is a supported state rather than a missing answer — most nicotine
+    /// users are not ready to name a date, and inventing one for them is the
+    /// product addressing the wrong person.
+    var weeksUntilQuitDate: Int? {
+        guard planShape?.needsQuitDate == true, let quitDate else { return nil }
+        return QuitDate.weeks(from: now(), to: quitDate)
+    }
+
+    /// What O10 says about the date currently chosen, or nil before there is
+    /// one to describe.
+    var quitDateSummary: QuitDateSummary? {
+        // The runway is read back off the input rather than recomputed. Both
+        // paths call the clock, and between two calls the day can turn over —
+        // which would have the planner working from one number while the
+        // sentence under the date quotes another.
+        guard let input = taperInput, let weeks = input.weeksUntilQuitDate else { return nil }
+        return QuitDateSummary(
+            plan: TaperPlanner.plan(for: input),
+            requestedWeeks: weeks,
+            startingCapMg: input.startingCapMg
+        )
+    }
+
+    /// The earliest date the picker may offer.
+    ///
+    /// The start of today, not this instant. `DatePicker` compares `Date`
+    /// instants even when it is only showing days, so a bound of "now" makes
+    /// today unselectable from one minute past midnight onward — the user sees
+    /// today greyed out with no explanation. Today is a legitimate answer:
+    /// `QuitDate.weeks` reads it as a week of runway rather than as zero.
+    func earliestQuitDate(calendar: Calendar = .current) -> Date {
+        calendar.startOfDay(for: now())
+    }
+
+    /// Settles on a date to show when the picker opens.
+    ///
+    /// Keeps a date the user already chose, because they chose it — going back
+    /// to change an earlier answer should not silently discard a later one.
+    /// Replaces it only when it has gone stale: a date picked before a detour
+    /// through the rest of the run can be in the past by the time they return,
+    /// and the picker cannot even display it.
+    func settleQuitDate() {
+        if let quitDate, quitDate >= earliestQuitDate() { return }
+        quitDate = defaultQuitDate()
+    }
+
+    /// The date to open the picker on: the soonest the plan can actually
+    /// reach. A default the user's own answers cannot satisfy would start them
+    /// on a stretch warning before they have chosen anything.
+    func defaultQuitDate() -> Date {
+        // The descent floor for this run's dependence — the soonest date the
+        // plan can reach without being stretched past it.
+        let weeks = taperInput
+            .map { TaperPlanner.minimumWeeks(for: TaperPlanner.plan(for: $0).dependence) }
+            ?? TaperPlanner.minimumWeeks(for: .moderate)
+        return QuitDate.date(weeksFrom: now(), weeks: weeks)
     }
 
     func toggle(_ source: NicotineSource) {

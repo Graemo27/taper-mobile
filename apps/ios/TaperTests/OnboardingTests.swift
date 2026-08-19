@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Taper
 
@@ -1157,5 +1158,225 @@ struct ReadinessTests {
         ))
         #expect(plan.weeklyCapsMg == [18])
         #expect(plan.reachesZero == false)
+    }
+}
+
+/// Covers O10 — the one screen with a clock in it, and the only place the
+/// planner's stretch becomes visible to the user.
+struct QuitDateTests {
+    /// A fixed day, so the suite never has to guess what today is.
+    private let today = Date(timeIntervalSince1970: 1_760_000_000)
+
+    private func answers(pouches: Int = 6, minutes: Int = 20, weeksOut: Int? = 8) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.now = { self.today }
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(pouches, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == minutes }
+        answers.usesWhenIllInBed = true
+        answers.planShape = .quitDate
+        answers.quitDate = weeksOut.map { QuitDate.date(weeksFrom: today, weeks: $0) }
+        return answers
+    }
+
+    @Test("runway is floored, so the last step never lands after the date")
+    func weeksAreFloored() {
+        // Ten days is one week of runway, not one and a half. Rounding up would
+        // give the plan more weeks than the user has and put the final step
+        // past the date they picked.
+        // 11 days is the discriminating case: floored it is one week, rounded
+        // it is two — and two would put the last step four days past the date.
+        let elevenDays = Calendar.current.date(byAdding: .day, value: 11, to: today)!
+        #expect(QuitDate.weeks(from: today, to: elevenDays) == 1)
+        let twentyDays = Calendar.current.date(byAdding: .day, value: 20, to: today)!
+        #expect(QuitDate.weeks(from: today, to: twentyDays) == 2)
+        #expect(QuitDate.weeks(from: today, to: QuitDate.date(weeksFrom: today, weeks: 8)) == 8)
+    }
+
+    @Test("a date today or in the past still reads as a week, not as zero or less")
+    func nearDatesDoNotGoNegative() {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        #expect(QuitDate.weeks(from: today, to: today) == 1)
+        #expect(QuitDate.weeks(from: today, to: yesterday) == 1)
+    }
+
+    @Test("the time of day a date is chosen does not cost a week")
+    func comparesCalendarDaysNotElapsedTime() {
+        // Picked at 11pm against a date at 9am is still the same number of
+        // days apart.
+        let lateEvening = Calendar.current.date(bySettingHour: 23, minute: 30, second: 0, of: today)!
+        let target = QuitDate.date(weeksFrom: today, weeks: 8)
+        #expect(QuitDate.weeks(from: lateEvening, to: target) == 8)
+    }
+
+    @Test("a comfortable date reaches zero and says so plainly")
+    func roomyDateIsNotStretched() {
+        let summary = answers(weeksOut: 8).quitDateSummary
+        #expect(summary?.isStretched == false)
+        #expect(summary?.runway == "8 weeks out")
+        #expect(summary?.caption.contains("step 18 → 0 without any cliff") == true)
+    }
+
+    @Test("a date sooner than the steps can go says so rather than pretending")
+    func tightDateIsCalledOut() {
+        // The board draws only the comfortable case. This is the one that
+        // matters: the planner stretches rather than compressing, because a
+        // schedule too steep to keep is worse than no schedule — and a stretch
+        // the screen does not mention is the app disagreeing with the date in
+        // front of the user without saying so.
+        let answers = answers(pouches: 10, minutes: 3, weeksOut: 2)
+        let summary = answers.quitDateSummary
+        #expect(summary?.isStretched == true)
+        #expect(summary?.runway == "2 weeks out")
+        #expect(summary?.caption.contains("quicker than your steps can safely go") == true)
+        // Names the length the plan will actually be, not just that it changed.
+        #expect(summary?.caption.contains("7 weeks instead") == true)
+    }
+
+    @Test("the stretch the screen reports is the one the planner performed")
+    func captionMatchesThePlan() {
+        let answers = answers(pouches: 10, minutes: 3, weeksOut: 2)
+        let plan = TaperPlanner.plan(for: answers.taperInput!)
+        #expect(plan.stretchedFromRequestedWeeks == 2)
+        #expect(answers.quitDateSummary?.caption.contains("\(plan.weeklyCapsMg.count - 1) weeks instead") == true)
+    }
+
+    @Test("the picker opens on a date the plan can actually reach")
+    func defaultIsAchievable() {
+        // Opening on a date that triggers a warning would greet the user with a
+        // complaint about a choice they have not made.
+        let answers = answers(weeksOut: nil)
+        answers.quitDate = answers.defaultQuitDate()
+        #expect(answers.quitDateSummary?.isStretched == false)
+    }
+
+    @Test("one week reads as a week rather than as 1 weeks")
+    func singularRunway() {
+        #expect(answers(weeksOut: 1).quitDateSummary?.runway == "1 week out")
+        #expect(answers(pouches: 10, minutes: 3, weeksOut: 1).quitDateSummary?.caption.hasPrefix("A week is quicker") == true)
+    }
+
+    @Test("a date reaches the planner, and moves the schedule it produces")
+    func theDateChangesThePlan() {
+        // The whole point of the screen. Nothing on it would look wrong if the
+        // date never arrived at the planner.
+        let dated = answers(weeksOut: 8)
+        #expect(dated.taperInput?.weeksUntilQuitDate == 8)
+        #expect(TaperPlanner.plan(for: dated.taperInput!).reachesZero)
+    }
+
+    @Test("choosing to reduce first keeps a stale date out of the plan")
+    func reduceFirstIgnoresAnyDate() {
+        // Someone can pick a date, go back, and switch to reducing. The date
+        // they abandoned must not still be steering the schedule.
+        let answers = answers(weeksOut: 8)
+        answers.planShape = .reduceFirst
+        #expect(answers.weeksUntilQuitDate == nil)
+        #expect(answers.taperInput?.weeksUntilQuitDate == nil)
+        #expect(answers.quitDateSummary == nil)
+    }
+}
+
+/// Covers the picker's lower bound, which is a date comparison masquerading as
+/// a day comparison — and therefore wrong in a way only the clock reveals.
+struct QuitDateBoundsTests {
+    @Test("today stays selectable at every hour of the day")
+    func todayIsNeverGreyedOut() {
+        // DatePicker compares instants even while showing only days. A bound of
+        // "now" makes today unavailable from a minute past midnight onward, and
+        // the user just sees today greyed out with nothing explaining why.
+        let answers = OnboardingAnswers()
+        let day = Date(timeIntervalSince1970: 1_760_000_000)
+        for hour in [0, 1, 9, 13, 23] {
+            let instant = Calendar.current.date(bySettingHour: hour, minute: 59, second: 0, of: day)!
+            answers.now = { instant }
+            #expect(answers.earliestQuitDate() <= Calendar.current.startOfDay(for: instant))
+        }
+    }
+
+    @Test("yesterday stays out of reach")
+    func thePastIsStillExcluded() {
+        // The bound still has a job: a quit date in the past is not a plan.
+        let answers = OnboardingAnswers()
+        let day = Date(timeIntervalSince1970: 1_760_000_000)
+        answers.now = { day }
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: day)!
+        #expect(answers.earliestQuitDate() > yesterday)
+    }
+
+    @Test("today is a week of runway, so offering it is not offering nothing")
+    func todayIsAMeaningfulAnswer() {
+        let day = Date(timeIntervalSince1970: 1_760_000_000)
+        #expect(QuitDate.weeks(from: day, to: day) == 1)
+    }
+}
+
+/// Covers what happens when the clock moves under the screen, and when the
+/// user leaves a date behind and comes back to it.
+struct QuitDateContinuityTests {
+    private let day = Date(timeIntervalSince1970: 1_760_000_000)
+
+    private func answers(_ clock: @escaping () -> Date) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.now = clock
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(6, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+        answers.planShape = .quitDate
+        return answers
+    }
+
+    @Test("the plan and the sentence under it use the same runway")
+    func oneClockReadPerSummary() {
+        // The summary used to read the clock twice — once through the planner's
+        // input and once for the caption. A day turning over between the two
+        // reads has the planner working from one number while the sentence
+        // quotes another, and nothing on screen would look wrong.
+        //
+        // The clock here jumps a week per read, which is the same defect
+        // magnified until it is visible.
+        var reads = 0
+        let answers = answers {
+            defer { reads += 1 }
+            return Calendar.current.date(byAdding: .day, value: reads * 7, to: self.day)!
+        }
+        answers.quitDate = QuitDate.date(weeksFrom: day, weeks: 8)
+
+        // Eight weeks on the first read, seven on a second. The pill has to
+        // report the one the plan was actually built from.
+        #expect(answers.quitDateSummary?.runway == "8 weeks out")
+    }
+
+    @Test("a date the user chose survives a trip back through the run")
+    func aDeliberateChoiceIsKept() {
+        // Going back to change an earlier answer should not silently discard a
+        // later one.
+        let answers = answers { self.day }
+        let chosen = QuitDate.date(weeksFrom: day, weeks: 9)
+        answers.quitDate = chosen
+        answers.settleQuitDate()
+        #expect(answers.quitDate == chosen)
+    }
+
+    @Test("a date that has gone stale is replaced rather than shown")
+    func aPastDateIsReplaced() {
+        // A date picked before a detour through the rest of the run can be in
+        // the past by the time they come back, and the picker cannot even
+        // display it — the row would show a date the control refuses to select.
+        let answers = answers { self.day }
+        answers.quitDate = Calendar.current.date(byAdding: .day, value: -3, to: day)!
+        answers.settleQuitDate()
+        #expect(answers.quitDate == answers.defaultQuitDate())
+        #expect(answers.quitDateSummary?.isStretched == false)
+    }
+
+    @Test("an unset date settles on the default")
+    func anEmptyDateGetsTheDefault() {
+        let answers = answers { self.day }
+        answers.settleQuitDate()
+        #expect(answers.quitDate == answers.defaultQuitDate())
     }
 }
