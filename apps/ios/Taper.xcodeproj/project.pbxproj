@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1766359067A8528CBEB51E /* Treatment.swift */; };
 		0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A7A846268DDB13563347F /* OnboardingFlow.swift */; };
+		11E30672A79775DC15E4EF95 /* PlanShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB95DC7ECFD078DAA05A2A27 /* PlanShape.swift */; };
 		17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08785AAB390FD2A3138DB75C /* PriorAttempt.swift */; };
 		199779256158861C053608A1 /* StartingLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5218152C4EC89C9B5D06D692 /* StartingLine.swift */; };
 		20ED3ECE29DE0547B9356A53 /* LinearGrotesk-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */; };
@@ -20,6 +21,7 @@
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D11BCE9F23EB213922A688E /* Trigger.swift */; };
 		579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */; };
+		68E94837D465D0736DFF7EFA /* ReadinessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB37897EAEF2B704CA943033 /* ReadinessView.swift */; };
 		6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */; };
 		6F8E07C984B35A07EC2FB82D /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */; };
 		6FC5F8FF70EEE97E2A587D01 /* AmountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29075C1BFAD49736B729C3DF /* AmountView.swift */; };
@@ -90,6 +92,8 @@
 		B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedBeforeView.swift; sourceTree = "<group>"; };
 		C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanTests.swift; sourceTree = "<group>"; };
 		D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlan.swift; sourceTree = "<group>"; };
+		EB37897EAEF2B704CA943033 /* ReadinessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
+		EB95DC7ECFD078DAA05A2A27 /* PlanShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanShape.swift; sourceTree = "<group>"; };
 		EE711B9158A40AC1D87F748F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		F975269EB5F504D1744C6A25 /* Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controls.swift; sourceTree = "<group>"; };
@@ -164,7 +168,9 @@
 				B81A7A846268DDB13563347F /* OnboardingFlow.swift */,
 				1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */,
 				3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */,
+				EB95DC7ECFD078DAA05A2A27 /* PlanShape.swift */,
 				08785AAB390FD2A3138DB75C /* PriorAttempt.swift */,
+				EB37897EAEF2B704CA943033 /* ReadinessView.swift */,
 				29BE0845DD8EEF48524461D6 /* SickInBedView.swift */,
 				67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */,
 				42AA9319A756BB1539B49424 /* StrengthView.swift */,
@@ -365,7 +371,9 @@
 				0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */,
 				6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */,
 				DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */,
+				11E30672A79775DC15E4EF95 /* PlanShape.swift in Sources */,
 				17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */,
+				68E94837D465D0736DFF7EFA /* ReadinessView.swift in Sources */,
 				6F8E07C984B35A07EC2FB82D /* SessionCoordinator.swift in Sources */,
 				9F0B1DAEDC3D1334DAA333FF /* SickInBedView.swift in Sources */,
 				199779256158861C053608A1 /* StartingLine.swift in Sources */,
