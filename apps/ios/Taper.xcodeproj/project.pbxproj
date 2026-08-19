@@ -9,8 +9,10 @@
 /* Begin PBXBuildFile section */
 		04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1766359067A8528CBEB51E /* Treatment.swift */; };
 		0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A7A846268DDB13563347F /* OnboardingFlow.swift */; };
+		199779256158861C053608A1 /* StartingLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5218152C4EC89C9B5D06D692 /* StartingLine.swift */; };
 		20ED3ECE29DE0547B9356A53 /* LinearGrotesk-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */; };
 		222A8572E9A13370F23CAF8B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 1756A8AE10A5643796F48366 /* Supabase */; };
+		22893C0087D74E2CBD5D2CD2 /* StartingLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */; };
 		2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */; };
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
@@ -60,10 +62,12 @@
 		2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstUseView.swift; sourceTree = "<group>"; };
 		3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionCard.swift; sourceTree = "<group>"; };
 		42AA9319A756BB1539B49424 /* StrengthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthView.swift; sourceTree = "<group>"; };
+		5218152C4EC89C9B5D06D692 /* StartingLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLine.swift; sourceTree = "<group>"; };
 		54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		58A09EF7EF844EE19A6EA3D2 /* LinearGrotesk-SemiBold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-SemiBold.otf"; sourceTree = "<group>"; };
 		5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatYouUseView.swift; sourceTree = "<group>"; };
 		63F7D57B4CA77D384577A81C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLineView.swift; sourceTree = "<group>"; };
 		6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationTests.swift; sourceTree = "<group>"; };
 		7647D93BDDDDB17B5CEDB528 /* Ginger.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ginger.otf; sourceTree = "<group>"; };
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
@@ -153,6 +157,7 @@
 				1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */,
 				3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */,
 				29BE0845DD8EEF48524461D6 /* SickInBedView.swift */,
+				67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */,
 				42AA9319A756BB1539B49424 /* StrengthView.swift */,
 				ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */,
 				5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */,
@@ -201,6 +206,7 @@
 		D119BFA8C79F170BA31E8EF2 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				5218152C4EC89C9B5D06D692 /* StartingLine.swift */,
 				D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */,
 				9C1766359067A8528CBEB51E /* Treatment.swift */,
 			);
@@ -349,6 +355,8 @@
 				DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */,
 				6F8E07C984B35A07EC2FB82D /* SessionCoordinator.swift in Sources */,
 				9F0B1DAEDC3D1334DAA333FF /* SickInBedView.swift in Sources */,
+				199779256158861C053608A1 /* StartingLine.swift in Sources */,
+				22893C0087D74E2CBD5D2CD2 /* StartingLineView.swift in Sources */,
 				79FD6A2D96FDD74756B4F236 /* StrengthView.swift in Sources */,
 				F9AE040439B95F79AFDCC07C /* TaperApp.swift in Sources */,
 				C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */,

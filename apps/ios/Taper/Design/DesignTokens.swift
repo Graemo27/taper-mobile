@@ -138,6 +138,10 @@ enum AppSize {
     static let title: CGFloat = 26
     static let display: CGFloat = 30
     static let metric: CGFloat = 40
+    /// A sentence set at display scale, for the one screen that says a number
+    /// in words rather than showing it as a figure. Between `metric` and
+    /// `figure` because it has to read as a statement, not as a readout.
+    static let statement: CGFloat = 44
     static let figure: CGFloat = 64
     static let hero: CGFloat = 76
 }
@@ -155,6 +159,7 @@ enum AppLeading {
     static let title: CGFloat = 32
     static let display: CGFloat = 36
     static let metric: CGFloat = 42
+    static let statement: CGFloat = 50
     static let figure: CGFloat = 64
     static let hero: CGFloat = 76
 }

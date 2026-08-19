@@ -846,3 +846,75 @@ struct TreatmentCopyTests {
         #expect(suggestion(pouches: 2).headline == "A lozenge")
     }
 }
+
+/// Covers O6, the one screen that asks nothing and only asserts.
+///
+/// Its whole claim on the user's trust is that every part of it is either
+/// something they said or something the plan actually does. A sentence here
+/// that is neither is the screen quietly making things up about them.
+struct StartingLineTests {
+    private func answers(pouches: Int = 6, minutes: Int = 20) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(pouches, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == minutes }
+        answers.usesWhenIllInBed = true
+        return answers
+    }
+
+    @Test("the number named is the one the run produced")
+    func headlineMatchesTheCap() {
+        #expect(answers().startingLine?.headline == "Your starting line: 18 mg a day.")
+        #expect(answers(pouches: 10).startingLine?.headline == "Your starting line: 30 mg a day.")
+    }
+
+    @Test("week one is read from the plan, not asserted alongside it")
+    func weekOneComesFromThePlan() {
+        // The sentence promises week one holds at the starting figure. They are
+        // the same number today; if the planner ever adjusts the first week, the
+        // copy has to move with it rather than keep describing the old
+        // behaviour.
+        let answers = answers(pouches: 7)
+        let weekOne = TaperPlanner.plan(for: answers.taperInput!).weeklyCapsMg.first!
+        #expect(answers.startingLine?.body.contains("holds steady at \(weekOne.clean) mg") == true)
+    }
+
+    @Test("the screen says nothing about triggers, which have not been asked yet")
+    func noTriggersBeforeTheyAreAsked() {
+        // The board's copy names them — "mostly with coffee and stress" — but
+        // `.triggers` is the next step, so anything said here would be invented
+        // about a user who has not answered.
+        #expect(OnboardingStep.startingLine.rawValue < OnboardingStep.triggers.rawValue)
+        let body = answers().startingLine?.body ?? ""
+        #expect(!body.contains("coffee"))
+        #expect(!body.contains("stress"))
+    }
+
+    @Test("it reads the user's own first-use answer back")
+    func bodyQuotesTheirAnswer() {
+        #expect(answers(minutes: 3).startingLine?.body.hasPrefix("Your first one is before anything else.") == true)
+        #expect(answers(minutes: 360).startingLine?.body.hasPrefix("Your first one is in the afternoon or later.") == true)
+    }
+
+    @Test("a half-answered run produces no summary to show")
+    func incompleteRunHasNoLine() {
+        let answers = answers()
+        answers.usesWhenIllInBed = nil
+        #expect(answers.startingLine == nil)
+    }
+
+    @Test("a run with no plan to describe produces nothing rather than an empty claim")
+    func noPlanMeansNoLine() {
+        // weeklyCapsMg is empty when there is no cap to descend from. A summary
+        // built anyway would promise a week one that does not exist.
+        let plan = TaperPlanner.plan(for: TaperInput(
+            startingCapMg: 0,
+            minutesToFirstUse: 20,
+            usesWhenIllInBed: false,
+            weeksUntilQuitDate: nil
+        ))
+        #expect(plan.weeklyCapsMg.isEmpty)
+        #expect(StartingLine(plan: plan, dailyMg: 0, firstUse: FirstUseOption.all[0]) == nil)
+    }
+}

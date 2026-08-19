@@ -79,6 +79,14 @@ struct OnboardingFlow: View {
                 onContinue: { advance(from: step) },
                 onBack: goBack
             )
+        case .startingLine:
+            // No back closure: the screen has nothing to change, and every
+            // figure on it comes from an answer given earlier.
+            if let startingLine = answers.startingLine {
+                StartingLineView(startingLine: startingLine) { advance(from: step) }
+            } else {
+                OnboardingPlaceholderView(step: step, onBack: goBack)
+            }
         default:
             // Explicit rather than silent. An unbuilt step used to be an empty
             // closure on an enabled button, which left the run looking broken

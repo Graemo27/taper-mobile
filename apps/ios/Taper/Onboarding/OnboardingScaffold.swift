@@ -85,16 +85,33 @@ struct OnboardingScaffold<Content: View>: View {
     }
 
     private var continueButton: some View {
-        Button { onContinue?() } label: {
-            Text(cta)
+        OnboardingCTA(title: cta, action: onContinue)
+    }
+}
+
+/// The button at the foot of every onboarding screen.
+///
+/// Shared rather than private to the scaffold because O6 sits outside the
+/// scaffold — it has no question, no progress and no way back — and a second
+/// copy of this would be the one that stops matching after the next change.
+///
+/// A nil action disables rather than hides. A CTA that appears once an answer
+/// is given moves the whole screen under the reader's thumb.
+struct OnboardingCTA: View {
+    let title: String
+    let action: (() -> Void)?
+
+    var body: some View {
+        Button { action?() } label: {
+            Text(title)
                 .font(AppFont.text(AppSize.bodyLarge, .medium))
                 .foregroundStyle(AppColor.inkInverse)
                 .frame(maxWidth: .infinity)
                 .frame(height: AppLayout.action)
                 .background(AppColor.ink, in: Capsule())
         }
-        .disabled(onContinue == nil)
-        .opacity(onContinue == nil ? 0.35 : 1)
+        .disabled(action == nil)
+        .opacity(action == nil ? 0.35 : 1)
         .padding(.horizontal, AppLayout.gutter)
         .padding(.bottom, AppSpacing.huge)
     }
