@@ -61,6 +61,12 @@ struct OnboardingFlow: View {
                 onContinue: { advance(from: step) },
                 onBack: goBack
             )
+        case .firstUse:
+            FirstUseView(
+                answers: answers,
+                onContinue: { advance(from: step) },
+                onBack: goBack
+            )
         default:
             // Explicit rather than silent. An unbuilt step used to be an empty
             // closure on an enabled button, which left the run looking broken

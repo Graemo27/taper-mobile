@@ -403,3 +403,62 @@ struct AmountTests {
         #expect(answers.amount(for: .vape) % NicotineSource.vape.step == 0)
     }
 }
+
+/// Covers O4, whose risk is not the screen but the join to the planner: the
+/// wording promises the answer sizes the steps, so each option has to land in
+/// the dependence band its words imply.
+struct FirstUseTests {
+    private func plan(_ option: FirstUseOption, capMg: Double = 12) -> TaperPlan {
+        TaperPlanner.plan(for: TaperInput(
+            startingCapMg: capMg,
+            minutesToFirstUse: option.minutes,
+            usesWhenIllInBed: false,
+            weeksUntilQuitDate: 1
+        ))
+    }
+
+    private func option(_ label: String) -> FirstUseOption {
+        FirstUseOption.all.first { $0.label == label }!
+    }
+
+    @Test("reaching for it on waking reads as high dependence on its own")
+    func firstThingIsHigh() {
+        // The strongest single item in the index, and sufficient by itself —
+        // a light daily total must not outvote it.
+        #expect(plan(option("It's the first thing I do"), capMg: 6).dependence == .high)
+    }
+
+    @Test("an afternoon habit does not")
+    func afternoonIsNotHigh() {
+        #expect(plan(option("Afternoon or later"), capMg: 6).dependence == .low)
+    }
+
+    @Test("the options run from most to least dependent, without ties")
+    func optionsAreOrderedAndDistinct() {
+        // Ordered because the list reads as a scale; distinct because two
+        // options resolving to the same minutes would be two ways to say one
+        // thing, which is a question with a redundant answer.
+        let minutes = FirstUseOption.all.map(\.minutes)
+        #expect(minutes == minutes.sorted())
+        #expect(Set(minutes).count == minutes.count)
+    }
+
+    @Test("each option sits inside its band, not on the edge")
+    func valuesAreNotOnThresholds() {
+        // 20 rather than 30 for "within 30 minutes", so shifting a threshold
+        // later cannot silently reclassify an answer someone already gave.
+        for boundary in [6, 31, 61] {
+            #expect(!FirstUseOption.all.contains { $0.minutes == boundary })
+            #expect(!FirstUseOption.all.contains { $0.minutes == boundary - 1 })
+        }
+    }
+
+    @Test("answering moves the plan's floor, which is what the helper promises")
+    func theAnswerChangesTheSchedule() {
+        // "This sizes your steps" has to be true, or the copy is a claim the
+        // product does not honour.
+        let earliest = plan(option("It's the first thing I do"), capMg: 24)
+        let latest = plan(option("Afternoon or later"), capMg: 24)
+        #expect(earliest.weeklyCapsMg.count > latest.weeklyCapsMg.count)
+    }
+}

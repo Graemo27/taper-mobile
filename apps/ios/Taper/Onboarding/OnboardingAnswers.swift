@@ -150,6 +150,31 @@ struct StrengthOption: Identifiable, Equatable, Sendable {
     }
 }
 
+/// How soon after waking the first one happens.
+///
+/// The single most predictive item in the standard dependence index, which is
+/// why `TaperPlanner` treats the earliest band as sufficient for high
+/// dependence on its own rather than merely weighting it.
+///
+/// Each option carries the minutes the planner reasons about, so the wording
+/// and the arithmetic cannot drift apart. The values sit inside their band
+/// rather than on its edge — 20 for "within 30 minutes" rather than 30 — so a
+/// later change to a threshold does not silently reclassify an answer.
+struct FirstUseOption: Identifiable, Equatable, Sendable {
+    let minutes: Int
+    let label: String
+
+    var id: String { label }
+
+    static let all: [FirstUseOption] = [
+        FirstUseOption(minutes: 3, label: "It's the first thing I do"),
+        FirstUseOption(minutes: 20, label: "Within 30 minutes"),
+        FirstUseOption(minutes: 45, label: "Within an hour"),
+        FirstUseOption(minutes: 180, label: "A few hours in"),
+        FirstUseOption(minutes: 360, label: "Afternoon or later"),
+    ]
+}
+
 /// Everything onboarding collects, accumulated as the user moves through it.
 ///
 /// One object rather than a value threaded screen to screen: the run branches —
@@ -168,6 +193,8 @@ final class OnboardingAnswers {
     var exactStrengths: [NicotineSource: Double] = [:]
     /// How much of each source, in that source's own unit.
     var amounts: [NicotineSource: Int] = [:]
+    /// How soon after waking the first one happens (O4).
+    var firstUse: FirstUseOption?
 
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
