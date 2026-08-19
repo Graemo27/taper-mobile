@@ -101,4 +101,24 @@ struct TreatmentSuggestion: Equatable, Sendable {
     var headline: String {
         forms.count > 1 ? "A patch and a lozenge" : "A lozenge"
     }
+
+    /// The run read back, then the one claim — in that order, so the suggestion
+    /// reads as a consequence of what the user said rather than as a house
+    /// preference with a statistic attached.
+    var blurb: String {
+        [basis, evidence].compactMap { $0 }.joined(separator: " ")
+    }
+
+    /// What a row says under the form's name: the strength this plan uses and
+    /// the job that form does, or just the job when the plan has no dose for it.
+    ///
+    /// Here rather than in the view because it is the join between a number the
+    /// planner chose and a number the user reads — the exact seam where a
+    /// screen starts quoting figures of its own.
+    func detail(for form: TreatmentForm) -> String {
+        guard let mg = strengthMg[form] else { return form.role }
+        return form.isPatch
+            ? "\(mg) mg, 24 hours · \(form.role)"
+            : "\(mg) mg · \(form.role)"
+    }
 }
