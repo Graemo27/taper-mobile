@@ -11,6 +11,7 @@
 		0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A7A846268DDB13563347F /* OnboardingFlow.swift */; };
 		20ED3ECE29DE0547B9356A53 /* LinearGrotesk-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */; };
 		222A8572E9A13370F23CAF8B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 1756A8AE10A5643796F48366 /* Supabase */; };
+		2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */; };
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */; };
@@ -70,6 +71,7 @@
 		9C1766359067A8528CBEB51E /* Treatment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Treatment.swift; sourceTree = "<group>"; };
 		A3907ACFA103C7A45EF00015 /* Taper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Taper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A9B9903E0264C634FF6C6E5F /* TaperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperApp.swift; sourceTree = "<group>"; };
+		ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentView.swift; sourceTree = "<group>"; };
 		B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokenTests.swift; sourceTree = "<group>"; };
 		B4141AC4A48A1C21FFEBE461 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		B81A7A846268DDB13563347F /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
@@ -152,6 +154,7 @@
 				3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */,
 				29BE0845DD8EEF48524461D6 /* SickInBedView.swift */,
 				42AA9319A756BB1539B49424 /* StrengthView.swift */,
+				ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */,
 				5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */,
 			);
 			path = Onboarding;
@@ -350,6 +353,7 @@
 				F9AE040439B95F79AFDCC07C /* TaperApp.swift in Sources */,
 				C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
+				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
 				B47CED8A2E89349A7586059B /* WhatYouUseView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -791,3 +791,58 @@ struct TreatmentTests {
         #expect(answers.treatments == [.patch])
     }
 }
+
+/// Covers the copy O5a puts on screen, which is where a recommendation turns
+/// into sentences. The rows quote strengths, so the join between the number the
+/// planner chose and the number the user reads is the thing worth pinning.
+struct TreatmentCopyTests {
+    private func suggestion(pouches: Int = 10) -> TreatmentSuggestion {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(pouches, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+        return answers.treatmentSuggestion!
+    }
+
+    @Test("a row quotes the strength this plan uses, not a typical one")
+    func rowsQuoteThePlan() {
+        let suggestion = suggestion()
+        #expect(suggestion.detail(for: .patch) == "21 mg, 24 hours · the steady floor")
+        #expect(suggestion.detail(for: .lozenge) == "4 mg · for the moment a craving lands")
+        #expect(suggestion.detail(for: .gum) == "4 mg · instead of the lozenge")
+    }
+
+    @Test("a form the plan has no dose for is described without one")
+    func noDoseMeansNoNumber() {
+        // The row still appears — someone may want a patch anyway — but a
+        // strength printed beside it would be the app recommending a dose it
+        // did not choose.
+        let light = suggestion(pouches: 2)
+        #expect(light.strengthMg[.patch] == nil)
+        #expect(light.detail(for: .patch) == "the steady floor")
+        #expect(!light.detail(for: .patch).contains("mg"))
+    }
+
+    @Test("the blurb states the user's own figures before any claim")
+    func blurbLeadsWithTheirAnswers() {
+        // Order matters: their numbers first, so the suggestion reads as a
+        // consequence of what they said rather than a statistic with a
+        // preference attached.
+        let blurb = suggestion().blurb
+        #expect(blurb.hasPrefix("30 mg a day, first one inside 30 minutes of waking."))
+        #expect(blurb.hasSuffix("about a quarter more people get there."))
+    }
+
+    @Test("a single-form suggestion carries no claim at all")
+    func lightRunHasNoClaim() {
+        #expect(suggestion(pouches: 2).blurb == "6 mg a day, first one inside 30 minutes of waking.")
+    }
+
+    @Test("the headline names what is actually being suggested")
+    func headlineMatchesTheForms() {
+        #expect(suggestion().headline == "A patch and a lozenge")
+        #expect(suggestion(pouches: 2).headline == "A lozenge")
+    }
+}
