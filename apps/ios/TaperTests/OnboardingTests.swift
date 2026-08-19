@@ -463,6 +463,81 @@ struct FirstUseTests {
     }
 }
 
+/// Covers O5, whose risk is that a yes/no with an obvious-sounding answer is
+/// easy to store as a plain `Bool` and quietly default. It is the second of the
+/// two dependence items, so a default here is a plan built on a claim the user
+/// never made.
+struct SickInBedTests {
+    /// A run that sits one point under high without this item, so the answer
+    /// is what decides the band. A quit date is set because a reduction-only
+    /// plan holds a single cap and would hide the difference entirely.
+    private func plan(illInBed: Bool, minutes: Int = 20) -> TaperPlan {
+        TaperPlanner.plan(for: TaperInput(
+            startingCapMg: 24,
+            minutesToFirstUse: minutes,
+            usesWhenIllInBed: illInBed,
+            weeksUntilQuitDate: 1
+        ))
+    }
+
+    @Test("the question starts unanswered rather than answered no")
+    func startsNil() {
+        // A plain Bool would open on false, which is one of the two answers.
+        // Nobody has said it yet, and the bridge has to be able to tell.
+        #expect(OnboardingAnswers().usesWhenIllInBed == nil)
+    }
+
+    @Test("the run cannot continue past a question nobody answered")
+    func continueRequiresAnAnswer() {
+        // There is no skip, and no answer this screen can assume on someone's
+        // behalf. Walking past it is silent: the run would reach the plan
+        // preview with an input that can never resolve, and the first sign of
+        // trouble would be the last screen having nothing to show.
+        let answers = OnboardingAnswers()
+        #expect(answers.hasAnsweredSickInBed == false)
+        for option in SickInBedOption.all {
+            answers.usesWhenIllInBed = option.stillUses
+            #expect(answers.hasAnsweredSickInBed)
+        }
+    }
+
+    @Test("the yes row means yes")
+    func labelsMatchTheValuesTheyStandFor() {
+        // The one thing a reviewer cannot catch by looking at the screen: both
+        // rows render fine either way round, and a swap scores someone a whole
+        // band higher on an answer they did not give.
+        #expect(SickInBedOption.all.first { $0.label == "Yep" }?.stillUses == true)
+        #expect(SickInBedOption.all.first { $0.label == "Nope!" }?.stillUses == false)
+        #expect(SickInBedOption.all.map(\.stillUses) == [true, false])
+    }
+
+    @Test("both taps are recorded, and either can be changed to the other")
+    func bothAnswersStick() {
+        let answers = OnboardingAnswers()
+        for option in SickInBedOption.all {
+            answers.usesWhenIllInBed = option.stillUses
+            #expect(answers.usesWhenIllInBed == option.stillUses)
+        }
+    }
+
+    @Test("using through illness lengthens the descent, which is why it is asked")
+    func theAnswerChangesTheSchedule() {
+        // The screen spends a question on this, so it has to move the plan.
+        // If it did not, the honest change would be to delete the screen.
+        #expect(plan(illInBed: true).dependence == .high)
+        #expect(plan(illInBed: false).dependence == .moderate)
+        #expect(plan(illInBed: true).weeklyCapsMg.count > plan(illInBed: false).weeklyCapsMg.count)
+    }
+
+    @Test("it cannot outvote the strongest item on its own")
+    func doesNotOverrideFirstUse() {
+        // Reaching for it on waking is high dependence by itself. Answering
+        // "no" here must not talk that back down — the index weights the two
+        // items, it does not average them.
+        #expect(plan(illInBed: false, minutes: 3).dependence == .high)
+    }
+}
+
 /// Covers the seam between what onboarding collects and what the planner takes.
 ///
 /// The mapping is the risk: `minutesToFirstUse` is a number the user never sees

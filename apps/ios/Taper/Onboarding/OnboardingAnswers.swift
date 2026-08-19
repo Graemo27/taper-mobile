@@ -175,6 +175,27 @@ struct FirstUseOption: Identifiable, Equatable, Sendable {
     ]
 }
 
+/// Whether the habit survives being ill in bed — the second dependence item.
+///
+/// A yes/no, given a type rather than left as two literals in the view. The
+/// label and the value it stands for are the whole risk here: "Nope!" wired to
+/// `true` would score someone a band higher for an answer they did not give,
+/// and nothing on screen would look wrong. Pairing them in one value puts the
+/// mapping somewhere a test can read it.
+struct SickInBedOption: Identifiable, Equatable, Sendable {
+    let stillUses: Bool
+    let label: String
+
+    var id: Bool { stillUses }
+
+    /// Yes first, matching every other question in the run: the more dependent
+    /// answer leads, so the list reads as a scale rather than a coin toss.
+    static let all: [SickInBedOption] = [
+        SickInBedOption(stillUses: true, label: "Yep"),
+        SickInBedOption(stillUses: false, label: "Nope!"),
+    ]
+}
+
 /// Everything onboarding collects, accumulated as the user moves through it.
 ///
 /// One object rather than a value threaded screen to screen: the run branches —
@@ -201,6 +222,15 @@ final class OnboardingAnswers {
 
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
+
+    /// True once O5 has an answer either way.
+    ///
+    /// On the model rather than in the view because it is the gate on Continue,
+    /// and an ungated Continue here is invisible: the user walks past the
+    /// question, `usesWhenIllInBed` stays nil, and the run reaches the plan
+    /// preview with an input that can never resolve. Nothing looks wrong until
+    /// the last screen has nothing to show.
+    var hasAnsweredSickInBed: Bool { usesWhenIllInBed != nil }
 
     /// The strength to plan with for one source, in label milligrams.
     ///
