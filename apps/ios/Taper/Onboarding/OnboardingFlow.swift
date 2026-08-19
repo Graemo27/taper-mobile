@@ -64,8 +64,24 @@ struct OnboardingFlow: View {
     }
 
     private func advance(from step: OnboardingStep) {
-        guard let next = step.next else { return }
+        guard var next = step.next else { return }
+        // Skip questions this run cannot answer rather than showing them empty.
+        while !applies(next), let following = next.next { next = following }
         path.append(next)
+    }
+
+    /// Whether a step has anything to ask, given what the user has said.
+    ///
+    /// Only strength branches today: it is a per-piece question, and a run that
+    /// names only cigarettes or a vape has no per-piece figure to give. Asking
+    /// anyway would make them invent one, and the plan would be built on it.
+    private func applies(_ step: OnboardingStep) -> Bool {
+        switch step {
+        case .strength:
+            return answers.sources.contains { $0.usesPerUnitStrength }
+        default:
+            return true
+        }
     }
 
     private func goBack() {

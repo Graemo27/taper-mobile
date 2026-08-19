@@ -13,6 +13,8 @@ import SwiftUI
 /// middle of the range, and the helper text says so, so the screen and the
 /// arithmetic cannot disagree.
 struct StrengthView: View {
+    private static let exactEntryID = "exact-strength"
+
     @Bindable var answers: OnboardingAnswers
     let onContinue: () -> Void
     let onBack: () -> Void
@@ -24,10 +26,11 @@ struct StrengthView: View {
             question: "What strength, per piece?",
             helper: "The mg number on the Drug Facts panel. Not sure is fine — we'll assume \(Int(StrengthOption.assumedWhenUnsure)) mg and you can correct it later.",
             cta: "Continue",
-            onContinue: answers.strength == nil ? nil : onContinue,
+            onContinue: canContinue ? onContinue : nil,
             onBack: onBack
         ) {
-            VStack(spacing: AppSpacing.smPlus) {
+            ScrollViewReader { proxy in
+                VStack(spacing: AppSpacing.smPlus) {
                 ForEach(StrengthOption.pouch) { option in
                     OptionCard(
                         label: option.label,
@@ -36,9 +39,73 @@ struct StrengthView: View {
                         answers.strength = option
                     }
                 }
+
+                    if answers.strength?.isAtLeast == true {
+                        exactEntry.id(Self.exactEntryID)
+                    }
+                }
+                .padding(.horizontal, AppLayout.gutter)
+                // The entry appears below the fold, so revealing it without
+                // moving to it looks like the tap did nothing.
+                .onChange(of: answers.strength) { _, new in
+                    guard new?.isAtLeast == true else { return }
+                    withAnimation { proxy.scrollTo(Self.exactEntryID, anchor: .bottom) }
+                }
             }
-            .padding(.horizontal, AppLayout.gutter)
         }
+    }
+
+    /// An open-ended answer is a floor, not a value, so it asks for the number.
+    /// Planning on the floor would size the cap for 8 mg when the pouch might
+    /// be 12 — a cap set below what someone actually uses is one they blow on
+    /// day one, and that is worse than not being given one.
+    private var exactEntry: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("How many mg, exactly?")
+                .font(AppFont.text(AppSize.label, .medium))
+                .foregroundStyle(AppColor.ink)
+
+            HStack(spacing: AppSpacing.m) {
+                stepButton("minus") { adjust(-1) }
+
+                Text(answers.exactStrengthMg.map { "\(Int($0)) mg" } ?? "— mg")
+                    .font(AppFont.display(AppSize.unit))
+                    .foregroundStyle(answers.exactStrengthMg == nil ? AppColor.inkFaint : AppColor.ink)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(answers.exactStrengthMg.map { "\(Int($0)) milligrams" } ?? "Not set")
+
+                stepButton("plus") { adjust(1) }
+            }
+            .padding(AppSpacing.l)
+            .background(AppColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.large))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.large)
+                    .strokeBorder(AppColor.line, lineWidth: 1)
+            }
+        }
+        .padding(.top, AppSpacing.xs)
+    }
+
+    private func stepButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(AppColor.ink)
+                .frame(width: AppLayout.tap, height: AppLayout.tap)
+                .background(AppColor.sunken, in: Circle())
+        }
+        .accessibilityLabel(symbol == "plus" ? "More" : "Less")
+    }
+
+    private func adjust(_ delta: Double) {
+        let floor = answers.strength?.mg ?? StrengthOption.assumedWhenUnsure
+        let current = answers.exactStrengthMg ?? floor
+        // Never below the floor the user already chose — they said "or more".
+        answers.exactStrengthMg = max(floor, min(current + delta, 60))
+    }
+
+    private var canContinue: Bool {
+        answers.strength != nil && !answers.needsExactStrength
     }
 }
 

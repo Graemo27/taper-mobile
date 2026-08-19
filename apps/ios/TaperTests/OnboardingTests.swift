@@ -144,3 +144,56 @@ struct StrengthTests {
         #expect(StrengthOption.pouch.last?.mg == nil, "unsure belongs at the end, after the real answers")
     }
 }
+
+/// Covers the two review findings: an open-ended strength must not be planned
+/// on as an exact value, and the question must not be asked of a source that
+/// cannot answer it.
+struct StrengthRangeTests {
+    private func atLeastEight() -> StrengthOption {
+        StrengthOption.pouch.first { $0.isAtLeast }!
+    }
+
+    @Test("an unnarrowed floor does not pass as a stated strength")
+    func floorIsNotAStatedValue() {
+        // Planning on 8 for a 12 mg pouch sets a cap below what the user
+        // actually uses — one they blow on day one, which the evidence says is
+        // worse than never being given a schedule.
+        let answers = OnboardingAnswers()
+        answers.strength = atLeastEight()
+        #expect(answers.strengthIsAssumed)
+        #expect(answers.needsExactStrength)
+    }
+
+    @Test("the run cannot continue on a floor alone")
+    func floorBlocksContinue() {
+        let answers = OnboardingAnswers()
+        answers.strength = atLeastEight()
+        #expect(answers.needsExactStrength)
+        answers.exactStrengthMg = 12
+        #expect(answers.needsExactStrength == false)
+        #expect(answers.strengthMgPerUnit == 12)
+        #expect(answers.strengthIsAssumed == false)
+    }
+
+    @Test("an exact figure only applies to the open-ended option")
+    func exactIgnoredForClosedOptions() {
+        // A stale value left over from a previous answer must not override a
+        // strength the user has since stated plainly.
+        let answers = OnboardingAnswers()
+        answers.exactStrengthMg = 12
+        answers.strength = StrengthOption.pouch.first { $0.mg == 2 }
+        #expect(answers.strengthMgPerUnit == 2)
+    }
+
+    @Test("only sources with a printed per-piece figure are asked")
+    func strengthAppliesPerSource() {
+        // A cigarette's dose is a property of the cigarette, not a choice, and
+        // a vape is mg/mL against unmeasured puffs. Asking either would make
+        // the user invent a number the plan is then built on.
+        #expect(NicotineSource.pouches.usesPerUnitStrength)
+        #expect(NicotineSource.nrt.usesPerUnitStrength)
+        for source in [NicotineSource.cigarettes, .vape, .dip, .other] {
+            #expect(source.usesPerUnitStrength == false, "\(source) has no per-piece figure to pick")
+        }
+    }
+}
