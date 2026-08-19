@@ -231,7 +231,11 @@ final class OnboardingAnswers {
     /// The licensed forms chosen to taper with (O5a). Several, because the
     /// recommended shape is a patch plus a fast-acting form rather than one
     /// product.
-    var treatments: Set<TreatmentForm> = []
+    /// Write-restricted, unlike the other answers here. The two O5a answers
+    /// contradict each other, and that invariant lives in `toggle(_:)` and
+    /// `deferTreatment()` — a direct insert would walk straight past it and
+    /// leave the run holding both.
+    private(set) var treatments: Set<TreatmentForm> = []
     /// True when the user chose to start without a treatment.
     ///
     /// Not the same as an empty `treatments`, which only means the question is

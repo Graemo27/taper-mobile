@@ -747,6 +747,38 @@ struct TreatmentTests {
         #expect(answers.treatments.isEmpty)
     }
 
+    @Test("no sequence of taps can hold both answers at once")
+    func theInvariantSurvivesAnyOrder() {
+        // The pairwise check above covers the order I thought of. This covers
+        // the ones I did not: every route through the screen, three taps deep.
+        // `treatments` is write-restricted so these are the only routes there
+        // are — a direct insert would walk past the invariant, and would not
+        // compile.
+        enum Tap: CaseIterable {
+            case patch, lozenge, gum, decline
+        }
+
+        for first in Tap.allCases {
+            for second in Tap.allCases {
+                for third in Tap.allCases {
+                    let answers = OnboardingAnswers()
+                    for tap in [first, second, third] {
+                        switch tap {
+                        case .patch: answers.toggle(.patch)
+                        case .lozenge: answers.toggle(.lozenge)
+                        case .gum: answers.toggle(.gum)
+                        case .decline: answers.deferTreatment()
+                        }
+                    }
+                    #expect(
+                        !(answers.defersTreatment && !answers.treatments.isEmpty),
+                        "\(first)/\(second)/\(third) left both answers standing"
+                    )
+                }
+            }
+        }
+    }
+
     @Test("a patch and a fast-acting form can be held together")
     func combinationIsSelectable() {
         // The whole point of the screen: combination is the default shape, so
