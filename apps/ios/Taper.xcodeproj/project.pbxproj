@@ -16,6 +16,7 @@
 		2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */; };
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
+		46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D11BCE9F23EB213922A688E /* Trigger.swift */; };
 		579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */; };
 		6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */; };
 		6F8E07C984B35A07EC2FB82D /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */; };
@@ -24,6 +25,7 @@
 		7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */; };
 		8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */; };
 		98AF5F5F106A9B6BEFBB0D75 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17238832684900B8083CBB09 /* AppConfiguration.swift */; };
+		9E4D6288522F4AB37A15D35D /* TriggersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300FADDE21E940AC947261F7 /* TriggersView.swift */; };
 		9F0B1DAEDC3D1334DAA333FF /* SickInBedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BE0845DD8EEF48524461D6 /* SickInBedView.swift */; };
 		A26489120B610E40114135DC /* LinearGrotesk-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 58A09EF7EF844EE19A6EA3D2 /* LinearGrotesk-SemiBold.otf */; };
 		AD05E71ABAF750C27AE4956F /* LinearGrotesk-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */; };
@@ -60,6 +62,7 @@
 		29075C1BFAD49736B729C3DF /* AmountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountView.swift; sourceTree = "<group>"; };
 		29BE0845DD8EEF48524461D6 /* SickInBedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SickInBedView.swift; sourceTree = "<group>"; };
 		2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstUseView.swift; sourceTree = "<group>"; };
+		300FADDE21E940AC947261F7 /* TriggersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggersView.swift; sourceTree = "<group>"; };
 		3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionCard.swift; sourceTree = "<group>"; };
 		42AA9319A756BB1539B49424 /* StrengthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthView.swift; sourceTree = "<group>"; };
 		5218152C4EC89C9B5D06D692 /* StartingLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLine.swift; sourceTree = "<group>"; };
@@ -69,6 +72,7 @@
 		63F7D57B4CA77D384577A81C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLineView.swift; sourceTree = "<group>"; };
 		6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationTests.swift; sourceTree = "<group>"; };
+		6D11BCE9F23EB213922A688E /* Trigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trigger.swift; sourceTree = "<group>"; };
 		7647D93BDDDDB17B5CEDB528 /* Ginger.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ginger.otf; sourceTree = "<group>"; };
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
 		878DB78BEC425F63B60C1393 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -160,6 +164,8 @@
 				67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */,
 				42AA9319A756BB1539B49424 /* StrengthView.swift */,
 				ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */,
+				6D11BCE9F23EB213922A688E /* Trigger.swift */,
+				300FADDE21E940AC947261F7 /* TriggersView.swift */,
 				5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */,
 			);
 			path = Onboarding;
@@ -362,6 +368,8 @@
 				C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
 				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
+				46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */,
+				9E4D6288522F4AB37A15D35D /* TriggersView.swift in Sources */,
 				B47CED8A2E89349A7586059B /* WhatYouUseView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

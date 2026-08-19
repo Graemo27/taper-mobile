@@ -918,3 +918,67 @@ struct StartingLineTests {
         #expect(StartingLine(plan: plan, dailyMg: 0, firstUse: FirstUseOption.all[0]) == nil)
     }
 }
+
+/// Covers O7. The risk here is the opposite of every other screen's: not a
+/// fabricated number, but a question gated so that someone whose moments are
+/// not on the list has to tick a false one to get past it.
+struct TriggerTests {
+    @Test("the moments are situations, not states to be interpreted")
+    func triggersAreSituations() {
+        // "Stress" alone asks someone to interpret themselves before they can
+        // answer. Work stress and driving either happened or did not.
+        #expect(Trigger.allCases.count == 6)
+        #expect(Trigger.allCases.map(\.label).allSatisfy { !$0.isEmpty })
+        #expect(Set(Trigger.allCases.map(\.label)).count == Trigger.allCases.count)
+    }
+
+    @Test("several can be held at once, because most people have several")
+    func triggersAreMultiSelect() {
+        let answers = OnboardingAnswers()
+        answers.toggle(Trigger.work)
+        answers.toggle(Trigger.driving)
+        #expect(answers.triggers == [.work, .driving])
+        answers.toggle(Trigger.work)
+        #expect(answers.triggers == [.driving])
+    }
+
+    @Test("rows keep a stable order rather than a set's arbitrary one")
+    func orderIsStable() {
+        let answers = OnboardingAnswers()
+        answers.toggle(Trigger.boredom)
+        answers.toggle(Trigger.drinks)
+        #expect(answers.orderedTriggers == [.drinks, .boredom])
+    }
+
+    @Test("naming nothing is a permitted answer")
+    func noTriggerIsRequired() {
+        // The one ungated question in the run. Requiring a selection would make
+        // someone whose moments are not listed tick one that is false — the
+        // same fabrication the strength screen exists to avoid, in categorical
+        // form. Nothing downstream reads these as a number, so "none of these",
+        // "none at all" and "did not say" can safely behave alike.
+        let answers = OnboardingAnswers()
+        #expect(answers.triggers.isEmpty)
+        #expect(answers.orderedTriggers.isEmpty)
+    }
+
+    @Test("triggers reach no plan, so they cannot move one")
+    func triggersDoNotAffectThePlan() {
+        // They are context for the craving screen, not a dependence item. If
+        // ticking one ever changed the schedule, the screen would be quietly
+        // scoring people on an answer presented as optional.
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(6, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+
+        let before = TaperPlanner.plan(for: answers.taperInput!)
+        Trigger.allCases.forEach { answers.toggle($0) }
+        let after = TaperPlanner.plan(for: answers.taperInput!)
+
+        #expect(before.dependence == after.dependence)
+        #expect(before.weeklyCapsMg == after.weeklyCapsMg)
+    }
+}
