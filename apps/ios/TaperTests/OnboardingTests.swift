@@ -1380,3 +1380,169 @@ struct QuitDateContinuityTests {
         #expect(answers.quitDate == answers.defaultQuitDate())
     }
 }
+
+/// Covers O11 — the plan said back before the user commits to it.
+///
+/// The board draws one run. Most of this suite is the three it does not: a run
+/// with no date, a run whose date the descent cannot reach, and an intake that
+/// reads as a typo.
+struct PlanPreviewTests {
+    private let day = Date(timeIntervalSince1970: 1_760_000_000)
+
+    private func answers(
+        pouches: Int = 6,
+        minutes: Int = 20,
+        weeksOut: Int? = 8,
+        clock: (() -> Date)? = nil
+    ) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.now = clock ?? { self.day }
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(pouches, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == minutes }
+        answers.usesWhenIllInBed = true
+        answers.planShape = weeksOut == nil ? .reduceFirst : .quitDate
+        answers.quitDate = weeksOut.map { QuitDate.date(weeksFrom: day, weeks: $0) }
+        return answers
+    }
+
+    @Test("a dated run gets this week's cap, a countdown, and three stops")
+    func theBoardsRun() {
+        let preview = answers().planPreview
+        #expect(preview?.capMg == 18)
+        #expect(preview?.countdownDays == 56)
+        #expect(preview?.quitDate == QuitDate.date(weeksFrom: day, weeks: 8))
+        #expect(preview?.milestones.count == 3)
+        #expect(preview?.milestones.first?.title == "Hold at 18 mg — this week")
+        #expect(preview?.milestones.last?.title.contains("your quit date") == true)
+    }
+
+    @Test("the countdown comes off the plan, not off the date the user asked for")
+    func stretchedRunCountsThePlan() {
+        // The case the board does not draw. A date sooner than the descent can
+        // reach is stretched by the planner, and a countdown taken from the
+        // user's date would then run out with two weeks of schedule still to
+        // go — the app disagreeing with itself on the last screen before it
+        // asks for commitment.
+        let answers = answers(pouches: 10, minutes: 3, weeksOut: 2)
+        let plan = TaperPlanner.plan(for: answers.taperInput!)
+        #expect(plan.stretchedFromRequestedWeeks == 2)
+
+        let preview = answers.planPreview
+        #expect(preview?.countdownDays == 49)
+        #expect(preview?.countdownDays != 14)
+        #expect(preview?.quitDate == QuitDate.date(weeksFrom: day, weeks: 7))
+    }
+
+    @Test("a run with no date gets no countdown and invents no rate")
+    func undatedRunHoldsWhereItIs() {
+        // The planner holds one cap for this user deliberately, because most
+        // nicotine users are not ready to name a date. A borrowed countdown
+        // here would put them back in the product they declined.
+        let preview = answers(weeksOut: nil).planPreview
+        #expect(preview?.countdownDays == nil)
+        #expect(preview?.quitDate == nil)
+        #expect(preview?.milestones.count == 2)
+        #expect(preview?.milestones.contains { $0.title.contains("quit date") } == false)
+        // No weekly step figure anywhere, because the model produced none.
+        #expect(preview?.milestones.contains { $0.title.contains("mg a week") } == false)
+        #expect(preview?.note.contains("if and when") == true)
+    }
+
+    @Test("the step named is the drop the plan actually makes next week")
+    func stepMatchesTheDescent() {
+        let answers = answers()
+        let plan = TaperPlanner.plan(for: answers.taperInput!)
+        let step = plan.weeklyCapsMg[0] - plan.weeklyCapsMg[1]
+        #expect(step == 2)
+        #expect(answers.planPreview?.milestones[1].title == "Step down about 2 mg a week")
+        #expect(answers.planPreview?.milestones[1].detail.hasPrefix("8 steps") == true)
+    }
+
+    @Test("a stretched run's step is its own, not the comfortable run's")
+    func stepFollowsTheStretchedSchedule() {
+        // 30 mg over the seven weeks the planner insisted on, not the two asked
+        // for — a step sized to the requested date would be the one number on
+        // screen the plan does not honour.
+        #expect(answers(pouches: 10, minutes: 3, weeksOut: 2).planPreview?
+            .milestones[1].title == "Step down about 4.5 mg a week")
+    }
+
+    @Test("the landing names the form the user chose and the planner's strength")
+    func landingFollowsTheTreatmentAnswer() {
+        let answers = answers()
+        answers.toggle(.patch)
+        answers.toggle(.lozenge)
+        let plan = TaperPlanner.plan(for: answers.taperInput!)
+        #expect(plan.replacement.fastActingMg == 2)
+        #expect(answers.planPreview?.milestones.last?.detail.contains("2 mg lozenge") == true)
+    }
+
+    @Test("someone on gum is not told about a lozenge")
+    func landingUsesTheirOwnForm() {
+        let answers = answers()
+        answers.toggle(.gum)
+        #expect(answers.planPreview?.milestones.last?.detail.contains("2 mg gum") == true)
+        #expect(answers.planPreview?.milestones.last?.detail.contains("lozenge") == false)
+    }
+
+    @Test("the patch alone and no treatment at all each get their own ending")
+    func everyTreatmentAnswerHasABranch() {
+        // Three answers reach this screen and all three happen. Declining a
+        // treatment is a real answer, and describing a lozenge to someone who
+        // said no to one is the screen not having listened.
+        let patchOnly = answers()
+        patchOnly.toggle(.patch)
+        #expect(patchOnly.planPreview?.milestones.last?.detail.contains("patch is the last") == true)
+
+        let none = answers()
+        none.deferTreatment()
+        #expect(none.planPreview?.milestones.last?.detail.contains("Nothing to come off") == true)
+        #expect(none.planPreview?.milestones.last?.detail.contains("mg") == false)
+    }
+
+    @Test("an intake that reads as a typo is questioned before tracking starts")
+    func implausibleIntakeIsFlagged() {
+        // The planner has carried this flag since it was written and no screen
+        // has ever shown it. A cap set from a mistyped strength does not fail
+        // loudly — it never binds, so the app agrees with everything the user
+        // logs and the taper quietly does nothing.
+        let answers = answers()
+        // Pouches off, cigarettes on: 70 a day at 1.5 mg is 105, which is the
+        // shape of a mistyped count rather than a habit.
+        answers.toggle(.pouches)
+        answers.toggle(.cigarettes)
+        answers.setAmount(70, for: .cigarettes)
+        #expect(TaperPlanner.plan(for: answers.taperInput!).intakeLooksImplausible)
+        #expect(answers.planPreview?.caution?.contains("105 mg a day") == true)
+    }
+
+    @Test("an ordinary intake carries no warning")
+    func plausibleIntakeIsNotFlagged() {
+        #expect(answers().planPreview?.caution == nil)
+    }
+
+    @Test("the countdown and the date beneath it come from one reading of the clock")
+    func oneClockReadPerPreview() {
+        // Two reads can straddle midnight, and the plan then covers a runway
+        // that ends a day away from the date printed beside it. The clock here
+        // jumps a week per read, which is the same defect magnified until an
+        // assertion can see it.
+        var reads = 0
+        let start = day
+        let answers = answers(clock: {
+            defer { reads += 1 }
+            return Calendar.current.date(byAdding: .day, value: reads * 7, to: start)!
+        })
+        #expect(answers.planPreview?.countdownDays == 56)
+        #expect(answers.planPreview?.quitDate == QuitDate.date(weeksFrom: day, weeks: 8))
+    }
+
+    @Test("a half-answered run has no plan to preview")
+    func incompleteRunPreviewsNothing() {
+        let answers = answers()
+        answers.usesWhenIllInBed = nil
+        #expect(answers.planPreview == nil)
+    }
+}

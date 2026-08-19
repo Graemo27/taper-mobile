@@ -22,6 +22,7 @@
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D11BCE9F23EB213922A688E /* Trigger.swift */; };
 		579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */; };
+		5FDF70B60F61B72A27995CAD /* PlanPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8CE03E1DFE9D4B43113814E /* PlanPreview.swift */; };
 		68E94837D465D0736DFF7EFA /* ReadinessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB37897EAEF2B704CA943033 /* ReadinessView.swift */; };
 		6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */; };
 		6F8E07C984B35A07EC2FB82D /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */; };
@@ -95,6 +96,7 @@
 		B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
 		B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedBeforeView.swift; sourceTree = "<group>"; };
 		C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanTests.swift; sourceTree = "<group>"; };
+		C8CE03E1DFE9D4B43113814E /* PlanPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreview.swift; sourceTree = "<group>"; };
 		D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlan.swift; sourceTree = "<group>"; };
 		EB37897EAEF2B704CA943033 /* ReadinessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
 		EB95DC7ECFD078DAA05A2A27 /* PlanShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanShape.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 		D119BFA8C79F170BA31E8EF2 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				C8CE03E1DFE9D4B43113814E /* PlanPreview.swift */,
 				A69F8D2D5922193467A92830 /* QuitDate.swift */,
 				5218152C4EC89C9B5D06D692 /* StartingLine.swift */,
 				D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */,
@@ -377,6 +380,7 @@
 				0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */,
 				6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */,
 				DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */,
+				5FDF70B60F61B72A27995CAD /* PlanPreview.swift in Sources */,
 				11E30672A79775DC15E4EF95 /* PlanShape.swift in Sources */,
 				17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */,
 				A0D9656FB8FBFA282F86E1E1 /* QuitDate.swift in Sources */,
