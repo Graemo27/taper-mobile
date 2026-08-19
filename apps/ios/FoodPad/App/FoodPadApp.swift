@@ -1,388 +1,91 @@
 import SwiftUI
 
-/// Entry point. Launch arguments can swap any screen's dependencies for
-/// fixtures; without them everything composes against the real backend.
+/// Entry point.
+///
+/// Deliberately bare. The Food Pad UI it used to compose is gone and Taper's is
+/// not built yet, so this launches, signs in, and says so — nothing more. It is
+/// a placeholder with a job: proving the shell underneath still works before any
+/// screen is written on top of it.
 @main
-struct FoodPadApp: App {
-    @StateObject private var favourites = FavouritesComposition.makeModel()
-
+struct TaperApp: App {
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                if let fixture = AppComposition.foodFixture {
-                    FoodDetailView(
-                        model: FoodComposition.fixture(fixture),
-                        saveModel: SaveComposition.fixture(AppComposition.saveFixture),
-                        fdcID: 101
-                    )
-                } else if let fixture = AppComposition.searchFixture {
-                    SearchFlowView(
-                        model: SearchComposition.fixture(fixture),
-                        recent: RecentComposition.makeModel(),
-                        initialQuery: fixture == "idle" ? "" : "ap",
-                        fetch: FoodComposition.fixtureFetcher()
-                    )
-                } else {
-                    AppRootView(
-                        journal: JournalComposition.makeModel(),
-                        search: SearchComposition.makeModel(),
-                        recent: RecentComposition.makeModel(),
-                        fetch: SearchComposition.makeFetcher(),
-                        save: SearchComposition.makeSaver()
-                    )
-                }
-            }
-            .environmentObject(favourites)
-            .preferredColorScheme(.light)
+            LaunchStateView()
+                .preferredColorScheme(.light)
         }
     }
 }
 
-private struct AppRootView: View {
-    let journal: JournalModel
-    let search: SearchModel
-    let recent: RecentFoodsModel
-    let fetch: @Sendable (Int) async throws -> Food
-    let save: @Sendable (JournalDraft) async throws -> Void
-    @State private var isSearching = false
+/// Reports whether the app has a backend and whether a session was obtained.
+///
+/// The backend marker is carried over from the app this replaced, and is the one
+/// piece of that root worth keeping. A configured app and an app whose backend is
+/// unreachable used to render identically, so the difference was not observable —
+/// and an app that launched with no configuration at all once shipped, caught
+/// only by running it on a phone. Stating it on screen means the failure cannot
+/// hide again while there are no other screens to notice it.
+private struct LaunchStateView: View {
+    @State private var session: SessionState = .connecting
+
+    private enum SessionState {
+        case connecting
+        case signedIn(UUID)
+        case failed(String)
+    }
 
     var body: some View {
-        JournalShellView(model: journal) { isSearching = true }
-            // A configured app and an app whose backend is unreachable render
-            // the same journal failure, so the difference is not observable on
-            // screen. This marker is the only way a test can tell "launched
-            // without configuration" from "launched fine, network is down".
-            .overlay(alignment: .topLeading) {
-                if AppConfiguration.backend != nil {
-                    Color.clear.frame(width: 1, height: 1)
-                        .allowsHitTesting(false)
-                        .accessibilityElement()
-                        .accessibilityIdentifier("app.backend-configured")
-                }
-            }
-            .navigationDestination(isPresented: $isSearching) {
-                SearchFlowView(model: search, recent: recent, fetch: fetch, save: save)
-            }
-            .onChange(of: isSearching) { _, visible in
-                if !visible { Task { await journal.load() } }
-            }
-    }
-}
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Taper")
+                .font(.largeTitle.weight(.medium))
 
-private enum AppComposition {
-    static var foodFixture: String? { fixture(after: "-FPFoodFixture") }
-    static var favouriteFixture: String? { fixture(after: "-FPFavouriteFixture") }
-    static var recentFixture: String? { fixture(after: "-FPRecentFixture") }
-    static var saveFixture: String? { fixture(after: "-FPSaveFixture") }
-    static var searchFixture: String? { fixture(after: "-FPSearchFixture") }
-    static var journalE2E: Bool { ProcessInfo.processInfo.arguments.contains("-FPJournalE2E") }
-    static var journalE2ECleanup: Bool { ProcessInfo.processInfo.arguments.contains("-FPJournalE2ECleanup") }
+            Text("No screens yet — the Food Pad UI has been removed and Taper's is not built.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
 
-    private static func fixture(after flag: String) -> String? {
-        let arguments = ProcessInfo.processInfo.arguments
-        guard let marker = arguments.firstIndex(of: flag),
-              arguments.indices.contains(marker + 1) else { return nil }
-        return arguments[marker + 1]
-    }
-}
+            Divider().padding(.vertical, 4)
 
-@MainActor
-private enum RecentComposition {
-    static func makeModel() -> RecentFoodsModel {
-        if AppComposition.recentFixture == "refreshes" {
-            let fixture = RefreshFixture()
-            return RecentFoodsModel { await fixture.read() }
-        }
-        guard let backend = AppConfiguration.backend else {
-            return RecentFoodsModel { throw ConfigurationError.missing }
-        }
-        let client = AppSupabase.make(
-            url: backend.url, publishableKey: backend.publishableKey
-        )
-        let repository = RecentFoodsRepository(
-            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
-            source: SupabaseRecentFoodsDataSource(client: client)
-        )
-        return RecentFoodsModel { try await repository.list() }
-    }
-
-    private actor RefreshFixture {
-        private var reads = 0
-        func read() -> [RecentFood] {
-            reads += 1
-            return [RecentFood(
-                fdcID: 101, name: "Apple", servingLabel: reads == 1 ? "1 medium" : "2 medium", kcal: 95
-            )]
-        }
-    }
-
-}
-
-@MainActor
-private enum FavouritesComposition {
-    static func makeModel() -> FavouritesModel {
-        if let fixture = AppComposition.favouriteFixture {
-            let initial: Set<Int> = fixture == "on" ? [101] : []
-            return FavouritesModel(read: { initial }) { _, _ in
-                if fixture == "fails" { throw FixtureError.failed }
-            }
-        }
-        guard let backend = AppConfiguration.backend else {
-            return FavouritesModel(
-                read: { throw ConfigurationError.missing },
-                persist: { _, _ in throw ConfigurationError.missing }
+            Label(
+                AppConfiguration.backend == nil ? "No backend configured" : "Backend configured",
+                systemImage: AppConfiguration.backend == nil ? "xmark.circle" : "checkmark.circle"
             )
-        }
-        let client = AppSupabase.make(
-            url: backend.url, publishableKey: backend.publishableKey
-        )
-        let repository = FavouritesRepository(
-            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
-            source: SupabaseFavouritesDataSource(client: client)
-        )
-        return FavouritesModel(read: { try await repository.list() }, persist: repository.set)
-    }
-
-    private enum FixtureError: Error { case failed }
-}
-
-@MainActor
-private enum SearchComposition {
-    static func makeModel() -> SearchModel {
-        guard let backend = AppConfiguration.backend else {
-            return SearchModel { _ in throw ConfigurationError.missing }
-        }
-        let client = AppSupabase.make(
-            url: backend.url, publishableKey: backend.publishableKey
-        )
-        let repository = FoodSearchRepository(
-            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
-            source: SupabaseFoodSearchDataSource(client: client)
-        )
-        return SearchModel { try await repository.search($0) }
-    }
-
-    static func makeFetcher() -> @Sendable (Int) async throws -> Food {
-        guard let backend = AppConfiguration.backend else {
-            return { _ in throw ConfigurationError.missing }
-        }
-        let client = AppSupabase.make(
-            url: backend.url, publishableKey: backend.publishableKey
-        )
-        let repository = FoodSearchRepository(
-            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
-            source: SupabaseFoodSearchDataSource(client: client)
-        )
-        return { try await repository.food(fdcID: $0) }
-    }
-
-    static func makeSaver() -> @Sendable (JournalDraft) async throws -> Void {
-        guard let backend = AppConfiguration.backend else {
-            return { _ in throw ConfigurationError.missing }
-        }
-        let client = AppSupabase.make(
-            url: backend.url, publishableKey: backend.publishableKey
-        )
-        let repository = JournalWriteRepository(
-            sessions: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
-            source: SupabaseJournalWriteDataSource(client: client)
-        )
-        return { _ = try await repository.save($0) }
-    }
-
-    static func fixture(_ name: String) -> SearchModel {
-        let results = foods
-        switch name {
-        case "results": return SearchModel { _ in FoodSearchResult(foods: results, unavailable: 0) }
-        case "empty": return SearchModel { _ in FoodSearchResult(foods: [], unavailable: 0) }
-        case "failed": return SearchModel { _ in throw FixtureError.failed }
-        default:
-            return SearchModel { _ in
-                try await Task.sleep(for: .seconds(60))
-                return FoodSearchResult(foods: [], unavailable: 0)
-            }
-        }
-    }
-
-    private static let foods = [
-        Food(
-            fdcId: 101, name: "Apple", category: "Fruit", dataType: "Foundation",
-            portion: Portion(label: "1 medium", grams: 182),
-            per100g: Nutrients(kcal: 52, proteinG: 0.3, fibreG: 2.4, vitaminEMg: 0.2, magnesiumMg: 5, unsaturatedFatG: 0.1),
-            perServing: Nutrients(kcal: 95, proteinG: 0.5, fibreG: 4.4, vitaminEMg: 0.3, magnesiumMg: 9, unsaturatedFatG: 0.2),
-            portions: [Portion(label: "1 medium", grams: 182)]
-        ),
-        Food(
-            fdcId: 102, name: "Apple juice", category: "Beverages", dataType: "Foundation",
-            portion: nil, per100g: .empty, perServing: nil, portions: []
-        ),
-    ]
-
-    private enum FixtureError: Error { case failed }
-}
-
-@MainActor
-private enum FoodComposition {
-    static func fixtureFetcher() -> @Sendable (Int) async throws -> Food {
-        let food = fixtureFood
-        return { _ in food }
-    }
-
-    static func fixture(_ name: String) -> FoodLookupModel {
-        let food = fixtureFood
-        switch name {
-        case "loaded": return FoodLookupModel { _ in food }
-        case "missing": return FoodLookupModel { _ in
-            throw FoodSearchError("That food could not be found.", kind: .http, status: 404)
-        }
-        case "failed": return FoodLookupModel { _ in throw FixtureError.failed }
-        default: return FoodLookupModel { _ in
-            try await Task.sleep(for: .seconds(60))
-            return food
-        }
-        }
-    }
-
-    private static let fixtureFood = Food(
-        fdcId: 101, name: "Almonds", category: "Nuts", dataType: "Foundation",
-        portion: Portion(label: "1 oz", grams: 28),
-        per100g: Nutrients(kcal: 579, proteinG: 21.2, fibreG: 12.5, vitaminEMg: 25.6, magnesiumMg: 270, unsaturatedFatG: 43.9),
-        perServing: nil, portions: [Portion(label: "1 oz", grams: 28)]
-    )
-
-    private enum FixtureError: Error { case failed }
-}
-
-@MainActor
-private enum SaveComposition {
-    static func fixture(_ name: String?) -> FoodSaveModel {
-        name == "succeeds"
-            ? FoodSaveModel(save: { _ in })
-            : FoodSaveModel(save: { _ in throw FixtureError.failed })
-    }
-
-    private enum FixtureError: Error { case failed }
-}
-
-@MainActor
-private enum JournalComposition {
-    static func makeModel() -> JournalModel {
-        let calendar = Calendar.current
-        let launchedAt = Date.now
-        let today = JournalRepository.localDate(launchedAt, calendar: calendar)
-        let arguments = ProcessInfo.processInfo.arguments
-        if let marker = arguments.firstIndex(of: "-FPJournalFixture"), arguments.indices.contains(marker + 1) {
-            return fixture(arguments[marker + 1], today: today, launchedAt: launchedAt, calendar: calendar)
-        }
-
-        guard let backend = AppConfiguration.backend else {
-            return JournalModel(today: today) { throw ConfigurationError.missing }
-        }
-        let client = AppSupabase.make(
-            url: backend.url, publishableKey: backend.publishableKey
-        )
-        let sessions = SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
-        let repository = JournalRepository(
-            sessions: sessions,
-            source: SupabaseJournalDataSource(client: client)
-        )
-        let deletion = JournalDeleteRepository(
-            sessions: sessions, source: SupabaseJournalDeleteDataSource(client: client)
-        )
-        if AppComposition.journalE2E || AppComposition.journalE2ECleanup {
-            let harness = JournalE2EHarness(
-                read: repository,
-                write: JournalWriteRepository(
-                    sessions: sessions, source: SupabaseJournalWriteDataSource(client: client)
-                ),
-                deletion: deletion
+            .accessibilityIdentifier(
+                AppConfiguration.backend == nil ? "app.backend-missing" : "app.backend-configured"
             )
-            if AppComposition.journalE2ECleanup {
-                return JournalModel(today: today) { try await harness.cleanup(); return [] }
+
+            switch session {
+            case .connecting:
+                Label("Signing in…", systemImage: "clock")
+            case let .signedIn(id):
+                Label("Signed in anonymously", systemImage: "person.fill.checkmark")
+                    .accessibilityIdentifier("app.session-active")
+                Text(id.uuidString)
+                    .font(.footnote.monospaced())
+                    .foregroundStyle(.secondary)
+            case let .failed(message):
+                Label(message, systemImage: "exclamationmark.triangle")
+                    .accessibilityIdentifier("app.session-failed")
             }
-            return JournalModel(
-                today: today, loadEntries: { try await harness.load() },
-                deleteEntry: { try await harness.remove(id: $0) }
-            )
+
+            Spacer()
         }
-        return JournalModel(
-            today: today, loadEntries: { try await repository.listEntries() },
-            deleteEntry: { id in try await deletion.remove(id: id); return false }
-        )
+        .font(.body)
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task { await signIn() }
     }
 
-    private static func fixture(_ name: String, today: String, launchedAt: Date, calendar: Calendar) -> JournalModel {
-        let yesterdayDate = calendar.date(byAdding: .day, value: -1, to: launchedAt)!
-        let yesterday = JournalRepository.localDate(yesterdayDate, calendar: calendar)
-        let rows = [
-            JournalEntry(id: 101, eatenOn: today, name: "Apple", servingLabel: "1 medium", kcal: 95),
-            JournalEntry(id: 102, eatenOn: today, name: "Toast", servingLabel: nil, kcal: nil),
-            JournalEntry(id: 103, eatenOn: yesterday, name: "Soup", servingLabel: "1 bowl", kcal: 180),
-        ]
-        switch name {
-        case "populated": return JournalModel(today: today) { rows }
-        case "failed-with-rows": return JournalModel(entries: rows, today: today) { throw FixtureError.failed }
-        case "failed": return JournalModel(today: today) { throw FixtureError.failed }
-        case "loading": return JournalModel(today: today, loadsAutomatically: false) { [] }
-        default: return JournalModel(today: today) { [] }
+    private func signIn() async {
+        guard let backend = AppConfiguration.backend else {
+            session = .failed("Run Scripts/write-config.sh, then rebuild.")
+            return
         }
-    }
-
-    private enum FixtureError: Error { case failed }
-}
-
-private actor JournalE2EHarness {
-    private static let name = "FP swipe test"
-    private static let pendingKey = "JournalE2EPendingRowIDs"
-    let read: JournalRepository
-    let write: JournalWriteRepository
-    let deletion: JournalDeleteRepository
-    private var seeded: JournalEntry?
-
-    init(read: JournalRepository, write: JournalWriteRepository, deletion: JournalDeleteRepository) {
-        self.read = read
-        self.write = write
-        self.deletion = deletion
-    }
-
-    func load() async throws -> [JournalEntry] {
-        if let seeded { return [seeded] }
-        try await cleanup()
-        let entry = try await write.save(JournalDraft(
-            fdcID: 1, name: Self.name, servingLabel: "1 test serving", servings: 1,
-            grams: 1, kcal: 1, proteinG: nil, fibreG: nil
-        ))
-        record(entry.id)
-        seeded = entry
-        return [entry]
-    }
-
-    func remove(id: Int) async throws -> Bool {
-        try await deletion.remove(id: id)
-        return try await !read.listEntries().contains { $0.id == id }
-    }
-
-    func cleanup() async throws {
-        for id in pendingIDs {
-            try await deletion.remove(id: id)
-            forget(id)
+        let client = AppSupabase.make(url: backend.url, publishableKey: backend.publishableKey)
+        do {
+            session = .signedIn(try await SessionCoordinator(
+                auth: SupabaseAnonymousAuth(client: client)
+            ).userID())
+        } catch {
+            session = .failed("Sign-in failed: \(error.localizedDescription)")
         }
-        for entry in (try? await read.listEntries()) ?? [] where entry.name == Self.name {
-            try await deletion.remove(id: entry.id)
-        }
-    }
-
-    private var pendingIDs: [Int] {
-        UserDefaults.standard.array(forKey: Self.pendingKey) as? [Int] ?? []
-    }
-
-    private func record(_ id: Int) {
-        UserDefaults.standard.set(Array(Set(pendingIDs + [id])), forKey: Self.pendingKey)
-        UserDefaults.standard.synchronize()
-    }
-
-    private func forget(_ id: Int) {
-        UserDefaults.standard.set(pendingIDs.filter { $0 != id }, forKey: Self.pendingKey)
-        UserDefaults.standard.synchronize()
     }
 }
