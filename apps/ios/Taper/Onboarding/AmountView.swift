@@ -70,19 +70,24 @@ struct AmountRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: AppSpacing.s) {
-                stepButton("minus", filled: false) { onChange(amount - step) }
-                    .disabled(amount == 0)
-                    .opacity(amount == 0 ? 0.35 : 1)
+                stepButton("minus", filled: false, label: "Decrease \(title)") {
+                    onChange(amount - step)
+                }
+                .disabled(amount == 0)
+                .opacity(amount == 0 ? 0.35 : 1)
 
                 Text("\(amount)")
                     .font(AppFont.display(AppSize.metric))
                     .foregroundStyle(AppColor.ink)
+                    .accessibilityLabel("\(amount) \(subtitle.lowercased())")
                     // Wide enough for three digits, so the stepper does not
                     // shuffle sideways as the count crosses 10 or 100.
                     .frame(minWidth: 56)
                     .lineLimit(1)
 
-                stepButton("plus", filled: true) { onChange(amount + step) }
+                stepButton("plus", filled: true, label: "Increase \(title)") {
+                    onChange(amount + step)
+                }
             }
             .fixedSize()
         }
@@ -95,12 +100,21 @@ struct AmountRow: View {
             RoundedRectangle(cornerRadius: AppRadius.large)
                 .strokeBorder(AppColor.line, lineWidth: 1)
         }
-        .accessibilityElement(children: .combine)
+        // `.contain` rather than `.combine`: combining flattens the row into a
+        // single element and demotes the two steppers from buttons to custom
+        // actions, which hides them from Voice Control and buries them behind
+        // the rotor in VoiceOver. Containment keeps each button reachable and
+        // still groups them under the row.
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("\(title), \(subtitle)")
-        .accessibilityValue("\(amount)")
     }
 
-    private func stepButton(_ symbol: String, filled: Bool, action: @escaping () -> Void) -> some View {
+    private func stepButton(
+        _ symbol: String,
+        filled: Bool,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .medium))
@@ -114,7 +128,9 @@ struct AmountRow: View {
                     }
                 }
         }
-        .accessibilityLabel(filled ? "More" : "Less")
+        // Named for the source, because a screen with several rows would
+        // otherwise announce four identical "More" and "Less" buttons.
+        .accessibilityLabel(label)
     }
 }
 
