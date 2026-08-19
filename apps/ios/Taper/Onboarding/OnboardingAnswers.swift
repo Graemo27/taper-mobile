@@ -394,6 +394,16 @@ final class OnboardingAnswers {
     /// without. Silence is neither.
     var hasAnsweredTreatment: Bool { !treatments.isEmpty || defersTreatment }
 
+    /// The run said back to the user on O6, or nil while it is incomplete.
+    var startingLine: StartingLine? {
+        guard let input = taperInput, let firstUse else { return nil }
+        return StartingLine(
+            plan: TaperPlanner.plan(for: input),
+            dailyMg: input.startingCapMg,
+            firstUse: firstUse
+        )
+    }
+
     /// What to suggest on O5a, or nil while the answers it rests on are
     /// incomplete. The suggestion restates the user's own figures, so a
     /// half-answered run has nothing honest to put on the screen.
