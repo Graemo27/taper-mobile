@@ -100,3 +100,47 @@ struct OnboardingStepTests {
         #expect(OnboardingStep.planPreview.next == nil)
     }
 }
+
+/// Covers the strength answer, whose whole subtlety is that "not sure" has to
+/// produce a usable number without pretending the user supplied it.
+struct StrengthTests {
+    @Test("a stated strength is used as given")
+    func statedStrengthIsUsed() {
+        let answers = OnboardingAnswers()
+        answers.strength = StrengthOption.pouch.first { $0.mg == 6 }
+        #expect(answers.strengthMgPerUnit == 6)
+        #expect(answers.strengthIsAssumed == false)
+    }
+
+    @Test("not sure still yields a number, and is flagged as assumed")
+    func unsureResolvesButIsFlagged() {
+        // Refusing to continue until someone fetches a tin is how a run gets
+        // abandoned — but a number the app invented must not be presented back
+        // as one the user gave.
+        let answers = OnboardingAnswers()
+        answers.strength = StrengthOption.pouch.first { $0.mg == nil }
+        #expect(answers.strengthMgPerUnit == StrengthOption.assumedWhenUnsure)
+        #expect(answers.strengthIsAssumed)
+    }
+
+    @Test("an unanswered question yields nothing at all")
+    func unansweredIsNil() {
+        let answers = OnboardingAnswers()
+        #expect(answers.strengthMgPerUnit == nil)
+        // Not "assumed" either — nothing has been assumed yet.
+        #expect(answers.strengthIsAssumed == false)
+    }
+
+    @Test("the assumed value is one the picker actually offers")
+    func assumptionMatchesAnOffer() {
+        // The helper text names this number. If it drifted from the options the
+        // screen would promise one thing and the arithmetic do another.
+        #expect(StrengthOption.pouch.contains { $0.mg == StrengthOption.assumedWhenUnsure })
+    }
+
+    @Test("exactly one option is the unsure one")
+    func oneUnsureOption() {
+        #expect(StrengthOption.pouch.filter { $0.mg == nil }.count == 1)
+        #expect(StrengthOption.pouch.last?.mg == nil, "unsure belongs at the end, after the real answers")
+    }
+}
