@@ -256,3 +256,150 @@ struct StrengthRangeTests {
     }
 }
 
+/// Covers the amounts screen: each source counted in its own unit, and a
+/// starting figure that is an index rather than a measurement.
+struct AmountTests {
+    @Test("each source is counted in a unit its user actually knows")
+    func unitsAreNative() {
+        #expect(NicotineSource.vape.unitLabel == "Puffs a day")
+        #expect(NicotineSource.cigarettes.unitLabel == "Cigarettes a day")
+        #expect(NicotineSource.dip.unitLabel == "Packs a day")
+        // Nobody is asked for milligrams they cannot read off a pack.
+        for source in NicotineSource.allCases {
+            #expect(!source.unitLabel.lowercased().contains("mg"))
+        }
+    }
+
+    @Test("puffs step in fives, everything else in ones")
+    func stepMatchesTheUnit() {
+        // Puffs run to dozens; stepping one at a time would make the honest
+        // answer the tedious one.
+        #expect(NicotineSource.vape.step == 5)
+        for source in NicotineSource.allCases where source != .vape {
+            #expect(source.step == 1)
+        }
+    }
+
+    @Test("only sources with nothing printed carry an estimate")
+    func estimatesOnlyWhereNothingIsPrinted() {
+        // A pouch and a lozenge print their strength, so the user tells us.
+        #expect(NicotineSource.pouches.estimatedMgPerUnit == nil)
+        #expect(NicotineSource.nrt.estimatedMgPerUnit == nil)
+        for source in [NicotineSource.cigarettes, .vape, .dip, .other] {
+            #expect(source.estimatedMgPerUnit != nil)
+        }
+    }
+
+    @Test("the cigarette estimate matches the only benchmark the vault holds")
+    func cigaretteEstimateIsSourced() {
+        // 20 a day absorbing 20–40 mg puts one cigarette at 1–2 mg; 1.5 is the
+        // midpoint consistent with both figures in nicotine-dose-reference.
+        let perUnit = NicotineSource.cigarettes.estimatedMgPerUnit!
+        #expect(perUnit * 20 >= 20)
+        #expect(perUnit * 20 <= 40)
+    }
+
+    @Test("pouches and gum each keep their own printed strength")
+    func mixedPrintedStrengthsStaySeparate() {
+        // The bug this replaced: one answer applied to both, so a 6 mg pouch
+        // made gum count as 6 mg — a strength gum is not sold in.
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.toggle(.nrt)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 6 }
+        answers.strengths[.nrt] = StrengthOption.nrt.first { $0.mg == 2 }
+        answers.setAmount(5, for: .pouches)   // 30
+        answers.setAmount(4, for: .nrt)       // 8
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 6)
+        #expect(answers.strengthMgPerUnit(for: .nrt) == 2)
+        #expect(answers.startingCapMg == 38)
+    }
+
+    @Test("each source is offered only the strengths its own product comes in")
+    func optionsAreKeyedToTheSource() {
+        #expect(StrengthOption.options(for: .pouches) == StrengthOption.pouch)
+        #expect(StrengthOption.options(for: .nrt) == StrengthOption.nrt)
+    }
+
+    @Test("an unsure answer resolves per product, not per run")
+    func unsureIsPerSource() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.toggle(.nrt)
+        answers.strengths[.pouches] = StrengthOption.pouch.last  // not sure
+        answers.strengths[.nrt] = StrengthOption.nrt.last        // not sure
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 3)
+        #expect(answers.strengthMgPerUnit(for: .nrt) == 2)
+    }
+
+    @Test("a floor narrowed for one source does not narrow the other")
+    func exactStrengthIsPerSource() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.toggle(.nrt)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.isAtLeast }
+        answers.strengths[.nrt] = StrengthOption.nrt.first { $0.mg == 4 }
+        #expect(answers.sourcesNeedingExactStrength == [.pouches])
+        answers.exactStrengths[.pouches] = 12
+        #expect(answers.sourcesNeedingExactStrength.isEmpty)
+        #expect(answers.strengthMgPerUnit(for: .pouches) == 12)
+        #expect(answers.strengthMgPerUnit(for: .nrt) == 4)
+    }
+
+    @Test("a printed strength is used for pouches, not an estimate")
+    func printedStrengthWins() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 6 }
+        answers.setAmount(5, for: .pouches)
+        #expect(answers.startingCapMg == 30)
+    }
+
+    @Test("sources sum, each through its own conversion")
+    func sourcesSum() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.toggle(.cigarettes)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(6, for: .pouches)      // 18 label mg
+        answers.setAmount(10, for: .cigarettes)  // 15 estimated mg
+        #expect(answers.startingCapMg == 33)
+    }
+
+    @Test("deselecting a source stops it counting from off-screen")
+    func amountsFollowSources() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.cigarettes)
+        answers.setAmount(20, for: .cigarettes)
+        #expect(answers.startingCapMg == 30)
+        answers.toggle(.cigarettes)
+        #expect(answers.amounts.isEmpty)
+        #expect(answers.startingCapMg == 0)
+    }
+
+    @Test("rows keep a stable order rather than a set's arbitrary one")
+    func orderIsStable() {
+        // Rows that reshuffle between renders are unusable.
+        let answers = OnboardingAnswers()
+        answers.toggle(.dip)
+        answers.toggle(.pouches)
+        answers.toggle(.vape)
+        #expect(answers.orderedSources == [.pouches, .vape, .dip])
+    }
+
+    @Test("an amount cannot go below zero")
+    func amountHasAFloor() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.setAmount(-4, for: .pouches)
+        #expect(answers.amount(for: .pouches) == 0)
+    }
+
+    @Test("an unanswered source starts at a plausible middle, not at zero")
+    func defaultsAreUsable() {
+        let answers = OnboardingAnswers()
+        answers.toggle(.vape)
+        #expect(answers.amount(for: .vape) == 40)
+        #expect(answers.amount(for: .vape) % NicotineSource.vape.step == 0)
+    }
+}

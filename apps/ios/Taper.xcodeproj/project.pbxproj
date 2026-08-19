@@ -15,6 +15,7 @@
 		579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */; };
 		6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */; };
 		6F8E07C984B35A07EC2FB82D /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */; };
+		6FC5F8FF70EEE97E2A587D01 /* AmountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29075C1BFAD49736B729C3DF /* AmountView.swift */; };
 		79FD6A2D96FDD74756B4F236 /* StrengthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42AA9319A756BB1539B49424 /* StrengthView.swift */; };
 		7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */; };
 		8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */; };
@@ -50,6 +51,7 @@
 		18B449F8640CEFAA743C9ADE /* TaperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TaperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScaffold.swift; sourceTree = "<group>"; };
 		1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Medium.otf"; sourceTree = "<group>"; };
+		29075C1BFAD49736B729C3DF /* AmountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountView.swift; sourceTree = "<group>"; };
 		3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionCard.swift; sourceTree = "<group>"; };
 		42AA9319A756BB1539B49424 /* StrengthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthView.swift; sourceTree = "<group>"; };
 		54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 		871C1EB35ACC873E654C8086 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				29075C1BFAD49736B729C3DF /* AmountView.swift */,
 				093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */,
 				B81A7A846268DDB13563347F /* OnboardingFlow.swift */,
 				1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */,
@@ -322,6 +325,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6FC5F8FF70EEE97E2A587D01 /* AmountView.swift in Sources */,
 				98AF5F5F106A9B6BEFBB0D75 /* AppConfiguration.swift in Sources */,
 				DF19A8B86E15E68CEDD4948C /* Controls.swift in Sources */,
 				B495B01DAD58B742106956BB /* DesignTokens.swift in Sources */,
