@@ -63,3 +63,40 @@ struct OnboardingTests {
         #expect(under.fillForTesting(0) == 0)
     }
 }
+
+/// Covers the sequence itself — that every step has a place in the run, and
+/// that the progress it reports is derived rather than typed in per screen.
+struct OnboardingStepTests {
+    @Test("the run is twelve steps in three sections of four")
+    func sequenceIsWholeAndDivisible() {
+        // The indicator shows three segments by design, matching the Paper
+        // board, and each covers four screens. Twelve ticks on one track reads
+        // as barely moving, which is the opposite of the point.
+        #expect(OnboardingStep.allCases.count == 12)
+        #expect(OnboardingStep.allCases.count % OnboardingProgress.sections == 0)
+    }
+
+    @Test("progress advances section by section across the whole run")
+    func progressIsDerivedFromPosition() {
+        #expect(OnboardingStep.whatYouUse.progress.section == 0)
+        #expect(OnboardingStep.firstUse.progress.section == 0)
+        #expect(OnboardingStep.sickInBed.progress.section == 1)
+        #expect(OnboardingStep.triedBefore.progress.section == 2)
+        #expect(OnboardingStep.planPreview.progress.section == 2)
+    }
+
+    @Test("the first step of a section part-fills it and the last completes it")
+    func fractionSpansItsSection() {
+        #expect(OnboardingStep.whatYouUse.progress.fraction == 0.25)
+        #expect(OnboardingStep.firstUse.progress.fraction == 1)
+        #expect(OnboardingStep.planPreview.progress.fraction == 1)
+    }
+
+    @Test("every step has a successor except the last")
+    func sequenceTerminates() {
+        for step in OnboardingStep.allCases where step != .planPreview {
+            #expect(step.next != nil, "\(step) leads nowhere")
+        }
+        #expect(OnboardingStep.planPreview.next == nil)
+    }
+}

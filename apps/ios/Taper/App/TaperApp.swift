@@ -8,13 +8,10 @@ import SwiftUI
 /// when there is something to persist.
 @main
 struct TaperApp: App {
-    @State private var answers = OnboardingAnswers()
-
     var body: some Scene {
         WindowGroup {
-            WhatYouUseView(answers: answers) {}
+            OnboardingFlow()
                 .preferredColorScheme(.light)
         }
     }
 }
-

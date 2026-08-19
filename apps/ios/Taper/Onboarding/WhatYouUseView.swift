@@ -16,7 +16,7 @@ struct WhatYouUseView: View {
     var body: some View {
         OnboardingScaffold(
             section: "What you use",
-            progress: OnboardingProgress(section: 0, sectionCount: OnboardingProgress.sections, fraction: 0.33),
+            progress: OnboardingStep.whatYouUse.progress,
             question: "What are you quitting?",
             helper: "Pick everything you use. Gum, lozenges and patches come next — those are the tools, not the habit.",
             cta: "Continue",
