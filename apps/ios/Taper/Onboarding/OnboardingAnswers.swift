@@ -257,6 +257,12 @@ final class OnboardingAnswers {
     /// personalisation.
     private(set) var triggers: Set<Trigger> = []
 
+    /// What they have already tried (O8).
+    ///
+    /// Write-restricted: "never really tried" excludes every other answer, and
+    /// that invariant lives in `toggle(_:)`.
+    private(set) var priorAttempts: Set<PriorAttempt> = []
+
     /// True once O5 has an answer either way.
     ///
     /// On the model rather than in the view because it is the gate on Continue,
@@ -396,6 +402,28 @@ final class OnboardingAnswers {
         }
         defersTreatment = false
     }
+
+    /// Picks or unpicks something tried before.
+    ///
+    /// "Never really tried" clears everything else and is cleared by anything
+    /// else, from either direction. The two are contradictory answers to one
+    /// question, and holding both would let a later screen read whichever it
+    /// happened to look at first.
+    func toggle(_ attempt: PriorAttempt) {
+        if priorAttempts.contains(attempt) {
+            priorAttempts.remove(attempt)
+        } else if attempt.isNone {
+            priorAttempts = [attempt]
+        } else {
+            priorAttempts.remove(.neverTried)
+            priorAttempts.insert(attempt)
+        }
+    }
+
+    /// True once O8 has an answer. Unlike the triggers screen, this one can
+    /// gate: "never really tried" is on the list, so someone with nothing to
+    /// report has a true answer to give rather than an empty one.
+    var hasAnsweredPriorAttempts: Bool { !priorAttempts.isEmpty }
 
     /// Picks or unpicks a trigger. No exclusivity to keep here — the moments
     /// are independent, and most people have several.

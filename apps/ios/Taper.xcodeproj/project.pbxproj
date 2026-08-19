@@ -9,11 +9,13 @@
 /* Begin PBXBuildFile section */
 		04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1766359067A8528CBEB51E /* Treatment.swift */; };
 		0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A7A846268DDB13563347F /* OnboardingFlow.swift */; };
+		17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08785AAB390FD2A3138DB75C /* PriorAttempt.swift */; };
 		199779256158861C053608A1 /* StartingLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5218152C4EC89C9B5D06D692 /* StartingLine.swift */; };
 		20ED3ECE29DE0547B9356A53 /* LinearGrotesk-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */; };
 		222A8572E9A13370F23CAF8B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 1756A8AE10A5643796F48366 /* Supabase */; };
 		22893C0087D74E2CBD5D2CD2 /* StartingLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */; };
 		2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */; };
+		2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */; };
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D11BCE9F23EB213922A688E /* Trigger.swift */; };
@@ -53,6 +55,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		08785AAB390FD2A3138DB75C /* PriorAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorAttempt.swift; sourceTree = "<group>"; };
 		093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingAnswers.swift; sourceTree = "<group>"; };
 		0CD1316F44498C566B2C429B /* HTTPClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClientTests.swift; sourceTree = "<group>"; };
 		17238832684900B8083CBB09 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
@@ -84,6 +87,7 @@
 		B4141AC4A48A1C21FFEBE461 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		B81A7A846268DDB13563347F /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
+		B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedBeforeView.swift; sourceTree = "<group>"; };
 		C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanTests.swift; sourceTree = "<group>"; };
 		D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlan.swift; sourceTree = "<group>"; };
 		EE711B9158A40AC1D87F748F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
@@ -160,10 +164,12 @@
 				B81A7A846268DDB13563347F /* OnboardingFlow.swift */,
 				1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */,
 				3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */,
+				08785AAB390FD2A3138DB75C /* PriorAttempt.swift */,
 				29BE0845DD8EEF48524461D6 /* SickInBedView.swift */,
 				67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */,
 				42AA9319A756BB1539B49424 /* StrengthView.swift */,
 				ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */,
+				B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */,
 				6D11BCE9F23EB213922A688E /* Trigger.swift */,
 				300FADDE21E940AC947261F7 /* TriggersView.swift */,
 				5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */,
@@ -359,6 +365,7 @@
 				0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */,
 				6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */,
 				DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */,
+				17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */,
 				6F8E07C984B35A07EC2FB82D /* SessionCoordinator.swift in Sources */,
 				9F0B1DAEDC3D1334DAA333FF /* SickInBedView.swift in Sources */,
 				199779256158861C053608A1 /* StartingLine.swift in Sources */,
@@ -368,6 +375,7 @@
 				C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
 				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
+				2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */,
 				46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */,
 				9E4D6288522F4AB37A15D35D /* TriggersView.swift in Sources */,
 				B47CED8A2E89349A7586059B /* WhatYouUseView.swift in Sources */,

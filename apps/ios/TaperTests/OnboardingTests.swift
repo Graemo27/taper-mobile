@@ -982,3 +982,98 @@ struct TriggerTests {
         #expect(before.weeklyCapsMg == after.weeklyCapsMg)
     }
 }
+
+/// Covers O8. Two things to hold: the exclusive answer stays exclusive from
+/// either direction, and nothing here reaches the plan — the helper promises
+/// there are no wrong answers, and a screen that scored people would be
+/// contradicting the sentence that got them to answer honestly.
+struct PriorAttemptTests {
+    @Test("never really tried is an answer, which is what lets this screen gate")
+    func theNoneOptionExists() {
+        // The triggers screen cannot gate because it has no such option. This
+        // one can, and should: waiting for an answer costs nobody a
+        // fabrication when "nothing" is on the list.
+        #expect(PriorAttempt.allCases.filter(\.isNone).count == 1)
+        #expect(PriorAttempt.neverTried.isNone)
+
+        let answers = OnboardingAnswers()
+        #expect(answers.hasAnsweredPriorAttempts == false)
+        answers.toggle(PriorAttempt.neverTried)
+        #expect(answers.hasAnsweredPriorAttempts)
+    }
+
+    @Test("choosing something clears never really tried")
+    func somethingClearsNothing() {
+        let answers = OnboardingAnswers()
+        answers.toggle(PriorAttempt.neverTried)
+        answers.toggle(PriorAttempt.coldTurkey)
+        #expect(answers.priorAttempts == [.coldTurkey])
+    }
+
+    @Test("choosing never really tried clears everything else")
+    func nothingClearsSomething() {
+        let answers = OnboardingAnswers()
+        answers.toggle(PriorAttempt.coldTurkey)
+        answers.toggle(PriorAttempt.patches)
+        answers.toggle(PriorAttempt.neverTried)
+        #expect(answers.priorAttempts == [.neverTried])
+    }
+
+    @Test("no sequence of taps can hold the exclusive answer beside another")
+    func exclusivitySurvivesAnyOrder() {
+        // Three taps deep over every option, because the pairwise orders are
+        // the ones already thought of.
+        for first in PriorAttempt.allCases {
+            for second in PriorAttempt.allCases {
+                for third in PriorAttempt.allCases {
+                    let answers = OnboardingAnswers()
+                    [first, second, third].forEach { answers.toggle($0) }
+                    let held = answers.priorAttempts
+                    #expect(
+                        !(held.contains(.neverTried) && held.count > 1),
+                        "\(first)/\(second)/\(third) held both"
+                    )
+                }
+            }
+        }
+    }
+
+    @Test("everything else stays multi-select")
+    func realAttemptsCombine() {
+        // Most people have a list — that is what the helper says, so the
+        // control has to allow one.
+        let answers = OnboardingAnswers()
+        answers.toggle(PriorAttempt.coldTurkey)
+        answers.toggle(PriorAttempt.patches)
+        answers.toggle(PriorAttempt.prescription)
+        #expect(answers.priorAttempts == [.coldTurkey, .patches, .prescription])
+    }
+
+    @Test("prescription medicines are named rather than quietly left off")
+    func prescriptionIsListed() {
+        // Someone prescribed varenicline has tried something more effective
+        // than anything this app offers. Omitting it from the list would be the
+        // product editing the user's history to flatter itself.
+        #expect(PriorAttempt.prescription.label.contains("varenicline"))
+    }
+
+    @Test("nothing tried before moves the plan")
+    func priorAttemptsDoNotAffectThePlan() {
+        // The helper promises no wrong answers. Scoring these would make that
+        // sentence false, and no evidence in the vault supports a rule anyway.
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(6, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+
+        let before = TaperPlanner.plan(for: answers.taperInput!)
+        PriorAttempt.allCases.forEach { answers.toggle($0) }
+        let after = TaperPlanner.plan(for: answers.taperInput!)
+
+        #expect(before.dependence == after.dependence)
+        #expect(before.weeklyCapsMg == after.weeklyCapsMg)
+        #expect(before.replacement.patchMg == after.replacement.patchMg)
+    }
+}
