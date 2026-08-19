@@ -25,10 +25,6 @@ enum NicotineSource: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-
-
-
-
     var label: String {
         switch self {
         case .pouches: return "Pouches"
@@ -116,7 +112,6 @@ final class OnboardingAnswers {
     /// The exact figure per source, once an open-ended option is narrowed down.
     var exactStrengths: [NicotineSource: Double] = [:]
 
-
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
 
@@ -160,9 +155,6 @@ final class OnboardingAnswers {
         NicotineSource.allCases.filter { sources.contains($0) }
     }
 
-
-
-
     func toggle(_ source: NicotineSource) {
         if sources.contains(source) {
             sources.remove(source)
@@ -174,6 +166,5 @@ final class OnboardingAnswers {
         // never be shown or corrected — just used.
         strengths = strengths.filter { sources.contains($0.key) }
         exactStrengths = exactStrengths.filter { sources.contains($0.key) }
-
     }
 }

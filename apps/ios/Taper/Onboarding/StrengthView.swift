@@ -36,10 +36,27 @@ struct StrengthView: View {
         }
     }
 
+    /// Names the assumption, and which product it belongs to when there is more
+    /// than one. `clean` rather than `Int` because a fractional assumption — a
+    /// 1.5 mg lozenge — would otherwise read as "1 mg" here while the planner
+    /// used 1.5, which is precisely the disagreement `assumedWhenUnsure(for:)`
+    /// promises cannot happen.
     private var helper: String {
-        let assumed = sources.map { Int(StrengthOption.assumedWhenUnsure(for: $0)) }
-        let names = assumed.map(String.init).joined(separator: " and ")
-        return "The mg number on the pack. Not sure is fine — we'll assume \(names) mg and you can correct it later."
+        let assumed: String
+        if sources.count > 1 {
+            assumed = sources
+                .map { "\(StrengthOption.assumedWhenUnsure(for: $0).clean) mg for \(shortName($0))" }
+                .joined(separator: " and ")
+        } else {
+            assumed = sources.first.map { "\(StrengthOption.assumedWhenUnsure(for: $0).clean) mg" } ?? ""
+        }
+        return "The mg number on the pack. Not sure is fine — we'll assume \(assumed) and you can correct it later."
+    }
+
+    /// A form that reads inside a sentence. Only pouches and NRT reach this
+    /// screen, so the other cases would be dead prose.
+    private func shortName(_ source: NicotineSource) -> String {
+        source == .pouches ? "pouches" : "gum or lozenges"
     }
 
     @ViewBuilder

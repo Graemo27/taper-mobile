@@ -150,6 +150,21 @@ struct StrengthTests {
         }
     }
 
+    @Test("every strength survives being formatted for display")
+    func strengthsFormatLosslessly() {
+        // The screen prints these and the planner uses them, so a formatter
+        // that loses precision makes the two disagree — 1.5 mg reading as
+        // "1 mg" while the plan is built on 1.5. Integer truncation passes
+        // unnoticed today because 3 and 2 are whole; the lozenge set is where
+        // it would bite.
+        for option in StrengthOption.pouch + StrengthOption.nrt {
+            guard let mg = option.mg else { continue }
+            #expect(Double(mg.clean) == mg, "\(mg) formats as \(mg.clean)")
+        }
+        #expect(1.5.clean == "1.5")
+        #expect(3.0.clean == "3")
+    }
+
     @Test("a gum user is only offered strengths gum is sold in")
     func nrtSetMatchesTheProduct() {
         // 3 and 6 mg are pouch strengths; every option must be an answer
