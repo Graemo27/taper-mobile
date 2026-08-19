@@ -1,80 +1,94 @@
 import SwiftUI
 
-/// O2 — how strong one of whatever they use is.
+/// O2 — the printed strength, asked once per product that prints one.
 ///
-/// Single-select, unlike O1: a pouch has one strength, and offering several
-/// would produce a number nobody could act on. The list ends at "8 mg or more"
-/// rather than climbing, because commercial pouches run past 40 mg and a
-/// picker that reached them would read as a menu.
+/// A run naming both pouches and gum has two strengths to give, and they are
+/// not interchangeable: gum comes in 2 and 4 mg, pouches in 2 to 8. Answering
+/// once for both would apply a pouch figure to gum, which is the same
+/// fabrication this screen exists to avoid — just one level further in.
 ///
-/// "Not sure" is a first-class answer, not an escape hatch. The number lives on
-/// the tin and most people are not holding one while answering — refusing to
-/// continue until they fetch it is how a run gets abandoned. It resolves to the
-/// middle of the range, and the helper text says so, so the screen and the
-/// arithmetic cannot disagree.
+/// Sources without a printed figure never reach here; the flow skips the step.
 struct StrengthView: View {
-    private static let exactEntryID = "exact-strength"
-
     @Bindable var answers: OnboardingAnswers
     let onContinue: () -> Void
     let onBack: () -> Void
+
+    private var sources: [NicotineSource] { answers.sourcesWithPrintedStrength }
 
     var body: some View {
         OnboardingScaffold(
             section: "What you use",
             progress: OnboardingStep.strength.progress,
-            question: "What strength, per piece?",
-            helper: "The mg number on the Drug Facts panel. Not sure is fine — we'll assume \(Int(StrengthOption.assumedWhenUnsure(for: answers.sources))) mg and you can correct it later.",
+            question: sources.count > 1 ? "What strengths?" : "What strength, per piece?",
+            helper: helper,
             cta: "Continue",
             onContinue: canContinue ? onContinue : nil,
             onBack: onBack
         ) {
             ScrollViewReader { proxy in
-                VStack(spacing: AppSpacing.smPlus) {
-                ForEach(StrengthOption.options(for: answers.sources)) { option in
-                    OptionCard(
-                        label: option.label,
-                        isSelected: answers.strength == option
-                    ) {
-                        answers.strength = option
-                    }
-                }
-
-                    if answers.strength?.isAtLeast == true {
-                        exactEntry.id(Self.exactEntryID)
+                VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                    ForEach(sources) { source in
+                        section(for: source, proxy: proxy)
                     }
                 }
                 .padding(.horizontal, AppLayout.gutter)
-                // The entry appears below the fold, so revealing it without
-                // moving to it looks like the tap did nothing.
-                .onChange(of: answers.strength) { _, new in
-                    guard new?.isAtLeast == true else { return }
-                    withAnimation { proxy.scrollTo(Self.exactEntryID, anchor: .bottom) }
-                }
             }
         }
     }
 
-    /// An open-ended answer is a floor, not a value, so it asks for the number.
-    /// Planning on the floor would size the cap for 8 mg when the pouch might
-    /// be 12 — a cap set below what someone actually uses is one they blow on
-    /// day one, and that is worse than not being given one.
-    private var exactEntry: some View {
+    private var helper: String {
+        let assumed = sources.map { Int(StrengthOption.assumedWhenUnsure(for: $0)) }
+        let names = assumed.map(String.init).joined(separator: " and ")
+        return "The mg number on the pack. Not sure is fine — we'll assume \(names) mg and you can correct it later."
+    }
+
+    @ViewBuilder
+    private func section(for source: NicotineSource, proxy: ScrollViewProxy) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.smPlus) {
+            // Only labelled when there is more than one, so the common
+            // single-source run keeps the plain list the design asks for.
+            if sources.count > 1 {
+                Text(source.label)
+                    .font(AppFont.text(AppSize.label, .medium))
+                    .foregroundStyle(AppColor.inkMuted)
+            }
+
+            ForEach(StrengthOption.options(for: source)) { option in
+                OptionCard(label: option.label, isSelected: answers.strengths[source] == option) {
+                    answers.strengths[source] = option
+                }
+            }
+
+            if answers.strengths[source]?.isAtLeast == true {
+                exactEntry(for: source).id(source.id)
+            }
+        }
+        .onChange(of: answers.strengths[source]) { _, new in
+            // The entry appears below the fold, so revealing it without moving
+            // to it looks like the tap did nothing.
+            guard new?.isAtLeast == true else { return }
+            withAnimation { proxy.scrollTo(source.id, anchor: .bottom) }
+        }
+    }
+
+    /// An open-ended answer is a floor, not a value. Planning on the floor would
+    /// size the cap for 8 mg when the pouch might be 12, and a cap set below
+    /// what someone actually uses is one they blow on day one.
+    private func exactEntry(for source: NicotineSource) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Text("How many mg, exactly?")
                 .font(AppFont.text(AppSize.label, .medium))
                 .foregroundStyle(AppColor.ink)
 
             HStack(spacing: AppSpacing.m) {
-                stepButton("minus") { adjust(-1) }
+                stepButton("minus") { adjust(-1, for: source) }
 
-                Text(answers.exactStrengthMg.map { "\(Int($0)) mg" } ?? "— mg")
+                Text(answers.exactStrengths[source].map { "\($0.clean) mg" } ?? "— mg")
                     .font(AppFont.display(AppSize.unit))
-                    .foregroundStyle(answers.exactStrengthMg == nil ? AppColor.inkFaint : AppColor.ink)
+                    .foregroundStyle(answers.exactStrengths[source] == nil ? AppColor.inkFaint : AppColor.ink)
                     .frame(maxWidth: .infinity)
-                    .accessibilityLabel(answers.exactStrengthMg.map { "\(Int($0)) milligrams" } ?? "Not set")
 
-                stepButton("plus") { adjust(1) }
+                stepButton("plus") { adjust(1, for: source) }
             }
             .padding(AppSpacing.l)
             .background(AppColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.large))
@@ -97,18 +111,24 @@ struct StrengthView: View {
         .accessibilityLabel(symbol == "plus" ? "More" : "Less")
     }
 
-    private func adjust(_ delta: Double) {
-        let floor = answers.strength?.mg ?? StrengthOption.assumedWhenUnsure(for: answers.sources)
-        let current = answers.exactStrengthMg ?? floor
+    private func adjust(_ delta: Double, for source: NicotineSource) {
+        let floor = answers.strengths[source]?.mg ?? StrengthOption.assumedWhenUnsure(for: source)
+        let current = answers.exactStrengths[source] ?? floor
         // Never below the floor the user already chose — they said "or more".
-        answers.exactStrengthMg = max(floor, min(current + delta, 60))
+        answers.exactStrengths[source] = max(floor, min(current + delta, 60))
     }
 
     private var canContinue: Bool {
-        answers.strength != nil && !answers.needsExactStrength
+        !sources.isEmpty
+            && sources.allSatisfy { answers.strengths[$0] != nil }
+            && answers.sourcesNeedingExactStrength.isEmpty
     }
 }
 
-#Preview {
-    StrengthView(answers: OnboardingAnswers(), onContinue: {}, onBack: {})
+extension Double {
+    /// Drops a trailing `.0`, so 3 reads as "3 mg" and 1.5 as "1.5 mg" — the
+    /// lozenge strengths make the fractional case real rather than theoretical.
+    var clean: String {
+        self == rounded() ? String(Int(self)) : String(self)
+    }
 }
