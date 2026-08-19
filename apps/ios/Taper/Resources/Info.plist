@@ -26,10 +26,10 @@
 	<string>$(SUPABASE_URL_SCHEME)://$(SUPABASE_URL_HOST)</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Geist-Regular.ttf</string>
-		<string>Geist-Medium.ttf</string>
-		<string>Geist-SemiBold.ttf</string>
-		<string>Geist-Bold.ttf</string>
+		<string>Ginger.otf</string>
+		<string>LinearGrotesk-Regular.otf</string>
+		<string>LinearGrotesk-Medium.otf</string>
+		<string>LinearGrotesk-SemiBold.otf</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>

@@ -12,7 +12,8 @@ struct RetryButton: View {
             Label("Try again", systemImage: "arrow.clockwise")
         }
         .buttonStyle(.borderedProminent)
-        .tint(AppColor.brand)
+        .tint(AppColor.accent)
+        .foregroundStyle(AppColor.onAccent)
         .accessibilityLabel(spokenLabel)
         .accessibilityIdentifier(identifier)
     }

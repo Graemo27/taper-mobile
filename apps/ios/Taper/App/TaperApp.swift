@@ -11,6 +11,7 @@ struct TaperApp: App {
     var body: some Scene {
         WindowGroup {
             LaunchStateView()
+                .background(AppColor.ground)
                 .preferredColorScheme(.light)
         }
     }
@@ -34,13 +35,14 @@ private struct LaunchStateView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.m) {
             Text("Taper")
-                .font(.largeTitle.weight(.medium))
+                .font(AppFont.display(AppSize.display))
+                .foregroundStyle(AppColor.ink)
 
-            Text("No screens yet — the Food Pad UI has been removed and Taper's is not built.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            Text("No screens yet. The design system is in — this text is Linear Grotesk, the title above is Ginger.")
+                .font(AppFont.text(AppSize.body))
+                .foregroundStyle(AppColor.inkMuted)
 
             Divider().padding(.vertical, 4)
 
@@ -59,8 +61,8 @@ private struct LaunchStateView: View {
                 Label("Signed in anonymously", systemImage: "person.fill.checkmark")
                     .accessibilityIdentifier("app.session-active")
                 Text(id.uuidString)
-                    .font(.footnote.monospaced())
-                    .foregroundStyle(.secondary)
+                    .font(AppFont.text(AppSize.caption))
+                    .foregroundStyle(AppColor.inkFaint)
             case let .failed(message):
                 Label(message, systemImage: "exclamationmark.triangle")
                     .accessibilityIdentifier("app.session-failed")
@@ -68,8 +70,8 @@ private struct LaunchStateView: View {
 
             Spacer()
         }
-        .font(.body)
-        .padding(24)
+        .font(AppFont.text(AppSize.body))
+        .padding(AppLayout.gutter)
         .frame(maxWidth: .infinity, alignment: .leading)
         .task { await signIn() }
     }
