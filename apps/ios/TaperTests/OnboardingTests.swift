@@ -629,3 +629,133 @@ struct TaperInputBridgeTests {
         #expect(plan?.dependence == .high)
     }
 }
+
+/// Covers O5a, where the app stops asking and starts recommending.
+///
+/// Two risks, both of them the screen telling the user something the product
+/// does not actually stand behind: a dose shown here that the plan does not
+/// use, and a claim stronger than the evidence it rests on.
+struct TreatmentTests {
+    private func answers(pouches: Int = 10, strengthMg: Double = 3, minutes: Int = 20) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == strengthMg }
+        answers.setAmount(pouches, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == minutes }
+        answers.usesWhenIllInBed = true
+        return answers
+    }
+
+    @Test("only forms someone can actually get are offered")
+    func noPrescriptionOnlyForms() {
+        // The schema carries inhaler and spray because a user may already be on
+        // one. Offering them here would be a dead end dressed as a choice — and
+        // every option on this screen is one the app is recommending.
+        #expect(TreatmentForm.allCases.map(\.rawValue) == ["patch", "lozenge", "gum"])
+    }
+
+    @Test("every strength shown is one the plan committed to")
+    func strengthsComeFromThePlan() {
+        // The screen is not allowed its own numbers. A 21 mg patch printed here
+        // beside a plan built on 14 is a recommendation the product does not
+        // stand behind, and nothing downstream would contradict it.
+        let answers = answers()
+        let plan = TaperPlanner.plan(for: answers.taperInput!)
+        let suggestion = answers.treatmentSuggestion!
+        #expect(suggestion.strengthMg[.patch] == plan.replacement.patchMg)
+        #expect(suggestion.strengthMg[.lozenge] == plan.replacement.fastActingMg)
+        #expect(suggestion.strengthMg[.gum] == plan.replacement.fastActingMg)
+    }
+
+    @Test("a light intake is suggested one product, with no patch strength")
+    func lightIntakeGetsNoPatch() {
+        // Below the threshold the planner warrants no patch. Listing one with a
+        // strength attached would recommend it by implication.
+        let light = answers(pouches: 2, strengthMg: 2)
+        let suggestion = light.treatmentSuggestion!
+        #expect(suggestion.forms == [.lozenge])
+        #expect(suggestion.strengthMg[.patch] == nil)
+    }
+
+    @Test("the combination claim is made only about the combination")
+    func evidenceOnlyWhereItApplies() {
+        // The evidence compares two products against one. Repeating it beside a
+        // single-product suggestion would attach a finding to something it did
+        // not measure.
+        #expect(answers().treatmentSuggestion?.evidence != nil)
+        #expect(answers(pouches: 2, strengthMg: 2).treatmentSuggestion?.evidence == nil)
+    }
+
+    @Test("the claim states the estimate, not the top of its interval")
+    func evidenceIsNotRoundedUp() {
+        // RR 1.27 (1.17–1.37). "About a third" reads the ceiling as the
+        // estimate, which is the one direction a health claim must not drift.
+        let claim = answers().treatmentSuggestion?.evidence ?? ""
+        #expect(claim.contains("a quarter"))
+        #expect(!claim.contains("a third"))
+    }
+
+    @Test("the suggestion reads the user's own answers back")
+    func basisRestatesTheRun() {
+        // 10 pouches at 3 mg, first one within 30 minutes — both figures are
+        // the user's, and the sentence has to be the one they would recognise.
+        #expect(answers().treatmentSuggestion?.basis == "30 mg a day, first one inside 30 minutes of waking.")
+    }
+
+    @Test("every first-use answer has a recap that reads in the sentence")
+    func everyRecapFits() {
+        // The recap is a second wording of an answer already given. One that
+        // does not fit produces a sentence about a band the user did not pick.
+        for option in FirstUseOption.all {
+            #expect(!option.recap.isEmpty)
+            #expect(option.recap.first?.isUppercase == false)
+            #expect(!option.recap.hasSuffix("."))
+        }
+        #expect(Set(FirstUseOption.all.map(\.recap)).count == FirstUseOption.all.count)
+    }
+
+    @Test("a half-answered run has nothing to suggest")
+    func incompleteRunSuggestsNothing() {
+        let answers = answers()
+        answers.firstUse = nil
+        #expect(answers.treatmentSuggestion == nil)
+    }
+
+    @Test("declining and choosing are answers; silence is not")
+    func theQuestionHasThreeStates() {
+        let answers = OnboardingAnswers()
+        #expect(answers.hasAnsweredTreatment == false)
+        answers.toggle(.patch)
+        #expect(answers.hasAnsweredTreatment)
+        answers.deferTreatment()
+        #expect(answers.hasAnsweredTreatment)
+        #expect(answers.treatments.isEmpty)
+    }
+
+    @Test("choosing and declining cannot both be true at once")
+    func theTwoAnswersCancel() {
+        // They are contradictory answers to one question. Holding both would
+        // let the run continue on whichever the next screen happened to read.
+        let answers = OnboardingAnswers()
+        answers.deferTreatment()
+        answers.toggle(.patch)
+        #expect(answers.defersTreatment == false)
+        #expect(answers.treatments == [.patch])
+
+        answers.deferTreatment()
+        #expect(answers.defersTreatment)
+        #expect(answers.treatments.isEmpty)
+    }
+
+    @Test("a patch and a fast-acting form can be held together")
+    func combinationIsSelectable() {
+        // The whole point of the screen: combination is the default shape, so
+        // the control has to allow it rather than treating forms as exclusive.
+        let answers = OnboardingAnswers()
+        answers.toggle(.patch)
+        answers.toggle(.lozenge)
+        #expect(answers.treatments == [.patch, .lozenge])
+        answers.toggle(.lozenge)
+        #expect(answers.treatments == [.patch])
+    }
+}

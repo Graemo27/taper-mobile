@@ -163,15 +163,20 @@ struct StrengthOption: Identifiable, Equatable, Sendable {
 struct FirstUseOption: Identifiable, Equatable, Sendable {
     let minutes: Int
     let label: String
+    /// The same answer phrased to sit inside a sentence, for the screens that
+    /// read a run back to the user. Carried on the option rather than rebuilt
+    /// from `minutes`, so the recap cannot describe a band the user did not
+    /// pick — the label and the recap are one answer with two wordings.
+    let recap: String
 
     var id: String { label }
 
     static let all: [FirstUseOption] = [
-        FirstUseOption(minutes: 3, label: "It's the first thing I do"),
-        FirstUseOption(minutes: 20, label: "Within 30 minutes"),
-        FirstUseOption(minutes: 45, label: "Within an hour"),
-        FirstUseOption(minutes: 180, label: "A few hours in"),
-        FirstUseOption(minutes: 360, label: "Afternoon or later"),
+        FirstUseOption(minutes: 3, label: "It's the first thing I do", recap: "before anything else"),
+        FirstUseOption(minutes: 20, label: "Within 30 minutes", recap: "inside 30 minutes of waking"),
+        FirstUseOption(minutes: 45, label: "Within an hour", recap: "inside an hour of waking"),
+        FirstUseOption(minutes: 180, label: "A few hours in", recap: "a few hours after waking"),
+        FirstUseOption(minutes: 360, label: "Afternoon or later", recap: "in the afternoon or later"),
     ]
 }
 
@@ -222,6 +227,17 @@ final class OnboardingAnswers {
 
     /// True once the user has said enough for the run to continue.
     var hasChosenSources: Bool { !sources.isEmpty }
+
+    /// The licensed forms chosen to taper with (O5a). Several, because the
+    /// recommended shape is a patch plus a fast-acting form rather than one
+    /// product.
+    var treatments: Set<TreatmentForm> = []
+    /// True when the user chose to start without a treatment.
+    ///
+    /// Not the same as an empty `treatments`, which only means the question is
+    /// unanswered. Someone who has actively declined has told us something, and
+    /// the app owes them a run that proceeds rather than a screen that waits.
+    private(set) var defersTreatment = false
 
     /// True once O5 has an answer either way.
     ///
@@ -347,5 +363,42 @@ final class OnboardingAnswers {
         strengths = strengths.filter { sources.contains($0.key) }
         exactStrengths = exactStrengths.filter { sources.contains($0.key) }
         amounts = amounts.filter { sources.contains($0.key) }
+    }
+
+    /// Picks or unpicks a treatment form.
+    ///
+    /// Choosing one cancels a previous "not right now", because the two are
+    /// contradictory answers to the same question and holding both would let
+    /// the run continue on whichever the next screen happened to read.
+    func toggle(_ form: TreatmentForm) {
+        if treatments.contains(form) {
+            treatments.remove(form)
+        } else {
+            treatments.insert(form)
+        }
+        defersTreatment = false
+    }
+
+    /// Records that the user is starting without a treatment, clearing anything
+    /// picked before. Same reason as above, from the other side.
+    func deferTreatment() {
+        treatments.removeAll()
+        defersTreatment = true
+    }
+
+    /// True once O5a has an answer — a form, or an explicit decision to go
+    /// without. Silence is neither.
+    var hasAnsweredTreatment: Bool { !treatments.isEmpty || defersTreatment }
+
+    /// What to suggest on O5a, or nil while the answers it rests on are
+    /// incomplete. The suggestion restates the user's own figures, so a
+    /// half-answered run has nothing honest to put on the screen.
+    var treatmentSuggestion: TreatmentSuggestion? {
+        guard let input = taperInput, let firstUse else { return nil }
+        return TreatmentSuggestion(
+            plan: TaperPlanner.plan(for: input),
+            dailyMg: input.startingCapMg,
+            firstUse: firstUse
+        )
     }
 }
