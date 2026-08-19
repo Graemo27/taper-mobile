@@ -37,10 +37,10 @@ targets:
         UIUserInterfaceStyle: Light
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIAppFonts:
-          - Geist-Regular.ttf
-          - Geist-Medium.ttf
-          - Geist-SemiBold.ttf
-          - Geist-Bold.ttf
+          - Ginger.otf
+          - LinearGrotesk-Regular.otf
+          - LinearGrotesk-Medium.otf
+          - LinearGrotesk-SemiBold.otf
         UILaunchScreen: {}
     settings:
       base:
