@@ -1277,3 +1277,37 @@ struct QuitDateTests {
         #expect(answers.quitDateSummary == nil)
     }
 }
+
+/// Covers the picker's lower bound, which is a date comparison masquerading as
+/// a day comparison — and therefore wrong in a way only the clock reveals.
+struct QuitDateBoundsTests {
+    @Test("today stays selectable at every hour of the day")
+    func todayIsNeverGreyedOut() {
+        // DatePicker compares instants even while showing only days. A bound of
+        // "now" makes today unavailable from a minute past midnight onward, and
+        // the user just sees today greyed out with nothing explaining why.
+        let answers = OnboardingAnswers()
+        let day = Date(timeIntervalSince1970: 1_760_000_000)
+        for hour in [0, 1, 9, 13, 23] {
+            let instant = Calendar.current.date(bySettingHour: hour, minute: 59, second: 0, of: day)!
+            answers.now = { instant }
+            #expect(answers.earliestQuitDate() <= Calendar.current.startOfDay(for: instant))
+        }
+    }
+
+    @Test("yesterday stays out of reach")
+    func thePastIsStillExcluded() {
+        // The bound still has a job: a quit date in the past is not a plan.
+        let answers = OnboardingAnswers()
+        let day = Date(timeIntervalSince1970: 1_760_000_000)
+        answers.now = { day }
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: day)!
+        #expect(answers.earliestQuitDate() > yesterday)
+    }
+
+    @Test("today is a week of runway, so offering it is not offering nothing")
+    func todayIsAMeaningfulAnswer() {
+        let day = Date(timeIntervalSince1970: 1_760_000_000)
+        #expect(QuitDate.weeks(from: day, to: day) == 1)
+    }
+}

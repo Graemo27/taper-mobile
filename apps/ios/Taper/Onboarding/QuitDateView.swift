@@ -83,8 +83,10 @@ struct QuitDateView: View {
             DatePicker(
                 "Quit date",
                 selection: Binding(get: { chosenDate }, set: { answers.quitDate = $0 }),
-                // No date before today. A quit date in the past is not a plan.
-                in: answers.now()...,
+                // No date before today. A quit date in the past is not a plan
+                // — but today itself is one, and the bound is the start of the
+                // day rather than this instant so it stays reachable.
+                in: answers.earliestQuitDate()...,
                 displayedComponents: .date
             )
             .datePickerStyle(.graphical)

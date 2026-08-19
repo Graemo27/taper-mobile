@@ -412,6 +412,17 @@ final class OnboardingAnswers {
         )
     }
 
+    /// The earliest date the picker may offer.
+    ///
+    /// The start of today, not this instant. `DatePicker` compares `Date`
+    /// instants even when it is only showing days, so a bound of "now" makes
+    /// today unselectable from one minute past midnight onward — the user sees
+    /// today greyed out with no explanation. Today is a legitimate answer:
+    /// `QuitDate.weeks` reads it as a week of runway rather than as zero.
+    func earliestQuitDate(calendar: Calendar = .current) -> Date {
+        calendar.startOfDay(for: now())
+    }
+
     /// The date to open the picker on: the soonest the plan can actually
     /// reach. A default the user's own answers cannot satisfy would start them
     /// on a stretch warning before they have chosen anything.
