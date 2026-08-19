@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Taper
 
@@ -1157,5 +1158,122 @@ struct ReadinessTests {
         ))
         #expect(plan.weeklyCapsMg == [18])
         #expect(plan.reachesZero == false)
+    }
+}
+
+/// Covers O10 — the one screen with a clock in it, and the only place the
+/// planner's stretch becomes visible to the user.
+struct QuitDateTests {
+    /// A fixed day, so the suite never has to guess what today is.
+    private let today = Date(timeIntervalSince1970: 1_760_000_000)
+
+    private func answers(pouches: Int = 6, minutes: Int = 20, weeksOut: Int? = 8) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.now = { self.today }
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(pouches, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == minutes }
+        answers.usesWhenIllInBed = true
+        answers.planShape = .quitDate
+        answers.quitDate = weeksOut.map { QuitDate.date(weeksFrom: today, weeks: $0) }
+        return answers
+    }
+
+    @Test("runway is floored, so the last step never lands after the date")
+    func weeksAreFloored() {
+        // Ten days is one week of runway, not one and a half. Rounding up would
+        // give the plan more weeks than the user has and put the final step
+        // past the date they picked.
+        // 11 days is the discriminating case: floored it is one week, rounded
+        // it is two — and two would put the last step four days past the date.
+        let elevenDays = Calendar.current.date(byAdding: .day, value: 11, to: today)!
+        #expect(QuitDate.weeks(from: today, to: elevenDays) == 1)
+        let twentyDays = Calendar.current.date(byAdding: .day, value: 20, to: today)!
+        #expect(QuitDate.weeks(from: today, to: twentyDays) == 2)
+        #expect(QuitDate.weeks(from: today, to: QuitDate.date(weeksFrom: today, weeks: 8)) == 8)
+    }
+
+    @Test("a date today or in the past still reads as a week, not as zero or less")
+    func nearDatesDoNotGoNegative() {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        #expect(QuitDate.weeks(from: today, to: today) == 1)
+        #expect(QuitDate.weeks(from: today, to: yesterday) == 1)
+    }
+
+    @Test("the time of day a date is chosen does not cost a week")
+    func comparesCalendarDaysNotElapsedTime() {
+        // Picked at 11pm against a date at 9am is still the same number of
+        // days apart.
+        let lateEvening = Calendar.current.date(bySettingHour: 23, minute: 30, second: 0, of: today)!
+        let target = QuitDate.date(weeksFrom: today, weeks: 8)
+        #expect(QuitDate.weeks(from: lateEvening, to: target) == 8)
+    }
+
+    @Test("a comfortable date reaches zero and says so plainly")
+    func roomyDateIsNotStretched() {
+        let summary = answers(weeksOut: 8).quitDateSummary
+        #expect(summary?.isStretched == false)
+        #expect(summary?.runway == "8 weeks out")
+        #expect(summary?.caption.contains("step 18 → 0 without any cliff") == true)
+    }
+
+    @Test("a date sooner than the steps can go says so rather than pretending")
+    func tightDateIsCalledOut() {
+        // The board draws only the comfortable case. This is the one that
+        // matters: the planner stretches rather than compressing, because a
+        // schedule too steep to keep is worse than no schedule — and a stretch
+        // the screen does not mention is the app disagreeing with the date in
+        // front of the user without saying so.
+        let answers = answers(pouches: 10, minutes: 3, weeksOut: 2)
+        let summary = answers.quitDateSummary
+        #expect(summary?.isStretched == true)
+        #expect(summary?.runway == "2 weeks out")
+        #expect(summary?.caption.contains("quicker than your steps can safely go") == true)
+        // Names the length the plan will actually be, not just that it changed.
+        #expect(summary?.caption.contains("7 weeks instead") == true)
+    }
+
+    @Test("the stretch the screen reports is the one the planner performed")
+    func captionMatchesThePlan() {
+        let answers = answers(pouches: 10, minutes: 3, weeksOut: 2)
+        let plan = TaperPlanner.plan(for: answers.taperInput!)
+        #expect(plan.stretchedFromRequestedWeeks == 2)
+        #expect(answers.quitDateSummary?.caption.contains("\(plan.weeklyCapsMg.count - 1) weeks instead") == true)
+    }
+
+    @Test("the picker opens on a date the plan can actually reach")
+    func defaultIsAchievable() {
+        // Opening on a date that triggers a warning would greet the user with a
+        // complaint about a choice they have not made.
+        let answers = answers(weeksOut: nil)
+        answers.quitDate = answers.defaultQuitDate()
+        #expect(answers.quitDateSummary?.isStretched == false)
+    }
+
+    @Test("one week reads as a week rather than as 1 weeks")
+    func singularRunway() {
+        #expect(answers(weeksOut: 1).quitDateSummary?.runway == "1 week out")
+        #expect(answers(pouches: 10, minutes: 3, weeksOut: 1).quitDateSummary?.caption.hasPrefix("A week is quicker") == true)
+    }
+
+    @Test("a date reaches the planner, and moves the schedule it produces")
+    func theDateChangesThePlan() {
+        // The whole point of the screen. Nothing on it would look wrong if the
+        // date never arrived at the planner.
+        let dated = answers(weeksOut: 8)
+        #expect(dated.taperInput?.weeksUntilQuitDate == 8)
+        #expect(TaperPlanner.plan(for: dated.taperInput!).reachesZero)
+    }
+
+    @Test("choosing to reduce first keeps a stale date out of the plan")
+    func reduceFirstIgnoresAnyDate() {
+        // Someone can pick a date, go back, and switch to reducing. The date
+        // they abandoned must not still be steering the schedule.
+        let answers = answers(weeksOut: 8)
+        answers.planShape = .reduceFirst
+        #expect(answers.weeksUntilQuitDate == nil)
+        #expect(answers.taperInput?.weeksUntilQuitDate == nil)
+        #expect(answers.quitDateSummary == nil)
     }
 }

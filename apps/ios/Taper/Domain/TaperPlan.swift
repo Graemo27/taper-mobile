@@ -176,7 +176,11 @@ enum TaperPlanner {
     /// A dependent user is not allowed the steep curve a light one can manage.
     /// Duration carries no evidence of harm, so stretching is free where
     /// compressing is not.
-    private static func minimumWeeks(for dependence: Dependence) -> Int {
+    ///
+    /// Not private, because the date screen needs the soonest date it can offer
+    /// without immediately warning about it. Anything that reached for that
+    /// number some other way would be a second copy of a clinical parameter.
+    static func minimumWeeks(for dependence: Dependence) -> Int {
         switch dependence {
         case .high: return 7
         case .moderate: return 5
