@@ -100,8 +100,8 @@ final class LoadingGate: @unchecked Sendable {
 /// The URL protocol that applies `LaunchFaults` at the transport boundary,
 /// where the real requests actually travel.
 final class FaultInjectingURLProtocol: URLProtocol, @unchecked Sendable {
-    private static let argumentsKey = "FoodPad.faultArguments"
-    private static let stubKey = "FoodPad.stubResponse"
+    private static let argumentsKey = "Taper.faultArguments"
+    private static let stubKey = "Taper.stubResponse"
     private var transportTask: URLSessionDataTask?
     private let loading = LoadingGate()
 

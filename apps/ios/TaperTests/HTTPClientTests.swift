@@ -1,7 +1,7 @@
 import XCTest
-@testable import FoodPad
+@testable import Taper
 
-final class FoodPadTests: XCTestCase {
+final class HTTPClientTests: XCTestCase {
     func testHTTPClientReturnsNonSuccessResponse() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NotFoundURLProtocol.self]
@@ -15,7 +15,7 @@ final class FoodPadTests: XCTestCase {
 
     func testFaultTransportDelaysOnlyMatchingResponse() async throws {
         let client = URLSessionHTTPClient(session: NetworkSession.live())
-        let arguments = ["FoodPad", "-FPDelay", "0.15", "-FPDelayURL", "select=journal"]
+        let arguments = ["Taper", "-FPDelay", "0.15", "-FPDelayURL", "select=journal"]
 
         func duration(for url: URL) async throws -> Duration {
             let request = FaultInjectingURLProtocol.stubbedRequest(url: url, arguments: arguments)
@@ -33,7 +33,7 @@ final class FoodPadTests: XCTestCase {
 
     func testFailureAndStatusArgumentsParse() {
         let faults = LaunchFaults(arguments: [
-            "FoodPad", "-FPFail", "food-search", "-FPStatus", "404",
+            "Taper", "-FPFail", "food-search", "-FPStatus", "404",
         ])
         XCTAssertEqual(faults.failingURLSubstring, "food-search")
         XCTAssertEqual(faults.status, 404)

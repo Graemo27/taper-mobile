@@ -1,5 +1,5 @@
 import XCTest
-@testable import FoodPad
+@testable import Taper
 
 /// The app read its backend settings from the process environment, which only
 /// XCUITest ever populated. These cover the resolution rules that replaced it.
