@@ -7,19 +7,32 @@ import Testing
 /// The two branches worth covering are the ones a real backend cannot be asked
 /// to perform on demand: a write that fails, and a second write that must never
 /// happen.
-private final class FakeStore: TaperPlanWriting, @unchecked Sendable {
+private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
     enum Behaviour { case succeed, fail, hang }
 
     let behaviour: Behaviour
+    /// What a read finds. Separate from `behaviour`, which governs writes — a
+    /// store that fails to save and a store that fails to look are different
+    /// tests.
+    var existing: StoredTaperPlan?
+    var readFails = false
 
     /// Locked because `save` runs off the main actor while the test reads this
     /// from it. An unsynchronised counter here would make the double-submit
     /// test report a race of its own as a defect in the code under test.
     private let lock = NSLock()
     private var _writes = 0
+    private var _reads = 0
     var writes: Int { lock.withLock { _writes } }
+    var readCount: Int { lock.withLock { _reads } }
 
-    init(_ behaviour: Behaviour) { self.behaviour = behaviour }
+    init(_ behaviour: Behaviour = .succeed) { self.behaviour = behaviour }
+
+    func currentPlan() async throws -> StoredTaperPlan? {
+        lock.withLock { _reads += 1 }
+        if readFails { throw URLError(.notConnectedToInternet) }
+        return existing
+    }
 
     func save(_ draft: TaperPlanDraft) async throws -> StoredTaperPlan {
         lock.withLock { _writes += 1 }
@@ -52,18 +65,120 @@ private let draft = TaperPlanDraft(
     sickInBed: true
 )
 
-/// Covers the one write onboarding makes.
+
+private let existingPlan = StoredTaperPlan(
+    id: 7,
+    startingCapMg: 18,
+    currentCapMg: 18,
+    capEffectiveFrom: "2025-10-09",
+    quitDate: nil
+)
+
+/// Covers the app's record of the plan: finding it, and writing it.
 @MainActor
-struct PlanSubmissionTests {
+struct PlanRecordTests {
+
+    // MARK: - Finding a plan already on file
+
+    @Test("a returning user is not asked the questions again")
+    func anExistingPlanIsFound() async {
+        // The gap this closes: the app wrote a plan and had no way to discover
+        // it existed, so every launch replayed twelve questions at someone
+        // whose plan was already on the server — then overwrote it.
+        let store = FakeStore()
+        store.existing = existingPlan
+        let record = PlanRecord(store: store)
+
+        await record.load()
+
+        #expect(record.status == .present)
+    }
+
+    @Test("someone with no plan gets the questions")
+    func noPlanMeansOnboarding() async {
+        let record = PlanRecord(store: FakeStore())
+
+        await record.load()
+
+        #expect(record.status == .absent)
+    }
+
+    @Test("a check that fails is not read as having no plan")
+    func aFailedCheckIsNotAnAbsence() async {
+        // The distinction the whole `unknown` case exists for. Falling through
+        // to `absent` would take twelve answers from a returning user and then
+        // write over the plan they were never shown — a wrong guess that costs
+        // more than saying so.
+        let store = FakeStore()
+        store.existing = existingPlan
+        store.readFails = true
+        let record = PlanRecord(store: store)
+
+        await record.load()
+
+        guard case let .unknown(message) = record.status else {
+            Issue.record("a failed check did not reach the unknown state")
+            return
+        }
+        #expect(record.status != .absent)
+        #expect(message.contains("try again"))
+        #expect(!message.contains("URLError"))
+    }
+
+    @Test("a build with no backend cannot check either, and says so")
+    func aMissingBackendCannotCheck() async {
+        let record = PlanRecord(store: nil)
+
+        await record.load()
+
+        guard case let .unknown(message) = record.status else {
+            Issue.record("a build with no backend did not report an unknown plan")
+            return
+        }
+        #expect(message.contains("no backend"))
+        #expect(!message.contains("connection"))
+    }
+
+    @Test("a failed check can be retried without restarting the app")
+    func aFailedCheckIsRecoverable() async {
+        // Assert the exit from a state, not only the entry.
+        let store = FakeStore()
+        store.existing = existingPlan
+        store.readFails = true
+        let record = PlanRecord(store: store)
+        await record.load()
+
+        store.readFails = false
+        await record.load()
+
+        #expect(record.status == .present)
+        #expect(store.readCount == 2)
+    }
+
+    @Test("a plan just written needs no second look")
+    func savingDoesNotRequireAReread() async {
+        let store = FakeStore()
+        let record = PlanRecord(store: store)
+        await record.load()
+
+        await record.submit(draft)
+
+        #expect(record.status == .present)
+        #expect(store.readCount == 1, "the plan was re-read after being written")
+    }
+
+    // MARK: - Writing
+
     @Test("a plan that saves reports saved")
     func aSuccessfulWriteSettles() async {
         let store = FakeStore(.succeed)
-        let submission = PlanSubmission(store: store)
-        #expect(submission.state == .idle)
+        let record = PlanRecord(store: store)
+        await record.load()
+        #expect(record.status == .absent)
 
-        await submission.submit(draft)
+        await record.submit(draft)
 
-        #expect(submission.state == .saved)
+        #expect(record.status == .present)
         #expect(store.writes == 1)
     }
 
@@ -71,11 +186,11 @@ struct PlanSubmissionTests {
     func aFailedWriteIsReported() async {
         // The branch no screenshot catches. A save that fails quietly leaves
         // someone believing the app is tracking a plan it never wrote down.
-        let submission = PlanSubmission(store: FakeStore(.fail))
+        let record = PlanRecord(store: FakeStore(.fail))
 
-        await submission.submit(draft)
+        await record.submit(draft)
 
-        guard case let .failed(message) = submission.state else {
+        guard case let .saveFailed(message) = record.status else {
             Issue.record("a failed write did not reach the failed state")
             return
         }
@@ -91,11 +206,11 @@ struct PlanSubmissionTests {
         // This project shipped an app configured only while a test drove it,
         // and the whole cost was that an unconfigured build and an unreachable
         // one looked the same. They do not look the same here.
-        let submission = PlanSubmission(store: nil)
+        let record = PlanRecord(store: nil)
 
-        await submission.submit(draft)
+        await record.submit(draft)
 
-        guard case let .failed(message) = submission.state else {
+        guard case let .saveFailed(message) = record.status else {
             Issue.record("a build with no backend did not report a failure")
             return
         }
@@ -109,9 +224,9 @@ struct PlanSubmissionTests {
         // Two taps landing either side of the first render would otherwise
         // write twice, against a table that holds one plan per person.
         let store = FakeStore(.hang)
-        let submission = PlanSubmission(store: store)
+        let record = PlanRecord(store: store)
 
-        let first = Task { await submission.submit(draft) }
+        let first = Task { await record.submit(draft) }
 
         // Wait for the write itself, not for the state that precedes it.
         // `.saving` is set before `save` is entered, so spinning on the state
@@ -129,9 +244,9 @@ struct PlanSubmissionTests {
             }
             await Task.yield()
         }
-        #expect(submission.state == .saving)
+        #expect(record.status == .saving)
 
-        await submission.submit(draft)
+        await record.submit(draft)
 
         #expect(store.writes == 1, "a second tap started a second write")
         first.cancel()
@@ -143,24 +258,24 @@ struct PlanSubmissionTests {
     @Test("a plan already saved is not written again")
     func submittingTwiceOverWritesOnce() async {
         let store = FakeStore(.succeed)
-        let submission = PlanSubmission(store: store)
+        let record = PlanRecord(store: store)
 
-        await submission.submit(draft)
-        await submission.submit(draft)
+        await record.submit(draft)
+        await record.submit(draft)
 
         #expect(store.writes == 1)
-        #expect(submission.state == .saved)
+        #expect(record.status == .present)
     }
 
     @Test("a failure can be cleared so the plan can be offered again")
     func aFailureIsRecoverable() async {
         // Assert the exit from a state, not only the entry. A failure with no
         // way out is a dead end wearing an error message.
-        let submission = PlanSubmission(store: FakeStore(.fail))
-        await submission.submit(draft)
+        let record = PlanRecord(store: FakeStore(.fail))
+        await record.submit(draft)
 
-        submission.dismissFailure()
+        record.dismissFailure()
 
-        #expect(submission.state == .idle)
+        #expect(record.status == .absent)
     }
 }

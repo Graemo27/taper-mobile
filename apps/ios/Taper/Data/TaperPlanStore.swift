@@ -73,6 +73,11 @@ protocol TaperPlanReading: Sendable {
     func currentPlan() async throws -> StoredTaperPlan?
 }
 
+/// Both halves, for the one caller that needs each. Named rather than written
+/// as `TaperPlanWriting & TaperPlanReading` at every use site, because the
+/// composition is the thing the app actually depends on.
+typealias TaperPlanStoring = TaperPlanWriting & TaperPlanReading
+
 /// The real one.
 ///
 /// Upserts rather than inserts. `taper_plans` holds one row per person by

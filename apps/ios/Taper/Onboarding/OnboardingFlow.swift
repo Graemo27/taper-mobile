@@ -37,7 +37,7 @@ struct OnboardingFlow: View {
     let onFinish: (TaperPlanDraft) -> Void
     /// Passed through to the last screen. The run does not own the write, but
     /// it owns the screen that reports it.
-    var saveState: PlanSaveState = .idle
+    var status: PlanStatus = .absent
 
     @State private var answers = OnboardingAnswers()
     @State private var path: [OnboardingStep] = []
@@ -126,7 +126,7 @@ struct OnboardingFlow: View {
             if let preview = answers.planPreview {
                 PlanPreviewView(
                     preview: preview,
-                    saveState: saveState,
+                    status: status,
                     // The draft is built from the preview on screen rather than
                     // from the answers again, so the row cannot disagree with
                     // what the user just agreed to.

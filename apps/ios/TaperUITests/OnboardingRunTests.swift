@@ -25,6 +25,22 @@ final class OnboardingRunTests: XCTestCase {
         app.launchArguments = ["-TaperForgetAge"]
         app.launch()
         passTheAgeGate()
+        requireAReachableBackend()
+    }
+
+    /// Names the precondition this suite gained when the app started checking
+    /// for an existing plan at launch.
+    ///
+    /// Without it, an unreachable backend puts "Can't reach your plan" on screen
+    /// and every test below fails on a five-second timeout waiting for a
+    /// question — which reports the wrong thing, in the wrong file, to someone
+    /// whose actual problem is that they have not run `supabase start`.
+    private func requireAReachableBackend() {
+        XCTAssertFalse(
+            app.staticTexts["Can't reach your plan."].waitForExistence(timeout: 2),
+            "The app could not reach a backend, so onboarding was never shown. "
+                + "This suite needs one running — see README."
+        )
     }
 
     /// Answers the age gate as an adult. Every test needs it, because it is now

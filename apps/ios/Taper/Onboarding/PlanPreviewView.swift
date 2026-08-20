@@ -11,7 +11,7 @@ import SwiftUI
 struct PlanPreviewView: View {
     let preview: PlanPreview
     /// What has happened to the write this screen's CTA starts.
-    var saveState: PlanSaveState = .idle
+    var status: PlanStatus = .absent
     let onContinue: () -> Void
     let onBack: () -> Void
 
@@ -28,11 +28,11 @@ struct PlanPreviewView: View {
             // reassurance the board wanted is the other half, and it stays
             // true either way: a plan is not a commitment.
             helper: "Built from what you told us. Nothing here is a commitment — go back and change any answer before you start.",
-            cta: saveState == .saving ? "Saving…" : "Start tracking",
+            cta: status == .saving ? "Saving…" : "Start tracking",
             // Nil while a write is in flight or already done. A second tap
             // would otherwise start a second write against a table that holds
             // one plan per person.
-            onContinue: saveState == .saving || saveState == .saved ? nil : onContinue,
+            onContinue: status == .saving || status == .present ? nil : onContinue,
             onBack: onBack
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.m) {
@@ -40,7 +40,7 @@ struct PlanPreviewView: View {
                 if let caution = preview.caution { cautionNote(caution) }
                 timeline
                 note
-                if case let .failed(message) = saveState { failure(message) }
+                if case let .saveFailed(message) = status { failure(message) }
             }
             .padding(.horizontal, AppLayout.gutter)
         }
@@ -48,8 +48,8 @@ struct PlanPreviewView: View {
         // anyone using VoiceOver — the CTA simply becomes tappable again with
         // no explanation. Inserting text into the hierarchy announces nothing
         // on its own, so the transition has to say so itself.
-        .onChange(of: saveState) { _, state in
-            if case let .failed(message) = state {
+        .onChange(of: status) { _, new in
+            if case let .saveFailed(message) = new {
                 AccessibilityNotification.Announcement(message).post()
             }
         }
