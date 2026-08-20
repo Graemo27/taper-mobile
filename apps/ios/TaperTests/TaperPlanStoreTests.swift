@@ -108,7 +108,13 @@ private enum LocalBackend {
 ///   TAPER_TEST_SUPABASE_URL=http://127.0.0.1:55321 \
 ///   TAPER_TEST_SUPABASE_KEY=<local publishable key from `supabase status`> \
 ///   xcodebuild test ... -only-testing:TaperTests/TaperPlanStoreLiveTests
+/// Serialized, because every test here signs in and out of **one** persisted
+/// session. Run in parallel — which is the default — they take each other's
+/// identity out from under a request in flight, and the resulting failure is a
+/// foreign key violation that reads like a schema problem.
+@Suite(.serialized)
 struct TaperPlanStoreLiveTests {
+
     /// Fixed, and deliberately not the runner's.
     ///
     /// On a UTC runner there is no local time whose day differs from UTC's, so
@@ -249,5 +255,25 @@ struct TaperPlanStoreLiveTests {
 
         #expect(first.id == second.id, "a second run created a second plan")
         #expect(second.startingCapMg == 24)
+    }
+
+    @Test("the suite leaves no session behind",
+          .enabled(if: LocalBackend.isAvailable))
+    func signsOutWhenDone() async throws {
+        // Teardown written as the last test, because `.serialized` runs in
+        // source order and `deinit` cannot await. The earlier version started
+        // an unstructured task and swallowed its error, so a cleanup that
+        // silently failed left the leak it was added to fix.
+        //
+        // The leak matters because these tests and the UI suite share an app
+        // container: a session left signed in is the identity the next launched
+        // app picks up, and since this suite writes plans, the UI tests would
+        // start on a device that already has one and skip onboarding.
+        let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
+        try await client.auth.signOut(scope: .local)
+
+        await #expect(throws: (any Error).self) {
+            try await client.auth.session
+        }
     }
 }

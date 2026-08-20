@@ -26,6 +26,39 @@ enum PlanDay {
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
+
+    /// The inverse: a stored day, read back as the start of that day where the
+    /// user is.
+    ///
+    /// Deliberately the mirror of `wireFormat` rather than a `DateFormatter` —
+    /// same forced Gregorian calendar, same inherited time zone. A parser that
+    /// disagreed with the writer by one time zone would put every plan a day
+    /// out in exactly the direction nobody would notice.
+    ///
+    /// Uses the calendar's own validation, so `2025-02-30` is rejected rather
+    /// than rolled forward into March.
+    ///
+    /// Then checks the result round-trips. `split` drops empty pieces, so
+    /// `2025--10-09` and `2025-10-09-` both come apart into three usable
+    /// numbers — and a parser looser than its writer accepts strings the app
+    /// could never have produced. Comparing against `wireFormat` makes the pair
+    /// exact by construction rather than by agreement, which matters because
+    /// this value arrives from outside the app.
+    static func date(from wire: String, calendar base: Calendar = .current) -> Date? {
+        let parts = wire.split(separator: "-")
+        guard parts.count == 3,
+              let year = Int(parts[0]), let month = Int(parts[1]), let day = Int(parts[2])
+        else { return nil }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = base.timeZone
+        let components = DateComponents(calendar: calendar, year: year, month: month, day: day)
+        guard components.isValidDate,
+              let date = calendar.date(from: components),
+              wireFormat(date, timeZone: calendar.timeZone) == wire
+        else { return nil }
+        return date
+    }
 }
 
 /// The plan as `taper_plans` holds it, once written.
@@ -39,6 +72,11 @@ struct StoredTaperPlan: Decodable, Equatable, Sendable {
     let currentCapMg: Double
     let capEffectiveFrom: String
     let quitDate: String?
+    /// The two dependence answers, kept because the schedule is recomputed from
+    /// this row rather than stored beside it. Without them the app can say what
+    /// today's cap is and not what the next one will be.
+    let firstUseMinutes: Int
+    let sickInBed: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -46,6 +84,8 @@ struct StoredTaperPlan: Decodable, Equatable, Sendable {
         case currentCapMg = "current_cap_mg"
         case capEffectiveFrom = "cap_effective_from"
         case quitDate = "quit_date"
+        case firstUseMinutes = "first_use_minutes"
+        case sickInBed = "sick_in_bed"
     }
 }
 

@@ -50,15 +50,38 @@ final class AgeGateRunTests: XCTestCase {
         // looks fine in a single session and is intolerable in use.
         enterBirthdate("01", "01", "1990")
         app.buttons["I'm 18 or older"].tap()
-        XCTAssertTrue(app.staticTexts["What are you quitting?"].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts["This app tracks nicotine."].waitForNonExistence(timeout: 5),
+            "The gate stayed up after being answered"
+        )
+        expectStillRunning("after the gate was answered")
 
         // Relaunched without the reset, which is what tapping the icon does.
         app.launchArguments = []
         app.launch()
 
+        // Asserts the gate is gone, not that onboarding is present. What comes
+        // after the gate depends on whether this device already has a plan,
+        // which is nothing to do with the claim being made here — coupling the
+        // two made this fail for a reason its name does not mention.
         XCTAssertTrue(
-            app.staticTexts["What are you quitting?"].waitForExistence(timeout: 5),
+            app.staticTexts["This app tracks nicotine."].waitForNonExistence(timeout: 5),
             "The gate asked again after it had already been answered"
+        )
+        expectStillRunning("after relaunching")
+    }
+
+    /// Absence of the gate is not the same as the gate having been passed.
+    ///
+    /// A crashed app has no gate text on screen either, so every assertion
+    /// above is satisfied by the worst outcome available. There is no stable
+    /// element to assert instead — what follows the gate depends on whether
+    /// this device has a plan — so the check is that the app is still there.
+    private func expectStillRunning(_ moment: String, line: UInt = #line) {
+        XCTAssertEqual(
+            app.state, .runningForeground,
+            "The app was not running \(moment) — an absent gate can just mean a dead app",
+            line: line
         )
     }
 

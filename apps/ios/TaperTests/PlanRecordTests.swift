@@ -55,7 +55,9 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
             startingCapMg: draft.startingCapMg,
             currentCapMg: draft.currentCapMg,
             capEffectiveFrom: "2025-10-09",
-            quitDate: nil
+            quitDate: nil,
+            firstUseMinutes: draft.firstUseMinutes,
+            sickInBed: draft.sickInBed
         )
     }
 }
@@ -75,7 +77,9 @@ private let existingPlan = StoredTaperPlan(
     startingCapMg: 18,
     currentCapMg: 18,
     capEffectiveFrom: "2025-10-09",
-    quitDate: nil
+    quitDate: nil,
+    firstUseMinutes: 20,
+    sickInBed: true
 )
 
 /// Covers the app's record of the plan: finding it, and writing it.
