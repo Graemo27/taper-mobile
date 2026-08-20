@@ -77,7 +77,7 @@ struct PlanDayTests {
 /// removes a plan — so this test writes a row it has no way to take back.
 /// Against the hosted project that would leave a plan on a real anonymous
 /// account permanently. A local stack is thrown away by `supabase db reset`.
-private enum LocalBackend {
+enum LocalBackend {
     static var url: URL? {
         ProcessInfo.processInfo.environment["TAPER_TEST_SUPABASE_URL"].flatMap(URL.init(string:))
     }
@@ -107,13 +107,20 @@ private enum LocalBackend {
 ///   supabase start && supabase db reset --local
 ///   TAPER_TEST_SUPABASE_URL=http://127.0.0.1:55321 \
 ///   TAPER_TEST_SUPABASE_KEY=<local publishable key from `supabase status`> \
-///   xcodebuild test ... -only-testing:TaperTests/TaperPlanStoreLiveTests
+///   xcodebuild test ... -only-testing:TaperTests/LiveBackendTests
+///
 /// Serialized, because every test here signs in and out of **one** persisted
 /// session. Run in parallel — which is the default — they take each other's
 /// identity out from under a request in flight, and the resulting failure is a
 /// foreign key violation that reads like a schema problem.
+///
+/// Named for that constraint rather than for the plan store, because the
+/// constraint is what decides membership: anything that signs in against the
+/// local stack belongs in here, in an extension if it lives in another file. A
+/// second top-level live suite would be serialized within itself and race this
+/// one, which is the same defect wearing a different name.
 @Suite(.serialized)
-struct TaperPlanStoreLiveTests {
+struct LiveBackendTests {
 
     /// Fixed, and deliberately not the runner's.
     ///
