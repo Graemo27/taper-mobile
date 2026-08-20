@@ -44,6 +44,15 @@ struct PlanPreviewView: View {
             }
             .padding(.horizontal, AppLayout.gutter)
         }
+        // A message that appears without being spoken is a silent failure for
+        // anyone using VoiceOver — the CTA simply becomes tappable again with
+        // no explanation. Inserting text into the hierarchy announces nothing
+        // on its own, so the transition has to say so itself.
+        .onChange(of: saveState) { _, state in
+            if case let .failed(message) = state {
+                AccessibilityNotification.Announcement(message).post()
+            }
+        }
     }
 
     /// This week's ceiling, and how long the descent runs.
@@ -193,7 +202,6 @@ struct PlanPreviewView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(AppSpacing.m)
             .background(AppColor.cautionSurface, in: RoundedRectangle(cornerRadius: AppRadius.small))
-            .accessibilityAddTraits(.isStaticText)
     }
 
     private func cautionNote(_ text: String) -> some View {

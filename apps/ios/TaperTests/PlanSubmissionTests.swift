@@ -112,16 +112,32 @@ struct PlanSubmissionTests {
         let submission = PlanSubmission(store: store)
 
         let first = Task { await submission.submit(draft) }
+
         // Wait for the write itself, not for the state that precedes it.
         // `.saving` is set before `save` is entered, so spinning on the state
         // asserts before the first write has happened and reads zero.
-        while store.writes == 0 { await Task.yield() }
+        //
+        // Bounded, because the condition being waited on is exactly what a
+        // regression here would break: a submit that never reaches the store
+        // would spin forever, and a suite that hangs reports nothing at all.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while store.writes == 0 {
+            guard ContinuousClock.now < deadline else {
+                Issue.record("the first submit never reached the store")
+                first.cancel()
+                return
+            }
+            await Task.yield()
+        }
         #expect(submission.state == .saving)
 
         await submission.submit(draft)
 
         #expect(store.writes == 1, "a second tap started a second write")
         first.cancel()
+        // Let the cancelled write finish unwinding before the test ends,
+        // rather than leaving it running into whatever runs next.
+        await first.value
     }
 
     @Test("a plan already saved is not written again")
