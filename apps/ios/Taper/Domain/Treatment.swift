@@ -75,11 +75,14 @@ struct TreatmentSuggestion: Equatable, Sendable {
         let patchMg = plan.replacement.patchMg
         forms = patchMg == nil ? [.lozenge] : [.patch, .lozenge]
 
-        var strengths: [TreatmentForm: Int] = [
-            .lozenge: plan.replacement.fastActingMg,
-            .gum: plan.replacement.fastActingMg,
-        ]
-        strengths[.patch] = patchMg
+        // Through the same accessor the pad seeds from, so the strength shown
+        // beside a form here and the strength filed on its key cannot drift.
+        // Assigning nil removes the key, which is how a form the plan has no
+        // dose for stays absent rather than arriving as a zero.
+        var strengths: [TreatmentForm: Int] = [:]
+        for form in TreatmentForm.allCases {
+            strengths[form] = plan.replacement.strengthMg(for: form)
+        }
         strengthMg = strengths
 
         basis = "\(dailyMg.clean) mg a day, first one \(firstUse.recap)."
