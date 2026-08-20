@@ -78,3 +78,11 @@ schemes:
         TaperUITests: [test]
     test:
       targets: [TaperTests, TaperUITests]
+      # Passed through from the xcodebuild command line, because a unit bundle
+      # hosted in the app does not inherit the shell's environment and
+      # TEST_RUNNER_* only reaches an XCUITest runner. Empty unless supplied,
+      # which is what makes the live store tests skip rather than fail on a
+      # machine with no local stack.
+      environmentVariables:
+        TAPER_TEST_SUPABASE_URL: $(TAPER_TEST_SUPABASE_URL)
+        TAPER_TEST_SUPABASE_KEY: $(TAPER_TEST_SUPABASE_KEY)
