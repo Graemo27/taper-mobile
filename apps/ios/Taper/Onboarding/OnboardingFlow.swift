@@ -34,7 +34,10 @@ struct OnboardingFlow: View {
     /// Called when the run is over. Required rather than optional: the last
     /// screen's CTA has to go somewhere, and a default of "do nothing" would
     /// make a finished run indistinguishable from a broken button.
-    let onFinish: () -> Void
+    let onFinish: (TaperPlanDraft) -> Void
+    /// Passed through to the last screen. The run does not own the write, but
+    /// it owns the screen that reports it.
+    var saveState: PlanSaveState = .idle
 
     @State private var answers = OnboardingAnswers()
     @State private var path: [OnboardingStep] = []
@@ -121,7 +124,15 @@ struct OnboardingFlow: View {
             // render. Every figure on it is derived, so there is nothing to
             // show for a run that cannot produce a plan.
             if let preview = answers.planPreview {
-                PlanPreviewView(preview: preview, onContinue: onFinish, onBack: goBack)
+                PlanPreviewView(
+                    preview: preview,
+                    saveState: saveState,
+                    // The draft is built from the preview on screen rather than
+                    // from the answers again, so the row cannot disagree with
+                    // what the user just agreed to.
+                    onContinue: { answers.planDraft(shown: preview).map(onFinish) },
+                    onBack: goBack
+                )
             } else {
                 OnboardingPlaceholderView(step: step, onBack: goBack)
             }
