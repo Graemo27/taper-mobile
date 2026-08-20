@@ -31,6 +31,11 @@ enum OnboardingStep: Int, CaseIterable, Hashable {
 /// works the way the platform's does — including the edge swipe — without the
 /// flow having to model a history of its own.
 struct OnboardingFlow: View {
+    /// Called when the run is over. Required rather than optional: the last
+    /// screen's CTA has to go somewhere, and a default of "do nothing" would
+    /// make a finished run indistinguishable from a broken button.
+    let onFinish: () -> Void
+
     @State private var answers = OnboardingAnswers()
     @State private var path: [OnboardingStep] = []
 
@@ -111,12 +116,19 @@ struct OnboardingFlow: View {
                 onContinue: { advance(from: step) },
                 onBack: goBack
             )
-        default:
-            // Explicit rather than silent. An unbuilt step used to be an empty
-            // closure on an enabled button, which left the run looking broken
-            // instead of unfinished.
-            OnboardingPlaceholderView(step: step, onBack: goBack)
+        case .planPreview:
+            // Same shape as O6: the screen renders a value or it does not
+            // render. Every figure on it is derived, so there is nothing to
+            // show for a run that cannot produce a plan.
+            if let preview = answers.planPreview {
+                PlanPreviewView(preview: preview, onContinue: onFinish, onBack: goBack)
+            } else {
+                OnboardingPlaceholderView(step: step, onBack: goBack)
+            }
         }
+        // No `default`. Every step is built, so the switch is exhaustive — and
+        // leaving it exhaustive means a step added later fails to compile
+        // rather than quietly landing on a placeholder nobody notices.
     }
 
     private func advance(from step: OnboardingStep) {
@@ -138,21 +150,34 @@ struct OnboardingFlow: View {
     }
 }
 
-/// Stands in for a question that has not been built.
+/// Stands in for a screen that cannot render.
 ///
-/// Deliberately says so on screen. The alternative — an enabled Continue that
-/// does nothing — is indistinguishable from a bug to anyone driving the app,
-/// including whoever is reviewing the screen before it.
+/// No longer covers unbuilt steps — every step exists now. What remains is the
+/// two screens that show a derived value: if the run somehow reaches one
+/// without the answers behind it, this says so rather than drawing a plan out
+/// of nothing.
+///
+/// Deliberately says so on screen, and says what to do about it. The
+/// alternative — an enabled Continue that does nothing — is indistinguishable
+/// from a bug to anyone driving the app, including whoever is reviewing the
+/// screen before it.
+///
+/// The copy names no step. It used to print the case name, which was fair when
+/// this stood in for work not yet done and is debug output now that it stands
+/// in for a missing answer.
 struct OnboardingPlaceholderView: View {
     let step: OnboardingStep
     let onBack: () -> Void
 
     var body: some View {
         OnboardingScaffold(
-            section: "Coming next",
+            section: "Your plan",
             progress: step.progress,
-            question: "Not built yet.",
-            helper: "This question — \(String(describing: step)) — is the next change. The run ends here for now.",
+            question: "Something's missing.",
+            helper: """
+            This screen is built from answers you gave earlier, and one of them didn't reach it. \
+            Go back a step and it'll fill in.
+            """,
             cta: "Back",
             onContinue: onBack,
             onBack: onBack
