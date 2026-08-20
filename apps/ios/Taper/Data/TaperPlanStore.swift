@@ -65,12 +65,20 @@ protocol TaperPlanWriting: Sendable {
 struct SupabaseTaperPlanStore: TaperPlanWriting {
     let client: SupabaseClient
     let session: SessionCoordinator
+    /// The zone the user's day is read in. `.current` in the app, and fixed in
+    /// the live test — on a UTC runner there is no local time whose day differs
+    /// from UTC's, so a test that cannot choose the zone cannot prove the day
+    /// survived the trip.
+    var timeZone: TimeZone = .current
 
     func save(_ draft: TaperPlanDraft) async throws -> StoredTaperPlan {
         try await session.authenticated { userID in
             try await client
                 .from("taper_plans")
-                .upsert(TaperPlanRow(draft: draft, userID: userID), onConflict: "user_id")
+                .upsert(
+                    TaperPlanRow(draft: draft, userID: userID, timeZone: timeZone),
+                    onConflict: "user_id"
+                )
                 .select()
                 .single()
                 .execute()
@@ -93,12 +101,12 @@ private struct TaperPlanRow: Encodable {
     let firstUseMinutes: Int
     let sickInBed: Bool
 
-    init(draft: TaperPlanDraft, userID: UUID) {
+    init(draft: TaperPlanDraft, userID: UUID, timeZone: TimeZone) {
         self.userID = userID
         startingCapMg = draft.startingCapMg
         currentCapMg = draft.currentCapMg
-        capEffectiveFrom = PlanDay.wireFormat(draft.capEffectiveFrom)
-        quitDate = draft.quitDate.map { PlanDay.wireFormat($0) }
+        capEffectiveFrom = PlanDay.wireFormat(draft.capEffectiveFrom, timeZone: timeZone)
+        quitDate = draft.quitDate.map { PlanDay.wireFormat($0, timeZone: timeZone) }
         firstUseMinutes = draft.firstUseMinutes
         sickInBed = draft.sickInBed
     }

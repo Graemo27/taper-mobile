@@ -109,6 +109,14 @@ private enum LocalBackend {
 ///   TAPER_TEST_SUPABASE_KEY=<local publishable key from `supabase status`> \
 ///   xcodebuild test ... -only-testing:TaperTests/TaperPlanStoreLiveTests
 struct TaperPlanStoreLiveTests {
+    /// Fixed, and deliberately not the runner's.
+    ///
+    /// On a UTC runner there is no local time whose day differs from UTC's, so
+    /// a serialization regression round-trips perfectly and the assertions
+    /// below prove nothing. Pinning the zone is what makes them discriminate
+    /// everywhere rather than only on a machine west of Greenwich.
+    private let zone = TimeZone(identifier: "America/Los_Angeles")!
+
     private func store() async -> SupabaseTaperPlanStore {
         let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
         // Each run starts as a genuinely new anonymous person. The simulator
@@ -119,23 +127,25 @@ struct TaperPlanStoreLiveTests {
         try? await client.auth.signOut(scope: .local)
         return SupabaseTaperPlanStore(
             client: client,
-            session: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
+            session: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client)),
+            timeZone: zone
         )
     }
 
-    /// An instant whose local day and UTC day are different ones.
+    /// 23:30 in Los Angeles, which is already tomorrow in UTC.
     ///
-    /// Chosen rather than picked: on a machine where the two agree, a store
-    /// sending a raw timestamp to a `date` column round-trips perfectly and the
-    /// test passes while proving nothing. Late evening does it west of UTC,
-    /// early morning east of it.
+    /// Built in the pinned zone rather than the runner's, so the two days
+    /// disagree on every machine this runs on.
     private var whenTheDaysDisagree: Date {
+        var components = DateComponents()
+        components.year = 2025
+        components.month = 10
+        components.day = 9
+        components.hour = 23
+        components.minute = 30
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        let base = Date(timeIntervalSince1970: 1_760_000_000)
-        let midnight = calendar.startOfDay(for: base)
-        let hour = TimeZone.current.secondsFromGMT(for: base) <= 0 ? 23 : 0
-        return calendar.date(byAdding: .minute, value: hour * 60 + 30, to: midnight)!
+        calendar.timeZone = zone
+        return calendar.date(from: components)!
     }
 
     @Test("a dated plan round-trips to the table it was written for",
@@ -158,8 +168,8 @@ struct TaperPlanStoreLiveTests {
         #expect(stored.currentCapMg == 18)
         // The assertion that catches a timestamp sent to a date column: the day
         // that comes back is the day that went in, read the user's way.
-        #expect(stored.capEffectiveFrom == PlanDay.wireFormat(capDay))
-        #expect(stored.quitDate == PlanDay.wireFormat(quitDay))
+        #expect(stored.capEffectiveFrom == "2025-10-09", "stored UTC day instead of the chosen one")
+        #expect(stored.quitDate == "2025-12-04", "stored UTC day instead of the chosen one")
     }
 
     @Test("running onboarding twice moves the plan rather than failing",
