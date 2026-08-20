@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1766359067A8528CBEB51E /* Treatment.swift */; };
 		095A3168DFDDE095210C453A /* AgeGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE1BA6ACDF80CF9C913E09D4 /* AgeGateTests.swift */; };
+		0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */; };
 		0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A7A846268DDB13563347F /* OnboardingFlow.swift */; };
 		11E30672A79775DC15E4EF95 /* PlanShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB95DC7ECFD078DAA05A2A27 /* PlanShape.swift */; };
 		17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08785AAB390FD2A3138DB75C /* PriorAttempt.swift */; };
@@ -44,6 +45,7 @@
 		B495B01DAD58B742106956BB /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE711B9158A40AC1D87F748F /* DesignTokens.swift */; };
 		B89DF6FFA0FE064713A779F9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63F7D57B4CA77D384577A81C /* Assets.xcassets */; };
 		BA19A94840B0D6EDDE909800 /* HTTPClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD1316F44498C566B2C429B /* HTTPClientTests.swift */; };
+		BA6295E73EF573B9CEB7B34F /* TaperPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */; };
 		BB130F9CEEB993188D46CB19 /* PlanPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4442F6D8FC00924EFF766298 /* PlanPreviewView.swift */; };
 		C41C9FD243F5C93219A7B2AE /* OnboardingAnswers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */; };
 		C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */; };
@@ -77,6 +79,7 @@
 		08785AAB390FD2A3138DB75C /* PriorAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorAttempt.swift; sourceTree = "<group>"; };
 		093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingAnswers.swift; sourceTree = "<group>"; };
 		0CD1316F44498C566B2C429B /* HTTPClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClientTests.swift; sourceTree = "<group>"; };
+		0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStoreTests.swift; sourceTree = "<group>"; };
 		17238832684900B8083CBB09 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		18B449F8640CEFAA743C9ADE /* TaperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TaperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScaffold.swift; sourceTree = "<group>"; };
@@ -102,6 +105,7 @@
 		6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationTests.swift; sourceTree = "<group>"; };
 		6D11BCE9F23EB213922A688E /* Trigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trigger.swift; sourceTree = "<group>"; };
 		7647D93BDDDDB17B5CEDB528 /* Ginger.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ginger.otf; sourceTree = "<group>"; };
+		76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStore.swift; sourceTree = "<group>"; };
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
 		878DB78BEC425F63B60C1393 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9C1766359067A8528CBEB51E /* Treatment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Treatment.swift; sourceTree = "<group>"; };
@@ -160,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */,
+				76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -192,6 +197,7 @@
 				B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */,
 				0CD1316F44498C566B2C429B /* HTTPClientTests.swift */,
 				F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */,
+				0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */,
 				C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */,
 			);
 			path = TaperTests;
@@ -432,6 +438,7 @@
 				7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */,
 				BA19A94840B0D6EDDE909800 /* HTTPClientTests.swift in Sources */,
 				F27B8E52E6909FD0813F0402 /* OnboardingTests.swift in Sources */,
+				0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */,
 				8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -467,6 +474,7 @@
 				F9AE040439B95F79AFDCC07C /* TaperApp.swift in Sources */,
 				C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */,
 				CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */,
+				BA6295E73EF573B9CEB7B34F /* TaperPlanStore.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
 				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
 				2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */,
