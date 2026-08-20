@@ -79,7 +79,20 @@ struct PlanPreviewView: View {
         .padding(.horizontal, AppSpacing.xl)
         .padding(.vertical, AppSpacing.l)
         .background(AppColor.accent, in: RoundedRectangle(cornerRadius: AppRadius.extraLarge))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("plan.cap")
+        .accessibilityLabel(capSpokenLabel)
+    }
+
+    /// The tile as one sentence.
+    ///
+    /// Combining the children instead reads "This week's cap, 18, mg a day, 56,
+    /// days" — the figure and its unit arrive as separate words, which is the
+    /// one part of this screen a listener cannot reassemble.
+    private var capSpokenLabel: String {
+        let cap = "This week's cap, \(preview.capMg.clean) mg a day"
+        guard let days = preview.countdownDays else { return cap }
+        return "\(cap). \(days) days to go"
     }
 
     /// The stops, in order, on a rail.

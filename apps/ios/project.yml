@@ -56,11 +56,25 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  # Drives the shipped binary. The unit suite reaches every model in the app and
+  # no view in it, so twelve built screens have only ever been checked by
+  # someone looking at them once — and a screenshot taken from a throwaway
+  # harness is not a check anything can re-run.
+  TaperUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [TaperUITests]
+    dependencies:
+      - target: Taper
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   Taper:
     build:
       targets:
         Taper: all
         TaperTests: [test]
+        TaperUITests: [test]
     test:
-      targets: [TaperTests]
+      targets: [TaperTests, TaperUITests]

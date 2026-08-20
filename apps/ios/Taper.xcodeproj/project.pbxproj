@@ -35,6 +35,7 @@
 		9F0B1DAEDC3D1334DAA333FF /* SickInBedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BE0845DD8EEF48524461D6 /* SickInBedView.swift */; };
 		A0D9656FB8FBFA282F86E1E1 /* QuitDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F8D2D5922193467A92830 /* QuitDate.swift */; };
 		A26489120B610E40114135DC /* LinearGrotesk-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 58A09EF7EF844EE19A6EA3D2 /* LinearGrotesk-SemiBold.otf */; };
+		A65B4D477181B1DF0C5E40D6 /* OnboardingRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE7ACAD65956EFEBD97F2DC9 /* OnboardingRunTests.swift */; };
 		AD05E71ABAF750C27AE4956F /* LinearGrotesk-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */; };
 		B47CED8A2E89349A7586059B /* WhatYouUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */; };
 		B495B01DAD58B742106956BB /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE711B9158A40AC1D87F748F /* DesignTokens.swift */; };
@@ -58,6 +59,13 @@
 			remoteGlobalIDString = EE06B5AE23DD110257F93A16;
 			remoteInfo = Taper;
 		};
+		B481D25280865B82FB0F5170 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D95056CE5330765819B5B78E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EE06B5AE23DD110257F93A16;
+			remoteInfo = Taper;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -67,6 +75,7 @@
 		17238832684900B8083CBB09 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		18B449F8640CEFAA743C9ADE /* TaperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TaperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScaffold.swift; sourceTree = "<group>"; };
+		1C6DB23828F92F8B4EE1A339 /* TaperUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TaperUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Medium.otf"; sourceTree = "<group>"; };
 		29075C1BFAD49736B729C3DF /* AmountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountView.swift; sourceTree = "<group>"; };
 		29BE0845DD8EEF48524461D6 /* SickInBedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SickInBedView.swift; sourceTree = "<group>"; };
@@ -103,6 +112,7 @@
 		EB37897EAEF2B704CA943033 /* ReadinessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
 		EB95DC7ECFD078DAA05A2A27 /* PlanShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanShape.swift; sourceTree = "<group>"; };
 		EE711B9158A40AC1D87F748F /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		EE7ACAD65956EFEBD97F2DC9 /* OnboardingRunTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingRunTests.swift; sourceTree = "<group>"; };
 		F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		F975269EB5F504D1744C6A25 /* Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controls.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -125,6 +135,14 @@
 				54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */,
 			);
 			path = Networking;
+			sourceTree = "<group>";
+		};
+		0DC10DCC8B9FC59D439F0227 /* TaperUITests */ = {
+			isa = PBXGroup;
+			children = (
+				EE7ACAD65956EFEBD97F2DC9 /* OnboardingRunTests.swift */,
+			);
+			path = TaperUITests;
 			sourceTree = "<group>";
 		};
 		116CCFF805AA7DCDE2C37141 /* Data */ = {
@@ -208,6 +226,7 @@
 				4063C3011420B77737E1076E /* ios */,
 				D3F129C334596A4D1670C46E /* Taper */,
 				7B943402C0921AFA5732AC18 /* TaperTests */,
+				0DC10DCC8B9FC59D439F0227 /* TaperUITests */,
 				CEC6B3B6654A56B0F01BCB99 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -227,6 +246,7 @@
 			children = (
 				A3907ACFA103C7A45EF00015 /* Taper.app */,
 				18B449F8640CEFAA743C9ADE /* TaperTests.xctest */,
+				1C6DB23828F92F8B4EE1A339 /* TaperUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -287,6 +307,24 @@
 			productReference = 18B449F8640CEFAA743C9ADE /* TaperTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		E68DBAA8FB8825F97AFD8BCF /* TaperUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 947F6C01C1BAD7F45FB87865 /* Build configuration list for PBXNativeTarget "TaperUITests" */;
+			buildPhases = (
+				1F7413E0443679599DC4CA61 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C84238615154A566CDA4B2C9 /* PBXTargetDependency */,
+			);
+			name = TaperUITests;
+			packageProductDependencies = (
+			);
+			productName = TaperUITests;
+			productReference = 1C6DB23828F92F8B4EE1A339 /* TaperUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		EE06B5AE23DD110257F93A16 /* Taper */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 245B595019E53FA1F16D6C4A /* Build configuration list for PBXNativeTarget "Taper" */;
@@ -316,6 +354,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					E68DBAA8FB8825F97AFD8BCF = {
+						TestTargetID = EE06B5AE23DD110257F93A16;
+					};
 				};
 			};
 			buildConfigurationList = B0E3E8BB7B0068D0A6200CC5 /* Build configuration list for PBXProject "Taper" */;
@@ -337,6 +378,7 @@
 			targets = (
 				EE06B5AE23DD110257F93A16 /* Taper */,
 				68AB04279C4D6D1204D0EECD /* TaperTests */,
+				E68DBAA8FB8825F97AFD8BCF /* TaperUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -357,6 +399,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1F7413E0443679599DC4CA61 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A65B4D477181B1DF0C5E40D6 /* OnboardingRunTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1FDF4E33573757EAA842C9DE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -414,9 +464,48 @@
 			target = EE06B5AE23DD110257F93A16 /* Taper */;
 			targetProxy = 3ED409AFE0F6BB84D253A8A4 /* PBXContainerItemProxy */;
 		};
+		C84238615154A566CDA4B2C9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EE06B5AE23DD110257F93A16 /* Taper */;
+			targetProxy = B481D25280865B82FB0F5170 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		00E0B87405707D96403B98B6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.graemkrietzman.TaperUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Taper;
+			};
+			name = Debug;
+		};
+		0E11439487659AA0BFC9B399 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.graemkrietzman.TaperUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Taper;
+			};
+			name = Release;
+		};
 		24A37807F6E153FDDAC09CEF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B4141AC4A48A1C21FFEBE461 /* Config.xcconfig */;
@@ -623,6 +712,15 @@
 			buildConfigurations = (
 				B8812F82961C3525B4F6F080 /* Debug */,
 				35D94143F3225AC16D159835 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		947F6C01C1BAD7F45FB87865 /* Build configuration list for PBXNativeTarget "TaperUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00E0B87405707D96403B98B6 /* Debug */,
+				0E11439487659AA0BFC9B399 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
