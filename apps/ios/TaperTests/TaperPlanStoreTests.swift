@@ -200,15 +200,20 @@ struct TaperPlanStoreLiveTests {
         #expect(try await store().currentPlan() == nil)
     }
 
-    @Test("one anonymous user cannot read another's plan",
+    @Test("a fresh anonymous session is a different person",
           .enabled(if: LocalBackend.isAvailable))
-    func plansAreNotSharedBetweenUsers() async throws {
-        // What this proves and what it does not. It is an end-to-end check
-        // that a stranger sees nothing, and it would only fail if *both*
-        // defences went — the query's own `user_id` filter and the policy — so
-        // it does not isolate which one is doing the work. The pgTAP suite
-        // does that, by asking the database directly with no client in the
-        // way. This one is here because the two together are what ships.
+    func aNewSessionDoesNotInheritTheLastOnesPlan() async throws {
+        // Deliberately not a test of the policy. RLS is a database property
+        // and `supabase/tests/taper_core_test.sql` proves it directly, with no
+        // client in the way — and a mutation confirmed this cannot: dropping
+        // the query's own user_id predicate leaves RLS doing the work and
+        // every assertion here still passes.
+        //
+        // What it does prove is the client-side half that pgTAP cannot reach.
+        // Anonymous sign-in is the app's entire notion of identity, and a
+        // second session that silently resumed the first would hand a stranger
+        // the previous user's plan on a shared or reset device without any
+        // policy having failed.
         let first = await store()
         _ = try await first.save(
             TaperPlanDraft(startingCapMg: 18, currentCapMg: 18,
@@ -217,8 +222,10 @@ struct TaperPlanStoreLiveTests {
         )
         #expect(try await first.currentPlan() != nil)
 
-        // A second store signs out and in again, which is a different person.
-        #expect(try await store().currentPlan() == nil, "a stranger read someone else's plan")
+        #expect(
+            try await store().currentPlan() == nil,
+            "a new anonymous session resumed the previous user's identity"
+        )
     }
 
     @Test("running onboarding twice moves the plan rather than failing",
