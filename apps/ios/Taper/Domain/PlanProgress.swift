@@ -128,6 +128,15 @@ struct PlanProgress: Equatable, Sendable {
         let inDays = calendar.dateComponents([.day], from: now, to: lands).day ?? 0
         guard inDays > 0 else { return nil }
 
-        return NextStep(capMg: schedule[nextIndex], inDays: inDays)
+        // A step has to be downward. The stored cap is pinned and the schedule
+        // is recomputed, so the two can disagree — a plan stretched, a cap
+        // corrected by hand, a row written by an older version — and the
+        // arithmetic will happily produce a "next step" above the ceiling the
+        // user is already living under. "Drops to 13.5" under a cap of 12 is
+        // the shape of that, and it is worse than saying nothing.
+        let next = schedule[nextIndex]
+        guard next < plan.currentCapMg else { return nil }
+
+        return NextStep(capMg: next, inDays: inDays)
     }
 }

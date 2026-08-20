@@ -32,7 +32,7 @@ struct PlanPreviewView: View {
             // Nil while a write is in flight or already done. A second tap
             // would otherwise start a second write against a table that holds
             // one plan per person.
-            onContinue: status == .saving || status == .present ? nil : onContinue,
+            onContinue: status == .saving || status.isPresent ? nil : onContinue,
             onBack: onBack
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.m) {

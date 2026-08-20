@@ -99,7 +99,7 @@ struct PlanRecordTests {
 
         await record.load()
 
-        #expect(record.status == .present)
+        #expect(record.status.isPresent)
     }
 
     @Test("someone with no plan gets the questions")
@@ -159,7 +159,7 @@ struct PlanRecordTests {
         store.readFails = false
         await record.load()
 
-        #expect(record.status == .present)
+        #expect(record.status.isPresent)
         #expect(store.readCount == 2)
     }
 
@@ -204,7 +204,7 @@ struct PlanRecordTests {
 
         await record.submit(draft)
 
-        #expect(record.status == .present)
+        #expect(record.status.isPresent)
         #expect(store.readCount == 1, "the plan was re-read after being written")
     }
 
@@ -219,7 +219,7 @@ struct PlanRecordTests {
 
         await record.submit(draft)
 
-        #expect(record.status == .present)
+        #expect(record.status.isPresent)
         #expect(store.writes == 1)
     }
 
@@ -305,7 +305,7 @@ struct PlanRecordTests {
         await record.submit(draft)
 
         #expect(store.writes == 1)
-        #expect(record.status == .present)
+        #expect(record.status.isPresent)
     }
 
     @Test("a failure can be cleared so the plan can be offered again")

@@ -15,14 +15,24 @@ enum PlanStatus: Equatable, Sendable {
     /// because a user cannot act on a Postgres code and one on screen reads as
     /// the app breaking rather than as something to try again.
     case saveFailed(String)
-    /// A plan exists, either found at launch or just written.
-    case present
+    /// A plan exists, either found at launch or just written, and this is it.
+    /// Carried rather than merely flagged, because every screen behind this
+    /// state is built from the row and re-reading it to draw one would be a
+    /// second trip for something already in hand.
+    case present(StoredTaperPlan)
     /// The check itself failed, so whether a plan exists is unknown.
     ///
     /// Deliberately not `absent`. Treating an unanswered question as a "no"
     /// would walk somebody through twelve questions they have already answered
     /// and then overwrite the plan they could not be shown.
     case unknown(String)
+
+    /// True once a plan is known to exist. Spelled out because the case now
+    /// carries a value, and `== .present` no longer compiles.
+    var isPresent: Bool {
+        if case .present = self { return true }
+        return false
+    }
 }
 
 /// Owns the app's one plan: finding it at launch, and writing it once.
@@ -75,7 +85,7 @@ final class PlanRecord {
 
         status = .checking
         do {
-            status = try await store.currentPlan() == nil ? .absent : .present
+            status = try await store.currentPlan().map(PlanStatus.present) ?? .absent
         } catch {
             status = .unknown("Couldn't check for your plan. Check your connection and try again.")
         }
@@ -88,7 +98,7 @@ final class PlanRecord {
     /// rendering decision and this is the rule — two taps landing either side
     /// of the first render would otherwise write twice.
     func submit(_ draft: TaperPlanDraft) async {
-        guard status != .saving, status != .present else { return }
+        guard status != .saving, !status.isPresent else { return }
 
         guard let store else {
             status = .saveFailed(Self.noBackend)
@@ -97,8 +107,7 @@ final class PlanRecord {
 
         status = .saving
         do {
-            _ = try await store.save(draft)
-            status = .present
+            status = .present(try await store.save(draft))
         } catch {
             // Deliberately one sentence for every failure. The distinctions the
             // client can actually draw — offline, refused, timed out — are not

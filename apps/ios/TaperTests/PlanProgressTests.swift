@@ -100,6 +100,22 @@ struct PlanProgressTests {
         #expect(PlanProgress(plan: plan(), today: day(0))?.nextStep?.capMg == 16)
     }
 
+    @Test("a next step that is not a drop is not shown at all")
+    func aStepMustGoDown() {
+        // The stored cap is pinned and the schedule is recomputed, so the two
+        // can disagree — a plan stretched, a cap corrected by hand, a row from
+        // an older version. The arithmetic then produces a "next step" above
+        // the ceiling somebody is already living under, and a tile reading
+        // "12 mg — drops to 13.5" is worse than one that says nothing.
+        let inconsistent = plan(startingCap: 18, currentCap: 12)
+        let recomputed = TaperPlanner.plan(for: TaperInput(
+            startingCapMg: 18, minutesToFirstUse: 20, usesWhenIllInBed: true, weeksUntilQuitDate: 8
+        )).weeklyCapsMg
+        #expect(recomputed[2] > 12, "the fixture must actually produce an upward step")
+
+        #expect(PlanProgress(plan: inconsistent, today: day(11))?.nextStep == nil)
+    }
+
     @Test("a run past the end of its schedule has no next step to name")
     func theEndHasNothingAfterIt() {
         #expect(PlanProgress(plan: plan(), today: day(70))?.nextStep == nil)

@@ -81,8 +81,17 @@ struct RootView: View {
                 // twelve questions on a guess would overwrite the plan we could
                 // not read.
                 CannotCheckView(message: message) { Task { await record.load() } }
-            case .present:
-                OnboardingDoneView()
+            case let .present(plan):
+                // A row found and not readable is not a plan that can be
+                // drawn. It reuses the could-not-check screen rather than
+                // rendering a home screen with holes in it.
+                if let progress = PlanProgress(plan: plan, today: Date()) {
+                    HomeView(progress: progress)
+                } else {
+                    CannotCheckView(
+                        message: "Your plan came back in a form this version can't read."
+                    ) { Task { await record.load() } }
+                }
             case .absent, .saving, .saveFailed:
                 OnboardingFlow(
                     onFinish: { draft in Task { await record.submit(draft) } },
@@ -90,37 +99,6 @@ struct RootView: View {
                 )
             }
         }
-    }
-}
-
-/// Where the run stops, until there is a home screen to hand it to.
-///
-/// Says so plainly, for the same reason `OnboardingPlaceholderView` does: the
-/// alternative is a "Start tracking" button that appears to work and lands
-/// nowhere, which reads as a bug rather than as unfinished work.
-///
-/// It used to say nothing had been saved, which was true when it was written
-/// and stopped being true the moment this screen moved behind a successful
-/// write. Only reachable now when the plan is on the server.
-struct OnboardingDoneView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.m) {
-            Text("That's the plan.")
-                .font(AppFont.display(AppSize.display))
-                .foregroundStyle(AppColor.ink)
-
-            Text("""
-            Your plan is saved. Tracking is the next thing to build, so there's nowhere to log \
-            against it yet — but the cap and the date are on the server, not just on this phone.
-            """)
-                .font(AppFont.text(AppSize.body))
-                .lineSpacing(AppLeading.relaxed - AppSize.body)
-                .foregroundStyle(AppColor.inkMuted)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.horizontal, AppLayout.gutter)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(AppColor.ground)
     }
 }
 
