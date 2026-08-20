@@ -2,17 +2,14 @@ import Foundation
 
 /// Where a saved plan has got to, read back for the screen the app returns to.
 ///
-/// Everything here comes from the five columns `taper_plans` keeps. That is the
-/// schema's design — the schedule is recomputed rather than stored — and it has
-/// one exception that this type exists to respect.
-///
-/// **Today's cap is the stored one, never a recomputed one.** `current_cap_mg`
-/// is pinned deliberately: the number someone is currently living under must
-/// not shift beneath them because a dependence answer was corrected or the plan
-/// was stretched. Recomputing it from the descent would be right on most days
-/// and quietly wrong on exactly the days that matter.
+/// Everything here comes from the five columns `taper_plans` keeps, and every
+/// figure comes off **one** recomputed descent. Reading today's cap from the
+/// row and the next step from a schedule was two models of the same plan, and
+/// the two drift the moment a week passes: nothing in the app advances
+/// `current_cap_mg`, so the row keeps saying what onboarding wrote while the
+/// derived step walks on down without it.
 struct PlanProgress: Equatable, Sendable {
-    /// The cap in force today, straight off the row.
+    /// The cap in force today.
     var todaysCapMg: Double
     /// Which day of the plan today is, counting the first day as day one.
     var day: Int
@@ -63,13 +60,12 @@ struct PlanProgress: Equatable, Sendable {
         }
         let now = calendar.startOfDay(for: today)
 
-        todaysCapMg = plan.currentCapMg
-
-        // Clamped at one. A plan whose start is in the future is a clock the
+        // Clamped at zero. A plan whose start is in the future is a clock the
         // app does not control — a device set back a day should read as day
         // one, not day zero or day minus one.
-        let elapsed = calendar.dateComponents([.day], from: start, to: now).day ?? 0
-        day = max(1, elapsed + 1)
+        let elapsed = max(0, calendar.dateComponents([.day], from: start, to: now).day ?? 0)
+        day = elapsed + 1
+        let week = elapsed / 7
 
         if let quitDate {
             let span = calendar.dateComponents([.day], from: start, to: quitDate).day ?? 0
@@ -82,42 +78,69 @@ struct PlanProgress: Equatable, Sendable {
             daysUntilQuitDate = nil
         }
 
-        nextStep = Self.nextStep(
-            plan: plan,
-            start: start,
-            now: now,
-            quitDate: quitDate,
-            calendar: calendar
-        )
-    }
-
-    /// The step after the current one, recomputed from the row.
-    ///
-    /// Recomputing is correct here and wrong for today's cap, which is the
-    /// distinction the schema draws: what someone is living under now is
-    /// pinned, and what comes next is derived.
-    private static func nextStep(
-        plan: StoredTaperPlan,
-        start: Date,
-        now: Date,
-        quitDate: Date?,
-        calendar: Calendar
-    ) -> NextStep? {
-        // A run holding where it is has no next step to name. Inventing one
-        // would put a date in front of somebody who declined to set one.
-        guard let quitDate else { return nil }
-
-        let weeksToQuit = QuitDate.weeks(from: start, to: quitDate, calendar: calendar)
+        // Built once, and both figures on the tile come off it. Two models of
+        // one plan is what put "18 mg — drops to 13.5" on the screen in week
+        // two: the row standing where onboarding left it while the derived
+        // step walked straight past the 16 mg week between them.
         let schedule = TaperPlanner.plan(for: TaperInput(
             startingCapMg: plan.startingCapMg,
             minutesToFirstUse: plan.firstUseMinutes,
             usesWhenIllInBed: plan.sickInBed,
-            weeksUntilQuitDate: weeksToQuit
+            weeksUntilQuitDate: quitDate.map {
+                QuitDate.weeks(from: start, to: $0, calendar: calendar)
+            }
         )).weeklyCapsMg
 
-        // Which week today falls in, and therefore which entry comes next.
-        let elapsed = max(0, calendar.dateComponents([.day], from: start, to: now).day ?? 0)
-        let nextIndex = elapsed / 7 + 1
+        todaysCapMg = Self.capInForce(plan: plan, schedule: schedule, week: week)
+        nextStep = Self.nextStep(
+            schedule: schedule,
+            week: week,
+            capInForce: todaysCapMg,
+            start: start,
+            now: now,
+            calendar: calendar
+        )
+    }
+
+    /// Today's ceiling: the row's figure or the descent's, whichever is lower.
+    ///
+    /// `current_cap_mg` and `cap_effective_from` are a pair — a cap, and the
+    /// day it began applying — and nothing in the app advances either, so the
+    /// row stops being current the moment its week ends. Honouring it alone
+    /// would read 18 mg on day fifty-five of a taper to zero.
+    ///
+    /// Taking the lower of the two keeps what the pin was actually for: a plan
+    /// stretched, or a cap corrected by hand, must never *raise* the ceiling
+    /// somebody is already living under.
+    private static func capInForce(
+        plan: StoredTaperPlan,
+        schedule: [Double],
+        week: Int
+    ) -> Double {
+        // Clamped to the last week rather than falling back to the row. Past
+        // the end of the descent the plan has reached zero, and the figure
+        // onboarding wrote is the one number that is certainly wrong there.
+        guard let last = schedule.indices.last else { return plan.currentCapMg }
+        return min(plan.currentCapMg, schedule[min(week, last)])
+    }
+
+    /// The step after this week, and when it lands.
+    ///
+    /// Off the same array as the cap above it, so the two are consecutive by
+    /// construction rather than by agreement.
+    private static func nextStep(
+        schedule: [Double],
+        week: Int,
+        capInForce: Double,
+        start: Date,
+        now: Date,
+        calendar: Calendar
+    ) -> NextStep? {
+        // A run holding where it is has a one-entry schedule, so it falls out
+        // here rather than needing a case of its own — and falling out is the
+        // right answer: inventing a step would put a date in front of somebody
+        // who declined to set one.
+        let nextIndex = week + 1
         guard schedule.indices.contains(nextIndex) else { return nil }
 
         // The day that week begins, which is not tomorrow except on one day in
@@ -128,6 +151,14 @@ struct PlanProgress: Equatable, Sendable {
         let inDays = calendar.dateComponents([.day], from: now, to: lands).day ?? 0
         guard inDays > 0 else { return nil }
 
-        return NextStep(capMg: schedule[nextIndex], inDays: inDays)
+        // A step has to be downward. A row pinned below the descent — a plan
+        // stretched, a cap corrected by hand, a row written by an older
+        // version — leaves the next scheduled entry above the ceiling somebody
+        // is already living under, and a tile reading "12 mg — drops to 13.5"
+        // is worse than one that says nothing.
+        let next = schedule[nextIndex]
+        guard next < capInForce else { return nil }
+
+        return NextStep(capMg: next, inDays: inDays)
     }
 }
