@@ -380,14 +380,22 @@ final class OnboardingAnswers {
     /// `weeksUntilQuitDate` stays nil legitimately: a reduction-only run has
     /// no date, and the planner treats that as a supported state rather than
     /// a missing answer.
-    var taperInput: TaperInput? {
+    var taperInput: TaperInput? { taperInput(asOf: now()) }
+
+    /// The same input, reckoned against a day the caller has already read.
+    ///
+    /// A screen that needs both the plan and a date derived from it has to
+    /// build them from one reading of the clock. Two readings can straddle
+    /// midnight, and the plan then covers a runway that ends a day away from
+    /// the date printed beside it.
+    func taperInput(asOf today: Date) -> TaperInput? {
         guard let firstUse, let usesWhenIllInBed,
               strengthsAreComplete, startingCapMg > 0 else { return nil }
         return TaperInput(
             startingCapMg: startingCapMg,
             minutesToFirstUse: firstUse.minutes,
             usesWhenIllInBed: usesWhenIllInBed,
-            weeksUntilQuitDate: weeksUntilQuitDate
+            weeksUntilQuitDate: weeksUntilQuitDate(asOf: today)
         )
     }
 
@@ -396,9 +404,12 @@ final class OnboardingAnswers {
     /// Nil is a supported state rather than a missing answer — most nicotine
     /// users are not ready to name a date, and inventing one for them is the
     /// product addressing the wrong person.
-    var weeksUntilQuitDate: Int? {
+    var weeksUntilQuitDate: Int? { weeksUntilQuitDate(asOf: now()) }
+
+    /// The same runway, reckoned against a day the caller has already read.
+    func weeksUntilQuitDate(asOf today: Date) -> Int? {
         guard planShape?.needsQuitDate == true, let quitDate else { return nil }
-        return QuitDate.weeks(from: now(), to: quitDate)
+        return QuitDate.weeks(from: today, to: quitDate)
     }
 
     /// What O10 says about the date currently chosen, or nil before there is
@@ -558,6 +569,27 @@ final class OnboardingAnswers {
             plan: TaperPlanner.plan(for: input),
             dailyMg: input.startingCapMg,
             firstUse: firstUse
+        )
+    }
+
+    /// The finished plan as O11 shows it, or nil while the run is incomplete.
+    ///
+    /// One clock read, shared by the plan and by the date on its last
+    /// milestone. Taking two would let a run that crosses midnight between them
+    /// print a countdown that does not reach the day beside it.
+    ///
+    /// Gated on `hasAnsweredTreatment` as well as on the planner's inputs. An
+    /// empty `treatments` set means "has not said", not "said no" — and the
+    /// preview reads the two the same way, so an unanswered run would be told
+    /// it has nothing to come off. The gate belongs here rather than on the
+    /// screen before it: a rule enforced only by a view is one no test can see.
+    var planPreview: PlanPreview? {
+        let today = now()
+        guard hasAnsweredTreatment, let input = taperInput(asOf: today) else { return nil }
+        return PlanPreview(
+            plan: TaperPlanner.plan(for: input),
+            today: today,
+            treatments: treatments
         )
     }
 
