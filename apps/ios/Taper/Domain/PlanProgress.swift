@@ -47,7 +47,20 @@ struct PlanProgress: Equatable, Sendable {
         guard let start = PlanDay.date(from: plan.capEffectiveFrom, calendar: calendar) else {
             return nil
         }
-        let quitDate = plan.quitDate.flatMap { PlanDay.date(from: $0, calendar: calendar) }
+        // A quit date that will not parse is refused, not treated as absent.
+        // `flatMap` would turn an unreadable value into `nil`, which this type
+        // reads as "this person chose to hold where they are" — so a corrupt
+        // row would silently render as a reduction-only plan, countdown gone
+        // and nobody told. The read protocol makes the same distinction one
+        // file over: nil means they have none, never that we could not tell.
+        let quitDate: Date?
+        switch plan.quitDate {
+        case let .some(wire):
+            guard let parsed = PlanDay.date(from: wire, calendar: calendar) else { return nil }
+            quitDate = parsed
+        case .none:
+            quitDate = nil
+        }
         let now = calendar.startOfDay(for: today)
 
         todaysCapMg = plan.currentCapMg

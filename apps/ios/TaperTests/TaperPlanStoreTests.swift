@@ -108,7 +108,24 @@ private enum LocalBackend {
 ///   TAPER_TEST_SUPABASE_URL=http://127.0.0.1:55321 \
 ///   TAPER_TEST_SUPABASE_KEY=<local publishable key from `supabase status`> \
 ///   xcodebuild test ... -only-testing:TaperTests/TaperPlanStoreLiveTests
-struct TaperPlanStoreLiveTests {
+final class TaperPlanStoreLiveTests {
+    /// Leaves no signed-in session behind.
+    ///
+    /// These tests and the UI suite run in the same app container, so a session
+    /// left here is the identity the next launched app picks up — and since
+    /// these tests write plans, the UI suite would then start on a device that
+    /// already has one and skip onboarding entirely. Signing out at the start
+    /// is not enough: it is the *last* test's session that leaks.
+    deinit {
+        let client = AppSupabase.make(
+            url: LocalBackend.url ?? URL(string: "http://127.0.0.1")!,
+            publishableKey: LocalBackend.key ?? ""
+        )
+        // Fire and forget: `deinit` cannot await, and leaving the session is a
+        // nuisance for the next suite rather than a failure of this one.
+        Task { try? await client.auth.signOut(scope: .local) }
+    }
+
     /// Fixed, and deliberately not the runner's.
     ///
     /// On a UTC runner there is no local time whose day differs from UTC's, so

@@ -37,6 +37,13 @@ enum PlanDay {
     ///
     /// Uses the calendar's own validation, so `2025-02-30` is rejected rather
     /// than rolled forward into March.
+    ///
+    /// Then checks the result round-trips. `split` drops empty pieces, so
+    /// `2025--10-09` and `2025-10-09-` both come apart into three usable
+    /// numbers — and a parser looser than its writer accepts strings the app
+    /// could never have produced. Comparing against `wireFormat` makes the pair
+    /// exact by construction rather than by agreement, which matters because
+    /// this value arrives from outside the app.
     static func date(from wire: String, calendar base: Calendar = .current) -> Date? {
         let parts = wire.split(separator: "-")
         guard parts.count == 3,
@@ -46,8 +53,11 @@ enum PlanDay {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = base.timeZone
         let components = DateComponents(calendar: calendar, year: year, month: month, day: day)
-        guard components.isValidDate else { return nil }
-        return calendar.date(from: components)
+        guard components.isValidDate,
+              let date = calendar.date(from: components),
+              wireFormat(date, timeZone: calendar.timeZone) == wire
+        else { return nil }
+        return date
     }
 }
 

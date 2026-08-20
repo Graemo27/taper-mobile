@@ -118,6 +118,29 @@ struct PlanProgressTests {
         #expect(progress?.todaysCapMg == 18)
     }
 
+    @Test("a quit date that cannot be read is refused, not read as no date")
+    func anUnreadableQuitDateIsNotAnAbsence() {
+        // The failure this prevents is silent and plausible: an unreadable
+        // quit date treated as `nil` renders a perfectly ordinary
+        // reduction-only plan — countdown gone, next step gone — and nothing
+        // on screen suggests anything went wrong.
+        let broken = StoredTaperPlan(
+            id: 1, startingCapMg: 18, currentCapMg: 18,
+            capEffectiveFrom: start, quitDate: "not a date",
+            firstUseMinutes: 20, sickInBed: true
+        )
+        #expect(PlanProgress(plan: broken, today: day(0)) == nil)
+
+        // And the same date spelled un-canonically, which the parser used to
+        // take because `split` drops the empty piece.
+        let looseSeparators = StoredTaperPlan(
+            id: 1, startingCapMg: 18, currentCapMg: 18,
+            capEffectiveFrom: start, quitDate: "2025--12-04",
+            firstUseMinutes: 20, sickInBed: true
+        )
+        #expect(PlanProgress(plan: looseSeparators, today: day(0)) == nil)
+    }
+
     @Test("a row whose date cannot be read yields no progress at all")
     func anUnreadableRowIsRefused() {
         let broken = StoredTaperPlan(
@@ -166,6 +189,21 @@ struct PlanDayParsingTests {
         #expect(PlanDay.date(from: "2025-13-01") == nil)
         #expect(PlanDay.date(from: "2025-10") == nil)
         #expect(PlanDay.date(from: "") == nil)
+    }
+
+    @Test("a day the writer could never have produced is refused")
+    func onlyCanonicalSpellingsAreAccepted() {
+        // `split` drops empty pieces, so all of these come apart into three
+        // usable numbers. A parser looser than its writer accepts strings the
+        // app could not have written — and this value arrives from outside the
+        // app, so the pair has to be exact by construction.
+        #expect(PlanDay.date(from: "2025--10-09") == nil)
+        #expect(PlanDay.date(from: "2025-10-09-") == nil)
+        #expect(PlanDay.date(from: "-2025-10-09") == nil)
+        #expect(PlanDay.date(from: "2025-10-9") == nil, "an unpadded day is not what the writer emits")
+        #expect(PlanDay.date(from: "2025-1-09") == nil, "an unpadded month is not what the writer emits")
+        // The canonical spelling still works.
+        #expect(PlanDay.date(from: "2025-10-09") != nil)
     }
 
     @Test("a leap day is a real date")
