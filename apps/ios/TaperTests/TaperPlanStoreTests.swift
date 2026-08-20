@@ -172,6 +172,55 @@ struct TaperPlanStoreLiveTests {
         #expect(stored.quitDate == "2025-12-04", "stored UTC day instead of the chosen one")
     }
 
+    @Test("a plan written can be read back on the next launch",
+          .enabled(if: LocalBackend.isAvailable))
+    func aSavedPlanIsFoundAgain() async throws {
+        // The gap this closes: the app wrote a plan and had no way to discover
+        // it existed, so every launch replayed twelve questions at someone
+        // whose plan was already on the server.
+        let store = await store()
+        let saved = try await store.save(
+            TaperPlanDraft(startingCapMg: 18, currentCapMg: 18,
+                           capEffectiveFrom: whenTheDaysDisagree, quitDate: nil,
+                           firstUseMinutes: 20, sickInBed: true)
+        )
+
+        let found = try await store.currentPlan()
+
+        #expect(found == saved, "the plan read back was not the plan written")
+    }
+
+    @Test("someone with no plan reads none, rather than failing",
+          .enabled(if: LocalBackend.isAvailable))
+    func aNewUserHasNoPlan() async throws {
+        // Having no plan is the ordinary state of everyone who has not
+        // finished onboarding. If that arrived as an error the app could not
+        // tell a new user from a broken connection, and would have to guess
+        // which — badly, in one direction or the other.
+        #expect(try await store().currentPlan() == nil)
+    }
+
+    @Test("one anonymous user cannot read another's plan",
+          .enabled(if: LocalBackend.isAvailable))
+    func plansAreNotSharedBetweenUsers() async throws {
+        // What this proves and what it does not. It is an end-to-end check
+        // that a stranger sees nothing, and it would only fail if *both*
+        // defences went — the query's own `user_id` filter and the policy — so
+        // it does not isolate which one is doing the work. The pgTAP suite
+        // does that, by asking the database directly with no client in the
+        // way. This one is here because the two together are what ships.
+        let first = await store()
+        _ = try await first.save(
+            TaperPlanDraft(startingCapMg: 18, currentCapMg: 18,
+                           capEffectiveFrom: whenTheDaysDisagree, quitDate: nil,
+                           firstUseMinutes: 20, sickInBed: true)
+        )
+        #expect(try await first.currentPlan() != nil)
+
+        // A second store signs out and in again, which is a different person.
+        #expect(try await store().currentPlan() == nil, "a stranger read someone else's plan")
+    }
+
     @Test("running onboarding twice moves the plan rather than failing",
           .enabled(if: LocalBackend.isAvailable))
     func asecondRunUpserts() async throws {
