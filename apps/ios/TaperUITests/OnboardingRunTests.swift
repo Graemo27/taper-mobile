@@ -105,6 +105,14 @@ final class OnboardingRunTests: XCTestCase {
         app.buttons["Back"].tap()
 
         expectQuestion("What are you quitting?")
+        // Arriving is not the thing worth checking. One answers object is
+        // shared by the whole run, and going back is exactly where a reset
+        // would hide: the screen looks right, the choice is gone, and nothing
+        // says so until Continue turns out to be dead.
+        XCTAssertTrue(
+            option("Pouches").isSelected,
+            "Back reached the right screen with the answer given there cleared"
+        )
     }
 
     // MARK: - Walking
@@ -164,14 +172,20 @@ final class OnboardingRunTests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let row = app.buttons
-            .matching(NSPredicate(format: "label BEGINSWITH %@", label))
-            .firstMatch
+        let row = option(label)
         XCTAssertTrue(
             row.waitForExistence(timeout: 5),
             "No option beginning \"\(label)\"", file: file, line: line
         )
         row.tap()
+    }
+
+    /// A row, by the words it starts with. Shared with the assertions rather
+    /// than only tapped, so a test can ask whether a row is still chosen.
+    private func option(_ label: String) -> XCUIElement {
+        app.buttons
+            .matching(NSPredicate(format: "label BEGINSWITH %@", label))
+            .firstMatch
     }
 
     private func tapCTA(
