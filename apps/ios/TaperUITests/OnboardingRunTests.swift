@@ -51,7 +51,14 @@ final class OnboardingRunTests: XCTestCase {
             cap.label.contains("days to go"),
             "A dated run should count down, read \"\(cap.label)\""
         )
-        XCTAssertTrue(app.buttons["Start tracking"].exists)
+        // Waited for, not read once. The cap sits inside the scroll view and
+        // the CTA is pinned outside it, so the two are not guaranteed to land
+        // in the accessibility tree on the same pass — and a check that fails
+        // on that would be reporting the harness, not the app.
+        XCTAssertTrue(
+            app.buttons["Start tracking"].waitForExistence(timeout: 5),
+            "The plan screen offered no way to continue"
+        )
     }
 
     // MARK: - The branches
@@ -72,7 +79,7 @@ final class OnboardingRunTests: XCTestCase {
         expectQuestion("Here's your plan.")
 
         let cap = app.descendants(matching: .any)["plan.cap"]
-        XCTAssertTrue(cap.waitForExistence(timeout: 5))
+        XCTAssertTrue(cap.waitForExistence(timeout: 5), "The plan screen showed no cap")
         XCTAssertFalse(
             cap.label.contains("days to go"),
             "A run holding where it is was given a countdown, read \"\(cap.label)\""
