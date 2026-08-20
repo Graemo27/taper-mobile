@@ -157,19 +157,27 @@ struct OnboardingFlow: View {
 /// without the answers behind it, this says so rather than drawing a plan out
 /// of nothing.
 ///
-/// Deliberately says so on screen. The alternative — an enabled Continue that
-/// does nothing — is indistinguishable from a bug to anyone driving the app,
-/// including whoever is reviewing the screen before it.
+/// Deliberately says so on screen, and says what to do about it. The
+/// alternative — an enabled Continue that does nothing — is indistinguishable
+/// from a bug to anyone driving the app, including whoever is reviewing the
+/// screen before it.
+///
+/// The copy names no step. It used to print the case name, which was fair when
+/// this stood in for work not yet done and is debug output now that it stands
+/// in for a missing answer.
 struct OnboardingPlaceholderView: View {
     let step: OnboardingStep
     let onBack: () -> Void
 
     var body: some View {
         OnboardingScaffold(
-            section: "Coming next",
+            section: "Your plan",
             progress: step.progress,
-            question: "Not built yet.",
-            helper: "This question — \(String(describing: step)) — is the next change. The run ends here for now.",
+            question: "Something's missing.",
+            helper: """
+            This screen is built from answers you gave earlier, and one of them didn't reach it. \
+            Go back a step and it'll fill in.
+            """,
             cta: "Back",
             onContinue: onBack,
             onBack: onBack

@@ -18,10 +18,14 @@ struct PlanPreviewView: View {
             section: "Your plan",
             progress: OnboardingStep.planPreview.progress,
             question: "Here's your plan.",
-            // No mention of where to change it. The board names the plan tab,
-            // which does not exist yet — and a screen that points somewhere
-            // unbuilt is wrong the moment someone taps looking for it.
-            helper: "Built from what you told us. None of it is locked — every part can change later.",
+            // The board names the plan tab, which does not exist. Dropping the
+            // destination but keeping "changes later" was the worse half of
+            // that fix: the promise survived and only its falsifiable part
+            // went. Today the CTA is one-way, so the actionable half of this
+            // sentence has to be one the build can honour — going back. The
+            // reassurance the board wanted is the other half, and it stays
+            // true either way: a plan is not a commitment.
+            helper: "Built from what you told us. Nothing here is a commitment — go back and change any answer before you start.",
             cta: "Start tracking",
             onContinue: onContinue,
             onBack: onBack
