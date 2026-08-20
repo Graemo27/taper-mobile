@@ -1575,3 +1575,152 @@ struct PlanPreviewTests {
         #expect(answers.planPreview == nil)
     }
 }
+
+/// Covers the row onboarding produces, against the constraints the schema
+/// actually enforces.
+///
+/// Written as the schema's checks rather than as the app's expectations, because
+/// that is where this has already gone wrong once: `current_cap_mg` shipped as
+/// `> 0`, which would have rejected every plan on its quit week — the one week
+/// the whole schedule descends toward. A constraint the client never tests is
+/// one the client discovers in production.
+struct TaperPlanDraftTests {
+    private let day = Date(timeIntervalSince1970: 1_760_000_000)
+
+    private func answers(
+        pouches: Int = 6,
+        minutes: Int = 20,
+        weeksOut: Int? = 8
+    ) -> OnboardingAnswers {
+        let answers = OnboardingAnswers()
+        answers.now = { self.day }
+        answers.toggle(.pouches)
+        answers.strengths[.pouches] = StrengthOption.pouch.first { $0.mg == 3 }
+        answers.setAmount(pouches, for: .pouches)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == minutes }
+        answers.usesWhenIllInBed = true
+        answers.planShape = weeksOut == nil ? .reduceFirst : .quitDate
+        answers.quitDate = weeksOut.map { QuitDate.date(weeksFrom: day, weeks: $0) }
+        answers.deferTreatment()
+        return answers
+    }
+
+    @Test("a completed run carries every column the row requires")
+    func theRowIsComplete() {
+        let draft = answers().planDraft
+        #expect(draft?.startingCapMg == 18)
+        #expect(draft?.currentCapMg == 18)
+        #expect(draft?.firstUseMinutes == 20)
+        #expect(draft?.sickInBed == true)
+        #expect(draft?.capEffectiveFrom == Calendar.current.startOfDay(for: day))
+        #expect(draft?.quitDate == QuitDate.date(weeksFrom: day, weeks: 8))
+    }
+
+    @Test("the date stored is the one the plan reaches, not the one asked for")
+    func aStretchedRunStoresTheScheduleItWillKeep() {
+        // The requested date is a day this schedule never arrives at, and O11
+        // says so on screen. Storing the request would leave the database
+        // disagreeing with the plan the user actually agreed to.
+        let answers = answers(pouches: 10, minutes: 3, weeksOut: 2)
+        #expect(TaperPlanner.plan(for: answers.taperInput!).stretchedFromRequestedWeeks == 2)
+        #expect(answers.planDraft?.quitDate == QuitDate.date(weeksFrom: day, weeks: 7))
+        #expect(answers.planDraft?.quitDate != QuitDate.date(weeksFrom: day, weeks: 2))
+    }
+
+    @Test("a run holding where it is stores no date, which the schema allows")
+    func aReductionOnlyRunHasNoQuitDate() {
+        let draft = answers(weeksOut: nil).planDraft
+        #expect(draft?.quitDate == nil)
+        #expect(draft?.startingCapMg == 18)
+    }
+
+    @Test("starting_cap_mg is above zero, as its constraint still demands")
+    func theBaselineIsPositive() {
+        // Unlike current_cap_mg, this check kept its strict form: a plan that
+        // begins at zero has nothing to taper and is a data-entry error.
+        #expect(answers().planDraft.map { $0.startingCapMg > 0 } == true)
+        // And a run with nothing to plan produces no row at all rather than a
+        // row the insert would bounce.
+        let empty = answers()
+        empty.setAmount(0, for: .pouches)
+        #expect(empty.planDraft == nil)
+    }
+
+    @Test("current_cap_mg may reach zero, and does on the quit week")
+    func theCeilingIsAllowedToReachNothing() {
+        // The constraint this schema had to be corrected for. The draft only
+        // ever carries week one, so it cannot demonstrate the zero itself —
+        // the plan it comes from can, and that is the value a later write puts
+        // in this column.
+        let answers = answers()
+        let caps = TaperPlanner.plan(for: answers.taperInput!).weeklyCapsMg
+        #expect(caps.last == 0)
+        #expect(caps.allSatisfy { $0 >= 0 })
+        #expect(answers.planDraft.map { $0.currentCapMg >= 0 } == true)
+    }
+
+    @Test("quit_date is never before the day the cap takes effect")
+    func theDateNeverPrecedesTheStart() {
+        // A constraint that only fires on dates close together, which is
+        // exactly the case a picker allows: today is a legitimate quit date.
+        for weeks in [1, 2, 5, 8, 20] {
+            let draft = answers(weeksOut: weeks).planDraft
+            #expect(draft?.quitDate ?? draft!.capEffectiveFrom >= draft!.capEffectiveFrom)
+        }
+    }
+
+    @Test("first_use_minutes sits inside the range the column accepts")
+    func theFirstUseAnswerIsInRange() {
+        // Every option, not the one the fixture happens to use — the column
+        // accepts 0...1440 and the list is where an out-of-range value would
+        // be introduced.
+        for option in FirstUseOption.all {
+            #expect(option.minutes >= 0 && option.minutes <= 1440)
+        }
+    }
+
+    @Test("a run that has not answered every question produces no row")
+    func anIncompleteRunIsNotWritable() {
+        let unanswered = answers()
+        unanswered.usesWhenIllInBed = nil
+        #expect(unanswered.planDraft == nil)
+
+        // Treatment silence too, for the same reason the preview refuses it:
+        // an empty set is "has not said", and the run is not finished.
+        let untreated = answers()
+        untreated.toggle(.lozenge)
+        untreated.toggle(.lozenge)
+        #expect(untreated.planDraft == nil)
+    }
+
+    @Test("the ceiling stored is the countable one, not the raw sum")
+    func theCeilingIsThePlannersNotTheRawTotal() {
+        // Everywhere else in this suite the raw total and the planner's week
+        // one are the same number, so nothing here could tell the two sources
+        // apart — a mutation copying the raw sum passed every test. 43 puffs at
+        // 0.15 mg is 6.4499..., which is not a figure anyone counts against;
+        // the planner rounds week one to the half and the screen shows that.
+        let answers = OnboardingAnswers()
+        answers.now = { self.day }
+        answers.toggle(.vape)
+        answers.setAmount(43, for: .vape)
+        answers.firstUse = FirstUseOption.all.first { $0.minutes == 20 }
+        answers.usesWhenIllInBed = true
+        answers.planShape = .reduceFirst
+        answers.deferTreatment()
+
+        let draft = answers.planDraft
+        #expect(draft?.currentCapMg == 6.5)
+        #expect(draft!.startingCapMg != draft!.currentCapMg)
+    }
+
+    @Test("the row and the screen agree, because both come from one plan")
+    func theRowMatchesWhatTheUserWasShown() {
+        // The failure this guards is a store that recomputes rather than
+        // reading: two callers of TaperPlanner with two clock reads can
+        // disagree, and the user would have agreed to the screen.
+        let answers = answers()
+        #expect(answers.planDraft?.currentCapMg == answers.planPreview?.capMg)
+        #expect(answers.planDraft?.quitDate == answers.planPreview?.quitDate)
+    }
+}

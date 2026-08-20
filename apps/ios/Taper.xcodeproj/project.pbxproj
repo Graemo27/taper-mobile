@@ -44,6 +44,7 @@
 		BB130F9CEEB993188D46CB19 /* PlanPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4442F6D8FC00924EFF766298 /* PlanPreviewView.swift */; };
 		C41C9FD243F5C93219A7B2AE /* OnboardingAnswers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */; };
 		C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */; };
+		CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */; };
 		DF19A8B86E15E68CEDD4948C /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = F975269EB5F504D1744C6A25 /* Controls.swift */; };
 		DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */; };
 		F130D3ABB24EFA3BCC9F8307 /* FirstUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */; };
@@ -106,6 +107,7 @@
 		B81A7A846268DDB13563347F /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
 		B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedBeforeView.swift; sourceTree = "<group>"; };
+		C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanDraft.swift; sourceTree = "<group>"; };
 		C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanTests.swift; sourceTree = "<group>"; };
 		C8CE03E1DFE9D4B43113814E /* PlanPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreview.swift; sourceTree = "<group>"; };
 		D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlan.swift; sourceTree = "<group>"; };
@@ -258,6 +260,7 @@
 				A69F8D2D5922193467A92830 /* QuitDate.swift */,
 				5218152C4EC89C9B5D06D692 /* StartingLine.swift */,
 				D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */,
+				C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */,
 				9C1766359067A8528CBEB51E /* Treatment.swift */,
 			);
 			path = Domain;
@@ -447,6 +450,7 @@
 				79FD6A2D96FDD74756B4F236 /* StrengthView.swift in Sources */,
 				F9AE040439B95F79AFDCC07C /* TaperApp.swift in Sources */,
 				C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */,
+				CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
 				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
 				2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */,
