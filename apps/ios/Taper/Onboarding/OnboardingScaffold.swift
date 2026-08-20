@@ -100,6 +100,11 @@ struct OnboardingScaffold<Content: View>: View {
 struct OnboardingCTA: View {
     let title: String
     let action: (() -> Void)?
+    /// Room below the button, which is the caller's business rather than the
+    /// button's. Defaulted to what every onboarding screen wants, so the one
+    /// screen with something underneath it can say so without the other twelve
+    /// changing.
+    var bottomPadding: CGFloat = AppSpacing.huge
 
     var body: some View {
         Button { action?() } label: {
@@ -113,7 +118,7 @@ struct OnboardingCTA: View {
         .disabled(action == nil)
         .opacity(action == nil ? 0.35 : 1)
         .padding(.horizontal, AppLayout.gutter)
-        .padding(.bottom, AppSpacing.huge)
+        .padding(.bottom, bottomPadding)
     }
 }
 

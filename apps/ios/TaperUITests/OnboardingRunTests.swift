@@ -19,7 +19,24 @@ final class OnboardingRunTests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        // The gate records its answer, so without this the second test in a run
+        // takes a different path from the first. It clears the record; it does
+        // not supply one, so every test below still passes the gate for real.
+        app.launchArguments = ["-TaperForgetAge"]
         app.launch()
+        passTheAgeGate()
+    }
+
+    /// Answers the age gate as an adult. Every test needs it, because it is now
+    /// the first thing the app shows.
+    private func passTheAgeGate() {
+        let month = app.textFields["Month"]
+        XCTAssertTrue(month.waitForExistence(timeout: 5), "The age gate did not appear")
+        month.tap()
+        month.typeText("01")
+        app.textFields["Day"].typeText("01")
+        app.textFields["Year"].typeText("1990")
+        tapCTA("I'm 18 or older")
     }
 
     // MARK: - The whole run
