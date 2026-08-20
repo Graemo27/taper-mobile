@@ -38,7 +38,7 @@ struct PadKey: Equatable, Sendable {
 /// Inhaler and spray are here because the schema carries them for someone
 /// already on one. Onboarding never offers them: both are prescription-only in
 /// most of the places this ships.
-enum PadForm: String, CaseIterable, Sendable {
+enum PadForm: String, CaseIterable, Decodable, Sendable {
     case patch, lozenge, gum, inhaler, spray
     case pouch, vape, cigarette, dip, other
 
