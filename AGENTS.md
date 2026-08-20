@@ -52,6 +52,11 @@ could not start were compatible states.
   not verified. Run every check against the unfixed code first and confirm it fails.
   The Edge Function is drivable too — `cd supabase/functions && deno task verify` — so
   "it cannot be tested without deploying" is no longer a reason to defer a backend change.
+  **So is the schema**: `supabase db reset && supabase test db` applies every migration to a
+  local Postgres and runs the pgTAP suite in `supabase/tests/`. It needs Docker, touches
+  nothing hosted, and covers the two rules no client-side test can reach — RLS isolating one
+  anonymous user from another, and the NRT-only rule as a constraint. A migration that has
+  not been run there is not ready to be offered for `db push`.
 - **Product search returns licensed NRT only — never a tobacco product.** Any surface that
   lets a user *discover* a nicotine product — search, autocomplete, suggestions, a browsable
   catalogue, "did you mean" — is restricted to FDA-regulated nicotine replacement therapy:
