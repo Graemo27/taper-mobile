@@ -32,25 +32,31 @@ struct RootView: View {
 
     init(
         verification: any AdultVerificationStore = DeviceAdultVerification(),
-        store: (any TaperPlanStoring)? = RootView.liveStore()
+        stores: AppStores? = RootView.liveStores()
     ) {
         self.verification = verification
         _isAdult = State(initialValue: verification.isVerifiedAdult)
-        _record = State(initialValue: PlanRecord(store: store))
+        _record = State(initialValue: PlanRecord(store: stores?.plans, pad: stores?.pad))
     }
 
-    /// The real store, or nil when this build has no backend.
+    /// The real stores, or nil when this build has no backend.
     ///
-    /// Nil rather than a crash, and nil rather than a store that fails at the
+    /// Nil rather than a crash, and nil rather than stores that fail at the
     /// first request: the app has already shipped once configured only while a
     /// test drove it, and the lesson was that an unconfigured build and an
     /// unreachable one looked identical. `PlanRecord` says which.
-    static func liveStore() -> (any TaperPlanStoring)? {
+    static func liveStores() -> AppStores? {
         guard let backend = AppConfiguration.backend else { return nil }
         let client = AppSupabase.make(url: backend.url, publishableKey: backend.publishableKey)
-        return SupabaseTaperPlanStore(
-            client: client,
-            session: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
+        // One coordinator behind both stores, not one each. Anonymous sign-in
+        // is the app's whole notion of identity, and the coordinator's job is
+        // to coalesce concurrent sign-ins into a single request — two of them
+        // racing on the same tap is exactly what it exists to prevent, and the
+        // pad and the plan are written by one tap.
+        let session = SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
+        return AppStores(
+            plans: SupabaseTaperPlanStore(client: client, session: session),
+            pad: SupabasePadKeyStore(client: client, session: session)
         )
     }
 
@@ -94,7 +100,7 @@ struct RootView: View {
                 }
             case .absent, .saving, .saveFailed:
                 OnboardingFlow(
-                    onFinish: { draft in Task { await record.submit(draft) } },
+                    onFinish: { run in Task { await record.submit(run) } },
                     status: record.status
                 )
             }

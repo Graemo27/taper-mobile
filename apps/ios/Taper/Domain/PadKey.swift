@@ -98,8 +98,8 @@ extension OnboardingAnswers {
     /// Seeded rather than built by hand later, because a pad somebody has to
     /// populate before they can log anything is a pad they meet empty on day
     /// one — and the run has already asked for every field a key needs.
-    func padKeys(for plan: TaperPlan) -> [PadKey] {
-        sourceKeys() + treatmentKeys(for: plan)
+    func padKeys(with replacement: NicotineReplacement) -> [PadKey] {
+        sourceKeys() + treatmentKeys(with: replacement)
     }
 
     /// What they are quitting, in the order the run asked about it.
@@ -129,7 +129,7 @@ extension OnboardingAnswers {
     }
 
     /// What they chose to taper with, at the strengths the plan committed to.
-    private func treatmentKeys(for plan: TaperPlan) -> [PadKey] {
+    private func treatmentKeys(with replacement: NicotineReplacement) -> [PadKey] {
         // No `defersTreatment` guard, deliberately. `deferTreatment()` clears
         // the set, and both it and `treatments` are write-restricted to that
         // pair of methods — so declining already means there is nothing to
@@ -145,7 +145,7 @@ extension OnboardingAnswers {
             // patch that was never suggested — and that row is shown with no
             // milligrams on it. Inventing one here to fill a key would be the
             // app recommending a strength it had declined to recommend.
-            guard let mg = plan.replacement.strengthMg(for: form) else { continue }
+            guard let mg = replacement.strengthMg(for: form) else { continue }
             keys.append(PadKey(
                 form: form.padForm,
                 label: form.label,

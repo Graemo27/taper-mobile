@@ -29,7 +29,13 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
     var writes: Int { lock.withLock { _writes } }
     var readCount: Int { lock.withLock { _reads } }
 
-    init(_ behaviour: Behaviour = .succeed) { self.behaviour = behaviour }
+    /// Shared with `FakePad`, so the order of the two writes can be asserted.
+    let order: OrderLog
+
+    init(_ behaviour: Behaviour = .succeed, order: OrderLog = OrderLog()) {
+        self.behaviour = behaviour
+        self.order = order
+    }
 
     func currentPlan() async throws -> StoredTaperPlan? {
         lock.withLock { _reads += 1 }
@@ -39,6 +45,7 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
     }
 
     func save(_ draft: TaperPlanDraft) async throws -> StoredTaperPlan {
+        order.record("plan")
         lock.withLock { _writes += 1 }
         switch behaviour {
         case .fail:
@@ -62,6 +69,47 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
     }
 }
 
+/// A pad that records what it was asked to seed, and can refuse.
+///
+/// Shares an order log with `FakeStore`, because the property under test is not
+/// what each of them was told but which of them was told first — and that is
+/// invisible to two fakes counting separately.
+private final class FakePad: PadKeyStoring, @unchecked Sendable {
+    let behaviour: FakeStore.Behaviour
+    let order: OrderLog
+
+    private let lock = NSLock()
+    private var _seeded: [[PadKey]] = []
+    /// Every seed it was asked for, in order. A list rather than a count, so a
+    /// second seed carrying different keys is distinguishable from a repeat.
+    var seeded: [[PadKey]] { lock.withLock { _seeded } }
+
+    init(_ behaviour: FakeStore.Behaviour = .succeed, order: OrderLog = OrderLog()) {
+        self.behaviour = behaviour
+        self.order = order
+    }
+
+    func seed(_ keys: [PadKey]) async throws -> [StoredPadKey] {
+        order.record("pad")
+        lock.withLock { _seeded.append(keys) }
+        if behaviour == .fail { throw URLError(.notConnectedToInternet) }
+        return keys.enumerated().map { index, key in
+            StoredPadKey(id: index + 1, form: key.form, label: key.label,
+                         mg: key.mg, position: key.position, ndc: nil)
+        }
+    }
+
+    func currentKeys() async throws -> [StoredPadKey] { [] }
+}
+
+/// Which writes happened, in the order they happened.
+private final class OrderLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _steps: [String] = []
+    var steps: [String] { lock.withLock { _steps } }
+    func record(_ step: String) { lock.withLock { _steps.append(step) } }
+}
+
 private let draft = TaperPlanDraft(
     startingCapMg: 18,
     currentCapMg: 18,
@@ -71,6 +119,12 @@ private let draft = TaperPlanDraft(
     sickInBed: true
 )
 
+
+/// The tap at the end of onboarding: the row to write and the pad to seed.
+private let run = CompletedRun(
+    draft: draft,
+    padKeys: [PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0)]
+)
 
 private let existingPlan = StoredTaperPlan(
     id: 7,
@@ -109,7 +163,8 @@ struct PlanRecordTests {
         // whose plan was already on the server — then overwrote it.
         let store = FakeStore()
         store.existing = existingPlan
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
 
         await record.load()
 
@@ -126,7 +181,7 @@ struct PlanRecordTests {
 
     @Test("someone with no plan gets the questions")
     func noPlanMeansOnboarding() async {
-        let record = PlanRecord(store: FakeStore())
+        let record = PlanRecord(store: FakeStore(), pad: FakePad())
 
         await record.load()
 
@@ -142,7 +197,8 @@ struct PlanRecordTests {
         let store = FakeStore()
         store.existing = existingPlan
         store.readFails = true
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
 
         await record.load()
 
@@ -175,7 +231,8 @@ struct PlanRecordTests {
         let store = FakeStore()
         store.existing = existingPlan
         store.readFails = true
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
         await record.load()
 
         store.readFails = false
@@ -195,7 +252,8 @@ struct PlanRecordTests {
         let store = FakeStore()
         store.existing = existingPlan
         store.readHangs = true
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
 
         let first = Task { await record.load() }
 
@@ -221,10 +279,11 @@ struct PlanRecordTests {
     @Test("a plan just written needs no second look")
     func savingDoesNotRequireAReread() async {
         let store = FakeStore()
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
         await record.load()
 
-        await record.submit(draft)
+        await record.submit(run)
 
         #expect(record.status.isPresent)
         #expect(store.readCount == 1, "the plan was re-read after being written")
@@ -235,11 +294,12 @@ struct PlanRecordTests {
     @Test("a plan that saves reports saved")
     func aSuccessfulWriteSettles() async {
         let store = FakeStore(.succeed)
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
         await record.load()
         #expect(record.status == .absent)
 
-        await record.submit(draft)
+        await record.submit(run)
 
         // The row the store returned, not the draft that went in. The two are
         // different types for a reason — the server assigns the id, and the
@@ -252,13 +312,72 @@ struct PlanRecordTests {
         #expect(store.writes == 1)
     }
 
+    @Test("finishing onboarding puts the pad on the server too")
+    func theTapThatSavesAPlanAlsoSeedsThePad() async {
+        // Without this the app saves a plan and lands somebody on a home screen
+        // with nothing to tap — and, because a saved plan routes the next
+        // launch past onboarding, nothing ever asks the questions again.
+        let pad = FakePad()
+        let record = PlanRecord(store: FakeStore(), pad: pad)
+
+        await record.submit(run)
+
+        #expect(pad.seeded == [run.padKeys], "the pad was not seeded from the run")
+    }
+
+    @Test("the pad is written before the plan, because that is the order that recovers")
+    func thePadGoesFirst() async {
+        // Not an arbitrary sequence. Seeding is idempotent, so a pad written
+        // without a plan is a state the next run walks straight through:
+        // onboarding finds no plan, asks again, seeds nothing new, saves. The
+        // other order strands people on a home screen with an empty pad and no
+        // path back to the questions.
+        let order = OrderLog()
+        let record = PlanRecord(store: FakeStore(order: order), pad: FakePad(order: order))
+
+        await record.submit(run)
+
+        #expect(order.steps == ["pad", "plan"])
+    }
+
+    @Test("a pad that cannot be written stops the plan being written")
+    func aFailedSeedDoesNotSaveThePlan() async {
+        // The half-finished write this ordering is chosen to avoid. Saving the
+        // plan anyway would leave the unrecoverable state: a plan on file, an
+        // empty pad, and onboarding never offered again.
+        let store = FakeStore()
+        let record = PlanRecord(store: store, pad: FakePad(.fail))
+
+        await record.submit(run)
+
+        #expect(store.writes == 0, "the plan was saved on top of a pad that failed")
+        guard case let .saveFailed(message) = record.status else {
+            Issue.record("a failed seed did not reach the failed state")
+            return
+        }
+        #expect(message.contains("try again"))
+    }
+
+    @Test("a plan that fails leaves the pad in place for the retry")
+    func aFailedPlanKeepsTheSeededPad() async {
+        // The recovery this buys. The pad is already on the server, so the
+        // second attempt seeds nothing new and only has the plan left to write.
+        let pad = FakePad()
+        let record = PlanRecord(store: FakeStore(.fail), pad: pad)
+
+        await record.submit(run)
+
+        #expect(pad.seeded == [run.padKeys])
+        #expect(!record.status.isPresent)
+    }
+
     @Test("a write that fails says so in words the user can act on")
     func aFailedWriteIsReported() async {
         // The branch no screenshot catches. A save that fails quietly leaves
         // someone believing the app is tracking a plan it never wrote down.
-        let record = PlanRecord(store: FakeStore(.fail))
+        let record = PlanRecord(store: FakeStore(.fail), pad: FakePad())
 
-        await record.submit(draft)
+        await record.submit(run)
 
         guard case let .saveFailed(message) = record.status else {
             Issue.record("a failed write did not reach the failed state")
@@ -278,7 +397,7 @@ struct PlanRecordTests {
         // one looked the same. They do not look the same here.
         let record = PlanRecord(store: nil)
 
-        await record.submit(draft)
+        await record.submit(run)
 
         guard case let .saveFailed(message) = record.status else {
             Issue.record("a build with no backend did not report a failure")
@@ -294,9 +413,10 @@ struct PlanRecordTests {
         // Two taps landing either side of the first render would otherwise
         // write twice, against a table that holds one plan per person.
         let store = FakeStore(.hang)
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
 
-        let first = Task { await record.submit(draft) }
+        let first = Task { await record.submit(run) }
 
         // Wait for the write itself, not for the state that precedes it.
         // `.saving` is set before `save` is entered, so spinning on the state
@@ -316,7 +436,7 @@ struct PlanRecordTests {
         }
         #expect(record.status == .saving)
 
-        await record.submit(draft)
+        await record.submit(run)
 
         #expect(store.writes == 1, "a second tap started a second write")
         first.cancel()
@@ -328,10 +448,11 @@ struct PlanRecordTests {
     @Test("a plan already saved is not written again")
     func submittingTwiceOverWritesOnce() async {
         let store = FakeStore(.succeed)
-        let record = PlanRecord(store: store)
+        let pad = FakePad()
+        let record = PlanRecord(store: store, pad: pad)
 
-        await record.submit(draft)
-        await record.submit(draft)
+        await record.submit(run)
+        await record.submit(run)
 
         #expect(store.writes == 1)
         #expect(record.status.isPresent)
@@ -341,8 +462,8 @@ struct PlanRecordTests {
     func aFailureIsRecoverable() async {
         // Assert the exit from a state, not only the entry. A failure with no
         // way out is a dead end wearing an error message.
-        let record = PlanRecord(store: FakeStore(.fail))
-        await record.submit(draft)
+        let record = PlanRecord(store: FakeStore(.fail), pad: FakePad())
+        await record.submit(run)
 
         record.dismissFailure()
 

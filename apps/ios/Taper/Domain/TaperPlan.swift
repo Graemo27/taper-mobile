@@ -29,7 +29,7 @@ enum Dependence {
 /// Combination — a patch plus a fast-acting form — is the ceiling this product
 /// can reach and beats either alone, so it is the default rather than an
 /// upgrade. `patchMg` is nil only for intakes too light to warrant one.
-struct NicotineReplacement {
+struct NicotineReplacement: Equatable, Sendable {
     var patchMg: Int?
     var fastActingMg: Int
 }
