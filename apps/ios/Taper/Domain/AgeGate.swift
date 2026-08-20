@@ -117,7 +117,23 @@ struct DeviceAdultVerification: AdultVerificationStore, @unchecked Sendable {
 
     private static let key = "taper.ageGate.verifiedAdult"
 
-    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        // Test wiring, and named as such. A UI test needs the gate in front of
+        // it on every launch, and the record it leaves behind would otherwise
+        // make the second test in a run take a different path from the first.
+        // This clears the answer; it never supplies one — the gate still has
+        // to be passed for real, which is the difference between resetting a
+        // fixture and letting the harness do the product's job.
+        //
+        // It ships in the release build, which is the risk already on file as
+        // `test-wiring-was-compiled-into-the-release-build`. The exposure here
+        // is that someone launching with this argument re-answers a question
+        // they can already re-answer by reinstalling.
+        if ProcessInfo.processInfo.arguments.contains("-TaperForgetAge") {
+            defaults.removeObject(forKey: Self.key)
+        }
+    }
 
     var isVerifiedAdult: Bool { defaults.bool(forKey: Self.key) }
 

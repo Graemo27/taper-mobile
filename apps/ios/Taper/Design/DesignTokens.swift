@@ -144,6 +144,10 @@ enum AppSize {
     static let statement: CGFloat = 44
     static let figure: CGFloat = 64
     static let hero: CGFloat = 76
+    /// The largest thing in the app, and the only one at this size: the 18+
+    /// mark on the age gate. Above `hero` because it is a mark rather than a
+    /// heading — nothing else on that screen competes with it.
+    static let mark: CGFloat = 110
 }
 
 /// Line heights, as absolute values. SwiftUI has no line-height modifier, so
@@ -162,6 +166,7 @@ enum AppLeading {
     static let statement: CGFloat = 50
     static let figure: CGFloat = 64
     static let hero: CGFloat = 76
+    static let mark: CGFloat = 106
 }
 
 /// Letter spacing. Three values, and open tracking only ever appears on small

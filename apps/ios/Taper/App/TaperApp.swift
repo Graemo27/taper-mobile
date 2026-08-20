@@ -16,16 +16,40 @@ struct TaperApp: App {
     }
 }
 
-/// What the app shows: onboarding, and the wall it currently ends at.
+/// What the app shows: the age gate, then onboarding, then the wall it
+/// currently ends at.
 ///
-/// The state is deliberately not persisted. Onboarding has nowhere to write to
-/// yet, so a relaunch starts the run over — which is the truth, and better than
-/// a flag that remembers a plan the app never saved.
+/// Only the gate's answer survives a relaunch, and only because it is a
+/// question with a permanent answer. The onboarding state is deliberately not
+/// persisted — there is nowhere to write it yet, so a relaunch starts the run
+/// over, which is the truth and better than a flag remembering a plan the app
+/// never saved.
 struct RootView: View {
+    private let verification: any AdultVerificationStore
+
+    @State private var isAdult: Bool
+    @State private var isUnderage = false
     @State private var hasFinishedOnboarding = false
 
+    init(verification: any AdultVerificationStore = DeviceAdultVerification()) {
+        self.verification = verification
+        _isAdult = State(initialValue: verification.isVerifiedAdult)
+    }
+
     var body: some View {
-        if hasFinishedOnboarding {
+        if isUnderage {
+            UnderageView { isUnderage = false }
+        } else if !isAdult {
+            AgeGateView(
+                onVerified: {
+                    // Recorded before the screen changes, so the answer
+                    // survives a relaunch rather than only this run.
+                    verification.recordAdult()
+                    isAdult = true
+                },
+                onUnderage: { isUnderage = true }
+            )
+        } else if hasFinishedOnboarding {
             OnboardingDoneView()
         } else {
             OnboardingFlow { hasFinishedOnboarding = true }
