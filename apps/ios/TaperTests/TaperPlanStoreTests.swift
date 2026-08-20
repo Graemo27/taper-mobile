@@ -172,6 +172,62 @@ struct TaperPlanStoreLiveTests {
         #expect(stored.quitDate == "2025-12-04", "stored UTC day instead of the chosen one")
     }
 
+    @Test("a plan written can be read back on the next launch",
+          .enabled(if: LocalBackend.isAvailable))
+    func aSavedPlanIsFoundAgain() async throws {
+        // The gap this closes: the app wrote a plan and had no way to discover
+        // it existed, so every launch replayed twelve questions at someone
+        // whose plan was already on the server.
+        let store = await store()
+        let saved = try await store.save(
+            TaperPlanDraft(startingCapMg: 18, currentCapMg: 18,
+                           capEffectiveFrom: whenTheDaysDisagree, quitDate: nil,
+                           firstUseMinutes: 20, sickInBed: true)
+        )
+
+        let found = try await store.currentPlan()
+
+        #expect(found == saved, "the plan read back was not the plan written")
+    }
+
+    @Test("someone with no plan reads none, rather than failing",
+          .enabled(if: LocalBackend.isAvailable))
+    func aNewUserHasNoPlan() async throws {
+        // Having no plan is the ordinary state of everyone who has not
+        // finished onboarding. If that arrived as an error the app could not
+        // tell a new user from a broken connection, and would have to guess
+        // which — badly, in one direction or the other.
+        #expect(try await store().currentPlan() == nil)
+    }
+
+    @Test("a fresh anonymous session is a different person",
+          .enabled(if: LocalBackend.isAvailable))
+    func aNewSessionDoesNotInheritTheLastOnesPlan() async throws {
+        // Deliberately not a test of the policy. RLS is a database property
+        // and `supabase/tests/taper_core_test.sql` proves it directly, with no
+        // client in the way — and a mutation confirmed this cannot: dropping
+        // the query's own user_id predicate leaves RLS doing the work and
+        // every assertion here still passes.
+        //
+        // What it does prove is the client-side half that pgTAP cannot reach.
+        // Anonymous sign-in is the app's entire notion of identity, and a
+        // second session that silently resumed the first would hand a stranger
+        // the previous user's plan on a shared or reset device without any
+        // policy having failed.
+        let first = await store()
+        _ = try await first.save(
+            TaperPlanDraft(startingCapMg: 18, currentCapMg: 18,
+                           capEffectiveFrom: whenTheDaysDisagree, quitDate: nil,
+                           firstUseMinutes: 20, sickInBed: true)
+        )
+        #expect(try await first.currentPlan() != nil)
+
+        #expect(
+            try await store().currentPlan() == nil,
+            "a new anonymous session resumed the previous user's identity"
+        )
+    }
+
     @Test("running onboarding twice moves the plan rather than failing",
           .enabled(if: LocalBackend.isAvailable))
     func asecondRunUpserts() async throws {

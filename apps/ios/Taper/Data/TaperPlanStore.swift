@@ -55,6 +55,24 @@ protocol TaperPlanWriting: Sendable {
     func save(_ draft: TaperPlanDraft) async throws -> StoredTaperPlan
 }
 
+/// Reading the plan already on file.
+///
+/// Separate from writing because the callers are different: the write happens
+/// once, at the end of a run someone just completed, and the read happens at
+/// every launch before anything is shown. A type that only writes is a type
+/// that cannot tell a returning user from a new one — which is the app as
+/// shipped today, replaying twelve questions at somebody whose plan is already
+/// on the server.
+protocol TaperPlanReading: Sendable {
+    /// The signed-in user's plan, or nil when they have none.
+    ///
+    /// Nil means *they have no plan*, never *we could not find out*. A read
+    /// that fails throws, because the two must not arrive at the caller
+    /// wearing the same face — one of them is a reason to run onboarding and
+    /// the other is a reason to say the app could not check.
+    func currentPlan() async throws -> StoredTaperPlan?
+}
+
 /// The real one.
 ///
 /// Upserts rather than inserts. `taper_plans` holds one row per person by
@@ -62,7 +80,7 @@ protocol TaperPlanWriting: Sendable {
 /// happens every time someone reopens the app today, because nothing yet
 /// records that the run was completed. An insert would fail on the second run
 /// with a constraint violation the user has no way to read.
-struct SupabaseTaperPlanStore: TaperPlanWriting {
+struct SupabaseTaperPlanStore: TaperPlanWriting, TaperPlanReading {
     let client: SupabaseClient
     let session: SessionCoordinator
     /// The zone the user's day is read in. `.current` in the app, and fixed in
@@ -84,6 +102,31 @@ struct SupabaseTaperPlanStore: TaperPlanWriting {
                 .execute()
                 .value
         }
+    }
+}
+
+extension SupabaseTaperPlanStore {
+    func currentPlan() async throws -> StoredTaperPlan? {
+        try await session.authenticated { userID in
+            // Filtered by user_id as well as trusting RLS. The policy is the
+            // thing that enforces it, but a query with no predicate asks the
+            // database for every plan and relies on the filter to be correct —
+            // and a read that is only safe because of a policy is one that
+            // breaks silently if the policy is ever loosened.
+            try await client
+                .from("taper_plans")
+                .select()
+                .eq("user_id", value: userID)
+                // A list of at most one, rather than `single`. Having no plan
+                // is the ordinary answer for anyone who has not finished
+                // onboarding, and `single` raises on an empty result — which
+                // would reach the caller as an error indistinguishable from a
+                // read that genuinely failed. Taking `.first` of a list makes
+                // "none" a value instead.
+                .limit(1)
+                .execute()
+                .value as [StoredTaperPlan]
+        }.first
     }
 }
 
