@@ -29,11 +29,30 @@ struct RootView: View {
 
     @State private var isAdult: Bool
     @State private var isUnderage = false
-    @State private var hasFinishedOnboarding = false
+    @State private var submission: PlanSubmission
 
-    init(verification: any AdultVerificationStore = DeviceAdultVerification()) {
+    init(
+        verification: any AdultVerificationStore = DeviceAdultVerification(),
+        store: (any TaperPlanWriting)? = RootView.liveStore()
+    ) {
         self.verification = verification
         _isAdult = State(initialValue: verification.isVerifiedAdult)
+        _submission = State(initialValue: PlanSubmission(store: store))
+    }
+
+    /// The real store, or nil when this build has no backend.
+    ///
+    /// Nil rather than a crash, and nil rather than a store that fails at the
+    /// first request: the app has already shipped once configured only while a
+    /// test drove it, and the lesson was that an unconfigured build and an
+    /// unreachable one looked identical. `PlanSubmission` says which.
+    static func liveStore() -> (any TaperPlanWriting)? {
+        guard let backend = AppConfiguration.backend else { return nil }
+        let client = AppSupabase.make(url: backend.url, publishableKey: backend.publishableKey)
+        return SupabaseTaperPlanStore(
+            client: client,
+            session: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
+        )
     }
 
     var body: some View {
@@ -49,10 +68,13 @@ struct RootView: View {
                 },
                 onUnderage: { isUnderage = true }
             )
-        } else if hasFinishedOnboarding {
+        } else if submission.state == .saved {
             OnboardingDoneView()
         } else {
-            OnboardingFlow { hasFinishedOnboarding = true }
+            OnboardingFlow(
+                onFinish: { draft in Task { await submission.submit(draft) } },
+                saveState: submission.state
+            )
         }
     }
 }
@@ -61,8 +83,11 @@ struct RootView: View {
 ///
 /// Says so plainly, for the same reason `OnboardingPlaceholderView` does: the
 /// alternative is a "Start tracking" button that appears to work and lands
-/// nowhere, which reads as a bug rather than as unfinished work. It also says
-/// that nothing was saved, because nothing was.
+/// nowhere, which reads as a bug rather than as unfinished work.
+///
+/// It used to say nothing had been saved, which was true when it was written
+/// and stopped being true the moment this screen moved behind a successful
+/// write. Only reachable now when the plan is on the server.
 struct OnboardingDoneView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.m) {
@@ -71,8 +96,8 @@ struct OnboardingDoneView: View {
                 .foregroundStyle(AppColor.ink)
 
             Text("""
-            Tracking is the next thing to build. Your answers are held for this run only — \
-            nothing has been saved yet, so relaunching starts you over.
+            Your plan is saved. Tracking is the next thing to build, so there's nowhere to log \
+            against it yet — but the cap and the date are on the server, not just on this phone.
             """)
                 .font(AppFont.text(AppSize.body))
                 .lineSpacing(AppLeading.relaxed - AppSize.body)
