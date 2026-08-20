@@ -1605,9 +1605,17 @@ struct TaperPlanDraftTests {
         return answers
     }
 
+
+    /// The row as the flow will build it: from the preview that was rendered,
+    /// never from a fresh plan.
+    private func row(_ answers: OnboardingAnswers) -> TaperPlanDraft? {
+        guard let preview = answers.planPreview else { return nil }
+        return answers.planDraft(shown: preview)
+    }
+
     @Test("a completed run carries every column the row requires")
     func theRowIsComplete() {
-        let draft = answers().planDraft
+        let draft = row(answers())
         #expect(draft?.startingCapMg == 18)
         #expect(draft?.currentCapMg == 18)
         #expect(draft?.firstUseMinutes == 20)
@@ -1623,13 +1631,13 @@ struct TaperPlanDraftTests {
         // disagreeing with the plan the user actually agreed to.
         let answers = answers(pouches: 10, minutes: 3, weeksOut: 2)
         #expect(TaperPlanner.plan(for: answers.taperInput!).stretchedFromRequestedWeeks == 2)
-        #expect(answers.planDraft?.quitDate == QuitDate.date(weeksFrom: day, weeks: 7))
-        #expect(answers.planDraft?.quitDate != QuitDate.date(weeksFrom: day, weeks: 2))
+        #expect(row(answers)?.quitDate == QuitDate.date(weeksFrom: day, weeks: 7))
+        #expect(row(answers)?.quitDate != QuitDate.date(weeksFrom: day, weeks: 2))
     }
 
     @Test("a run holding where it is stores no date, which the schema allows")
     func aReductionOnlyRunHasNoQuitDate() {
-        let draft = answers(weeksOut: nil).planDraft
+        let draft = row(answers(weeksOut: nil))
         #expect(draft?.quitDate == nil)
         #expect(draft?.startingCapMg == 18)
     }
@@ -1638,12 +1646,12 @@ struct TaperPlanDraftTests {
     func theBaselineIsPositive() {
         // Unlike current_cap_mg, this check kept its strict form: a plan that
         // begins at zero has nothing to taper and is a data-entry error.
-        #expect(answers().planDraft.map { $0.startingCapMg > 0 } == true)
+        #expect(row(answers()).map { $0.startingCapMg > 0 } == true)
         // And a run with nothing to plan produces no row at all rather than a
         // row the insert would bounce.
         let empty = answers()
         empty.setAmount(0, for: .pouches)
-        #expect(empty.planDraft == nil)
+        #expect(row(empty) == nil)
     }
 
     @Test("current_cap_mg may reach zero, and does on the quit week")
@@ -1656,7 +1664,7 @@ struct TaperPlanDraftTests {
         let caps = TaperPlanner.plan(for: answers.taperInput!).weeklyCapsMg
         #expect(caps.last == 0)
         #expect(caps.allSatisfy { $0 >= 0 })
-        #expect(answers.planDraft.map { $0.currentCapMg >= 0 } == true)
+        #expect(row(answers).map { $0.currentCapMg >= 0 } == true)
     }
 
     @Test("quit_date is never before the day the cap takes effect")
@@ -1664,7 +1672,7 @@ struct TaperPlanDraftTests {
         // A constraint that only fires on dates close together, which is
         // exactly the case a picker allows: today is a legitimate quit date.
         for weeks in [1, 2, 5, 8, 20] {
-            let draft = answers(weeksOut: weeks).planDraft
+            let draft = row(answers(weeksOut: weeks))
             #expect(draft?.quitDate ?? draft!.capEffectiveFrom >= draft!.capEffectiveFrom)
         }
     }
@@ -1683,14 +1691,14 @@ struct TaperPlanDraftTests {
     func anIncompleteRunIsNotWritable() {
         let unanswered = answers()
         unanswered.usesWhenIllInBed = nil
-        #expect(unanswered.planDraft == nil)
+        #expect(row(unanswered) == nil)
 
         // Treatment silence too, for the same reason the preview refuses it:
         // an empty set is "has not said", and the run is not finished.
         let untreated = answers()
         untreated.toggle(.lozenge)
         untreated.toggle(.lozenge)
-        #expect(untreated.planDraft == nil)
+        #expect(row(untreated) == nil)
     }
 
     @Test("the ceiling stored is the countable one, not the raw sum")
@@ -1709,18 +1717,31 @@ struct TaperPlanDraftTests {
         answers.planShape = .reduceFirst
         answers.deferTreatment()
 
-        let draft = answers.planDraft
+        let draft = row(answers)
         #expect(draft?.currentCapMg == 6.5)
         #expect(draft!.startingCapMg != draft!.currentCapMg)
     }
 
-    @Test("the row and the screen agree, because both come from one plan")
+    @Test("the row holds the plan the user agreed to, not one re-planned since")
     func theRowMatchesWhatTheUserWasShown() {
-        // The failure this guards is a store that recomputes rather than
-        // reading: two callers of TaperPlanner with two clock reads can
-        // disagree, and the user would have agreed to the screen.
+        // The gap between seeing O11 and tapping Start is not a frame — it is
+        // however long someone spends deciding, which can be overnight. A clock
+        // that moves a day per read stands in for that. Rebuilding the plan at
+        // confirm time re-plans against a shorter runway and stores a date the
+        // user never saw.
+        var reads = 0
+        let start = day
         let answers = answers()
-        #expect(answers.planDraft?.currentCapMg == answers.planPreview?.capMg)
-        #expect(answers.planDraft?.quitDate == answers.planPreview?.quitDate)
+        answers.now = {
+            defer { reads += 1 }
+            return Calendar.current.date(byAdding: .day, value: reads, to: start)!
+        }
+
+        let shown = answers.planPreview!
+        #expect(shown.quitDate == QuitDate.date(weeksFrom: start, weeks: 8))
+
+        let stored = answers.planDraft(shown: shown)
+        #expect(stored?.quitDate == shown.quitDate)
+        #expect(stored?.currentCapMg == shown.capMg)
     }
 }

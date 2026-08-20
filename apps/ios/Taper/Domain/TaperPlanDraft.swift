@@ -39,30 +39,30 @@ struct TaperPlanDraft: Equatable, Sendable {
 }
 
 extension OnboardingAnswers {
-    /// The run as a row, or nil while it is still incomplete.
+    /// The row for a plan the user has actually been shown, or nil while the
+    /// run is still incomplete.
     ///
-    /// One clock read, shared by the plan, the date stored against it and the
-    /// day the cap takes effect. Two reads can straddle midnight, and the
-    /// schema has a constraint that notices: `quit_date >= cap_effective_from`
-    /// would reject a plan whose start was recorded a day after its end was
-    /// computed.
-    var planDraft: TaperPlanDraft? {
-        let today = now()
-        guard hasAnsweredTreatment,
-              let input = taperInput(asOf: today),
-              let firstUse,
-              let usesWhenIllInBed,
-              let preview = PlanPreview(
-                  plan: TaperPlanner.plan(for: input),
-                  today: today,
-                  treatments: treatments
-              )
-        else { return nil }
+    /// Takes the preview rather than building a second one. Rebuilding reads
+    /// the clock again, and the gap between seeing this screen and agreeing to
+    /// it is not a frame — it is however long someone spends deciding, which
+    /// can be overnight. A day turning over in that gap re-plans against a
+    /// shorter runway, and the row then holds a quit date the user never saw.
+    ///
+    /// So every figure the plan decided comes off the preview, and the only
+    /// value read fresh here is the day the cap starts applying — which is
+    /// correctly *now*, because it starts when they say go, not when they were
+    /// first shown the screen.
+    ///
+    /// The preview's existence is itself the proof that a plan could be built;
+    /// what remains to check is the answers it does not carry.
+    func planDraft(shown preview: PlanPreview) -> TaperPlanDraft? {
+        guard hasAnsweredTreatment, let firstUse, let usesWhenIllInBed,
+              strengthsAreComplete, startingCapMg > 0 else { return nil }
 
         return TaperPlanDraft(
-            startingCapMg: input.startingCapMg,
+            startingCapMg: startingCapMg,
             currentCapMg: preview.capMg,
-            capEffectiveFrom: Calendar.current.startOfDay(for: today),
+            capEffectiveFrom: Calendar.current.startOfDay(for: now()),
             // The date the descent actually reaches, not the one that was asked
             // for. A stretched run's requested date is a day the schedule never
             // arrives at, and O11 already tells the user so — storing the
