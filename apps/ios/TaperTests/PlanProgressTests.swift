@@ -4,10 +4,9 @@ import Testing
 
 /// Covers reading a saved plan back into today's numbers.
 ///
-/// The distinction the whole suite turns on is which figures are pinned and
-/// which are recomputed. `current_cap_mg` is stored because the number someone
-/// is living under must not move beneath them; everything after it is derived
-/// from the same row.
+/// The property the whole suite turns on is that every figure comes off one
+/// descent. The stored cap can only ever lower the ceiling, never raise it —
+/// and never hold it still while the schedule descends around it.
 struct PlanProgressTests {
     /// 9 October 2025, the day a plan started.
     private let start = "2025-10-09"
@@ -51,14 +50,42 @@ struct PlanProgressTests {
         #expect(PlanProgress(plan: plan(), today: day(-3))?.day == 1)
     }
 
-    @Test("today's cap is the stored one, never a recomputed one")
-    func theCapInForceIsPinned() {
-        // The schema pins `current_cap_mg` on purpose: a dependence answer
-        // corrected, or a plan stretched, must not move the ceiling somebody is
-        // already living under. A recomputed figure would be right on most days
-        // and wrong on exactly the days that matter.
+    @Test("a stored cap below the schedule holds — the ceiling never rises")
+    func theStoredCapCanOnlyLowerTheCeiling() {
+        // What pinning `current_cap_mg` was actually for: a dependence answer
+        // corrected, or a plan stretched, must not raise the ceiling somebody
+        // is already living under. On day 20 the descent has only reached
+        // 13.5, so a row saying 11 is the number that binds.
         let stretched = plan(startingCap: 18, currentCap: 11)
+        let recomputed = TaperPlanner.plan(for: TaperInput(
+            startingCapMg: 18, minutesToFirstUse: 20, usesWhenIllInBed: true, weeksUntilQuitDate: 8
+        )).weeklyCapsMg
+        #expect(recomputed[2] > 11, "the fixture must actually put the schedule above the row")
+
         #expect(PlanProgress(plan: stretched, today: day(20))?.todaysCapMg == 11)
+    }
+
+    @Test("the cap on screen and the step under it are the same descent")
+    func theCapAndItsNextStepShareOneSchedule() {
+        // The defect: today's cap read off the row while the next step walked
+        // a recomputed schedule. Nothing in the app advances `current_cap_mg`,
+        // so from day eight the screen said "18 mg — drops to 13.5", with the
+        // 16 mg week between them never shown and never applied. Left alone it
+        // gets worse every week: the row still reads 18 on day fifty-five.
+        let schedule = TaperPlanner.plan(for: TaperInput(
+            startingCapMg: 18, minutesToFirstUse: 20, usesWhenIllInBed: true, weeksUntilQuitDate: 8
+        )).weeklyCapsMg
+        #expect(schedule[1] == 16)
+        #expect(schedule[2] == 13.5)
+
+        let secondWeek = PlanProgress(plan: plan(), today: day(7))
+        #expect(secondWeek?.todaysCapMg == 16, "the row says 18, and the week it named has passed")
+        #expect(secondWeek?.nextStep?.capMg == 13.5)
+
+        // Every week of the run, in order, with nothing skipped and nothing
+        // repeated — the property a single assertion on day eight cannot see.
+        let capsSeen = (0...8).compactMap { PlanProgress(plan: plan(), today: day($0 * 7))?.todaysCapMg }
+        #expect(capsSeen == schedule)
     }
 
     @Test("the countdown runs from today, not from the day the plan started")
@@ -91,8 +118,7 @@ struct PlanProgressTests {
 
     @Test("the next cap is the planner's next step, recomputed from the row")
     func theNextCapComesFromTheSchedule() {
-        // 18 mg over eight weeks steps to 16. Recomputing is correct *here* —
-        // it is only today's cap that must not be derived.
+        // 18 mg over eight weeks steps to 16.
         let schedule = TaperPlanner.plan(for: TaperInput(
             startingCapMg: 18, minutesToFirstUse: 20, usesWhenIllInBed: true, weeksUntilQuitDate: 8
         )).weeklyCapsMg
@@ -102,11 +128,10 @@ struct PlanProgressTests {
 
     @Test("a next step that is not a drop is not shown at all")
     func aStepMustGoDown() {
-        // The stored cap is pinned and the schedule is recomputed, so the two
-        // can disagree — a plan stretched, a cap corrected by hand, a row from
-        // an older version. The arithmetic then produces a "next step" above
-        // the ceiling somebody is already living under, and a tile reading
-        // "12 mg — drops to 13.5" is worse than one that says nothing.
+        // A row pinned below the descent — a plan stretched, a cap corrected
+        // by hand, a row from an older version — leaves the next scheduled
+        // entry above the ceiling somebody is already living under, and a tile
+        // reading "12 mg — drops to 13.5" is worse than one that says nothing.
         let inconsistent = plan(startingCap: 18, currentCap: 12)
         let recomputed = TaperPlanner.plan(for: TaperInput(
             startingCapMg: 18, minutesToFirstUse: 20, usesWhenIllInBed: true, weeksUntilQuitDate: 8
@@ -116,9 +141,13 @@ struct PlanProgressTests {
         #expect(PlanProgress(plan: inconsistent, today: day(11))?.nextStep == nil)
     }
 
-    @Test("a run past the end of its schedule has no next step to name")
+    @Test("a run past the end of its schedule has reached zero, not its opening cap")
     func theEndHasNothingAfterIt() {
         #expect(PlanProgress(plan: plan(), today: day(70))?.nextStep == nil)
+        // The row still holds the figure onboarding wrote. Falling back to it
+        // here would tell somebody two weeks past their quit date that they
+        // are allowed 18 mg.
+        #expect(PlanProgress(plan: plan(), today: day(70))?.todaysCapMg == 0)
     }
 
     @Test("a run holding where it is gets no countdown and no next step")

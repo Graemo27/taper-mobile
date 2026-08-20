@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// L1 — where the app opens once there is a plan.
+/// L1 — where the app opens once there is a plan: the day, the countdown and
+/// today's cap.
 ///
-/// Deliberately a subset of the board, and the omissions are the point. The
-/// craving prompt, the daily check-in and the nicotine tracking card all need
-/// something that does not exist yet — a craving screen, a table for how a day
-/// felt, and any logging at all — and a control that cannot do its job is worse
-/// than an absent one. What is here is what the saved plan can actually
-/// support, said plainly, with a line at the foot admitting the rest.
+/// Deliberately a subset of the board, because the craving prompt, the check-in
+/// and the tracking card each need a screen or a table that does not exist yet,
+/// and a control that cannot do its job is worse than an absent one.
 struct HomeView: View {
     let progress: PlanProgress
 

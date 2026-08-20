@@ -82,6 +82,20 @@ private let existingPlan = StoredTaperPlan(
     sickInBed: true
 )
 
+/// What `FakeStore.save` returns for `draft`. A different id from
+/// `existingPlan` on purpose: the home screen is drawn from whichever of the
+/// two the status is carrying, so a write that left the read's plan in place
+/// has to be a visible failure rather than an equal value.
+private let writtenPlan = StoredTaperPlan(
+    id: 1,
+    startingCapMg: 18,
+    currentCapMg: 18,
+    capEffectiveFrom: "2025-10-09",
+    quitDate: nil,
+    firstUseMinutes: 20,
+    sickInBed: true
+)
+
 /// Covers the app's record of the plan: finding it, and writing it.
 @MainActor
 struct PlanRecordTests {
@@ -99,7 +113,15 @@ struct PlanRecordTests {
 
         await record.load()
 
-        #expect(record.status.isPresent)
+        // The exact row, not merely "present". Everything the home screen
+        // shows is computed from the plan this status carries, so a read that
+        // reported presence while carrying a synthesized or stale plan would
+        // draw a confident screen full of the wrong numbers.
+        guard case let .present(found) = record.status else {
+            Issue.record("a plan on file was not reported as present")
+            return
+        }
+        #expect(found == existingPlan)
     }
 
     @Test("someone with no plan gets the questions")
@@ -219,7 +241,14 @@ struct PlanRecordTests {
 
         await record.submit(draft)
 
-        #expect(record.status.isPresent)
+        // The row the store returned, not the draft that went in. The two are
+        // different types for a reason — the server assigns the id, and the
+        // screen the user lands on is drawn from what came back.
+        guard case let .present(saved) = record.status else {
+            Issue.record("a successful write did not reach the present state")
+            return
+        }
+        #expect(saved == writtenPlan)
         #expect(store.writes == 1)
     }
 
