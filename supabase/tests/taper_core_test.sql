@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(21);
+select plan(23);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -160,6 +160,44 @@ select lives_ok(
   $$insert into public.pad_keys (user_id, ledger, label, form, mg, ndc)
     values ('11111111-1111-1111-1111-111111111111', 'treatment', 'Nicorette', 'lozenge', 2, '12345-678-90')$$,
   'a licensed lozenge is a treatment and may carry its code'
+);
+
+-- Every pairing the client can produce, checked against the table that decides.
+-- `PadForm.ledger` in the app is this constraint restated in Swift, and the two
+-- have no mechanical link: a case put on the wrong side there compiles, passes
+-- its own unit tests, and fails as a rejected insert on somebody's phone — the
+-- one place this check cannot be read.
+
+create function pg_temp.accepts(p_ledger text, p_form text) returns boolean as $$
+begin
+  insert into public.pad_keys (user_id, ledger, label, form, mg)
+  values ('11111111-1111-1111-1111-111111111111', p_ledger, 'probe', p_form, 1);
+  return true;
+exception when check_violation then
+  return false;
+end;
+$$ language plpgsql;
+
+select is(
+  (select bool_and(pg_temp.accepts(ledger, form)) from (values
+    ('treatment', 'patch'), ('treatment', 'lozenge'), ('treatment', 'gum'),
+    ('treatment', 'inhaler'), ('treatment', 'spray'),
+    ('source', 'pouch'), ('source', 'vape'), ('source', 'cigarette'),
+    ('source', 'dip'), ('source', 'other')
+  ) as f(ledger, form)),
+  true,
+  'every form the app files is one the table accepts in that ledger'
+);
+
+select is(
+  (select bool_or(pg_temp.accepts(ledger, form)) from (values
+    ('source', 'patch'), ('source', 'lozenge'), ('source', 'gum'),
+    ('source', 'inhaler'), ('source', 'spray'),
+    ('treatment', 'pouch'), ('treatment', 'vape'), ('treatment', 'cigarette'),
+    ('treatment', 'dip'), ('treatment', 'other')
+  ) as f(ledger, form)),
+  false,
+  'no form may be filed in the ledger it does not belong to'
 );
 
 -- MARK: isolation between two anonymous strangers
