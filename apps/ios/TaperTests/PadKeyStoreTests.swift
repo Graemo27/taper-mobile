@@ -159,11 +159,25 @@ extension LiveBackendTests {
         let pad = SupabasePadKeyStore(client: client, session: session)
         let plans = SupabaseTaperPlanStore(client: client, session: session)
 
+        // The sign-out above is `try?`, so a session can survive it — and a
+        // surviving one already has a plan and a pad. Every assertion at the
+        // bottom would then pass on rows this test did not write, including
+        // the key count, because it is the same run that seeded them. Checked
+        // rather than assumed: this is the shape where a green test and a
+        // broken write are compatible states.
+        #expect(try await plans.currentPlan() == nil, "a previous session survived the sign-out")
+        #expect(try await pad.currentKeys().isEmpty, "a previous session survived the sign-out")
+
         let answers = everySourceRun()
         let run = answers.completedRun(shown: answers.planPreview!)!
+        let record = PlanRecord(store: plans, pad: pad)
 
-        await PlanRecord(store: plans, pad: pad).submit(run)
+        await record.submit(run)
 
+        // The submit's own verdict, not only what is on the server. Without it
+        // a write that failed and left the earlier rows in place reads exactly
+        // like a write that succeeded.
+        #expect(record.status.isPresent, "the run did not finish")
         #expect(try await plans.currentPlan() != nil, "the plan is not readable as this user")
         #expect(try await pad.currentKeys().count == run.padKeys.count,
                 "the pad is not readable as this user")
