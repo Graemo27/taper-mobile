@@ -64,6 +64,49 @@ struct PadSeedTests {
         #expect(sources.first { $0.form == .cigarette }?.mg == NicotineSource.cigarettes.estimatedMgPerUnit)
     }
 
+    @Test("every key is priced at the figure the cap was built from")
+    func thePadAndThePlanAgreeOnWhatOneIsWorth() {
+        // The property that matters, rather than the rule that implements it.
+        // The cap is the sum of these per-unit figures across sources, and
+        // every log is subtracted from that cap using the figure on the key —
+        // so a pad priced by a different rule makes the ceiling unreachable or
+        // trivially met, with nothing on screen to explain either.
+        let answers = answers(sources: [.pouches, .cigarettes, .vape, .dip, .nrt, .other])
+        let sources = answers.padKeys(for: plan(for: answers)).filter { $0.ledger == .source }
+
+        #expect(sources.count == answers.orderedSources.count, "a source the cap counted has no key")
+        for (key, source) in zip(sources, answers.orderedSources) {
+            #expect(key.mg == answers.mgPerUnit(for: source))
+        }
+        // And the cap really is that sum, so the agreement above is worth
+        // something rather than two views of one unused number.
+        let fromKeys = zip(sources, answers.orderedSources)
+            .reduce(0.0) { $0 + $1.0.mg * Double(answers.amount(for: $1.1)) }
+        #expect(fromKeys == answers.startingCapMg)
+    }
+
+    @Test("a strength the user gave beats one the app estimated")
+    func aStatedFigureWinsOverAnEstimate() {
+        // Unreachable through the UI today: only pouches and NRT are asked for
+        // a printed strength, and neither carries an estimate, so no source can
+        // hold both. Written anyway because it pins the contract of the one
+        // function the cap and the pad now share — if `usesPerUnitStrength`
+        // ever widens, this is the behaviour both of them inherit, and it
+        // inherits it in one place rather than two.
+        let answers = answers(sources: [.cigarettes])
+        #expect(NicotineSource.cigarettes.estimatedMgPerUnit != nil, "the fixture needs a fallback to beat")
+
+        answers.strengths[.cigarettes] = StrengthOption.nrt.first { $0.mg == 4 }
+
+        #expect(answers.mgPerUnit(for: .cigarettes) == 4)
+        let key = answers.padKeys(for: plan(for: answers)).first { $0.form == .cigarette }
+        #expect(key?.mg == 4)
+        // Both sides of the shared call, not just the pad's. A cap still built
+        // on the estimate while the key is priced on the stated figure is the
+        // divergence this whole change exists to prevent.
+        #expect(answers.startingCapMg == 4 * Double(answers.amount(for: .cigarettes)))
+    }
+
     @Test("licensed gum being quit is filed as a source, not as a treatment")
     func quittingNRTIsSomethingToQuit() {
         // Someone can arrive already on gum and want off it. The two ledgers

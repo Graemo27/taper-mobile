@@ -106,14 +106,18 @@ extension OnboardingAnswers {
     private func sourceKeys() -> [PadKey] {
         var keys: [PadKey] = []
         for source in orderedSources {
-            // The same precedence `startingCapMg` uses: an estimate where
-            // nothing is printed, the user's own figure where something is.
-            // A source with neither is skipped rather than filed at zero —
-            // `mg > 0` is a check constraint, and a key at zero would log
-            // nothing anyway. `strengthsAreComplete` is what keeps that from
-            // reaching a run that got as far as agreeing to a plan.
-            guard let mg = source.estimatedMgPerUnit ?? strengthMgPerUnit(for: source),
-                  mg > 0 else { continue }
+            // Through `mgPerUnit`, which is the same call `startingCapMg` sums.
+            // Not merely the same rule spelled twice: the cap is built from
+            // these figures and every log is subtracted from that cap, so a
+            // per-unit number that differed here would make the ceiling
+            // unreachable or trivially met with nothing on screen to explain
+            // it. One function is what makes them unable to disagree.
+            //
+            // A source with no figure at all is skipped rather than filed at
+            // zero — `mg > 0` is a check constraint, and a key at zero would
+            // log nothing anyway. `strengthsAreComplete` is what keeps that
+            // from reaching a run that got as far as agreeing to a plan.
+            guard let mg = mgPerUnit(for: source), mg > 0 else { continue }
             keys.append(PadKey(
                 form: source.padForm,
                 label: source.label,

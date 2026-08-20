@@ -299,6 +299,22 @@ final class OnboardingAnswers {
         return option.mg ?? StrengthOption.assumedWhenUnsure(for: source)
     }
 
+    /// What one of a source is worth, whichever way that figure was arrived at.
+    ///
+    /// The single answer to "how much is one?", because two callers need it and
+    /// they must never disagree: the cap is built by summing this across
+    /// sources, and the pad subtracts from that cap using the same figure per
+    /// key. A per-unit number that differed between the two would make a cap
+    /// unreachable or trivially met, and nothing on screen would show why.
+    ///
+    /// Something the user told us beats something the app estimated. Today no
+    /// source can have both — only pouches and NRT are ever asked for a printed
+    /// strength, and neither carries an estimate — so the order is unobservable
+    /// and this is a statement of intent for the day that changes.
+    func mgPerUnit(for source: NicotineSource) -> Double? {
+        strengthMgPerUnit(for: source) ?? source.estimatedMgPerUnit
+    }
+
     /// True when that source's strength is an assumption rather than something
     /// read off a pack. The app owes the user a chance to correct it, and a
     /// number it invented must not be presented as one they gave.
@@ -351,8 +367,7 @@ final class OnboardingAnswers {
     /// figure.
     var startingCapMg: Double {
         orderedSources.reduce(0) { total, source in
-            let perUnit = source.estimatedMgPerUnit ?? strengthMgPerUnit(for: source) ?? 0
-            return total + perUnit * Double(amount(for: source))
+            total + (mgPerUnit(for: source) ?? 0) * Double(amount(for: source))
         }
     }
 
