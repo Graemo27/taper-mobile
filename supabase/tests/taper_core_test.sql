@@ -1,7 +1,19 @@
 -- Drives the taper schema against a real Postgres.
 --
--- Run with `supabase test db`, which applies every migration to a local
--- database first. Nothing here touches the hosted project.
+-- Run it with three commands, in this order:
+--
+--   supabase start
+--   supabase db reset --local
+--   supabase test db
+--
+-- The reset is not optional and `test db` is not a substitute for it. `test db`
+-- runs pg_prove against whatever is already in the local database; it applies
+-- no migrations of its own. Run alone it tests the previous run's leftovers,
+-- which is how the first draft of this file failed — on rows a throwaway
+-- session had committed hours earlier.
+--
+-- `--local` is spelled out because `--linked` is the sibling flag on the same
+-- command, and it resets the hosted project. Nothing here touches that.
 --
 -- This exists because the three taper migrations have never been pushed, and
 -- "it will probably apply" is not something anyone should be asked to
