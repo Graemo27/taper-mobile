@@ -41,6 +41,20 @@ final class PlanRecord {
     /// identical on screen.
     private let store: (any TaperPlanStoring)?
 
+    /// One lookup at a time.
+    ///
+    /// The retry on the failure screen starts a load, which sets `checking`,
+    /// which renders the looking-for-it screen, whose `task` starts another —
+    /// so a single tap issues two reads. They can finish in either order, and a
+    /// stale failure landing after a fresh success would put the error screen
+    /// back in front of someone whose plan had just been found.
+    ///
+    /// The guard lives here rather than in the view because it is a rule about
+    /// the operation. A view can be re-created for reasons this type does not
+    /// control, and one that fires `task` twice would otherwise be a defect in
+    /// a different file.
+    private var isLoading = false
+
     init(store: (any TaperPlanStoring)?) { self.store = store }
 
     /// Looks for a plan already on file.
@@ -50,6 +64,10 @@ final class PlanRecord {
     /// wrong in that direction is a user redoing onboarding on top of a plan
     /// they cannot see.
     func load() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
         guard let store else {
             status = .unknown(Self.noBackend)
             return

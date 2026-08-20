@@ -16,6 +16,9 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
     /// tests.
     var existing: StoredTaperPlan?
     var readFails = false
+    /// Holds a read open, so a second one can be attempted while the first is
+    /// still in flight.
+    var readHangs = false
 
     /// Locked because `save` runs off the main actor while the test reads this
     /// from it. An unsynchronised counter here would make the double-submit
@@ -30,6 +33,7 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
 
     func currentPlan() async throws -> StoredTaperPlan? {
         lock.withLock { _reads += 1 }
+        if readHangs { try await Task.sleep(for: .seconds(30)) }
         if readFails { throw URLError(.notConnectedToInternet) }
         return existing
     }
@@ -153,6 +157,39 @@ struct PlanRecordTests {
 
         #expect(record.status == .present)
         #expect(store.readCount == 2)
+    }
+
+
+    @Test("a second lookup does not start while the first is in flight")
+    func concurrentLoadsAreSerialised() async {
+        // One tap on Try again issues two reads: the retry starts a load, which
+        // sets `checking`, which renders the looking-for-it screen, whose task
+        // starts another. Whichever finishes last wins — so a stale failure can
+        // put the error screen back in front of someone whose plan was found.
+        let store = FakeStore()
+        store.existing = existingPlan
+        store.readHangs = true
+        let record = PlanRecord(store: store)
+
+        let first = Task { await record.load() }
+
+        // Bounded, because the condition being waited on is what a regression
+        // here would break.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while store.readCount == 0 {
+            guard ContinuousClock.now < deadline else {
+                Issue.record("the first load never reached the store")
+                first.cancel()
+                return
+            }
+            await Task.yield()
+        }
+
+        await record.load()
+
+        #expect(store.readCount == 1, "a second lookup started while the first was in flight")
+        first.cancel()
+        await first.value
     }
 
     @Test("a plan just written needs no second look")
