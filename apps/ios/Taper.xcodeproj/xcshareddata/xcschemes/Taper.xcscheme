@@ -35,6 +35,20 @@
                ReferencedContainer = "container:Taper.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E68DBAA8FB8825F97AFD8BCF"
+               BuildableName = "TaperUITests.xctest"
+               BlueprintName = "TaperUITests"
+               ReferencedContainer = "container:Taper.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -61,6 +75,17 @@
                BlueprintIdentifier = "68AB04279C4D6D1204D0EECD"
                BuildableName = "TaperTests.xctest"
                BlueprintName = "TaperTests"
+               ReferencedContainer = "container:Taper.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E68DBAA8FB8825F97AFD8BCF"
+               BuildableName = "TaperUITests.xctest"
+               BlueprintName = "TaperUITests"
                ReferencedContainer = "container:Taper.xcodeproj">
             </BuildableReference>
          </TestableReference>
