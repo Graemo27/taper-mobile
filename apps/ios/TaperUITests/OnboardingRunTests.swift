@@ -25,6 +25,36 @@ final class OnboardingRunTests: XCTestCase {
         app.launchArguments = ["-TaperForgetAge"]
         app.launch()
         passTheAgeGate()
+        requireOnboarding()
+    }
+
+    /// Waits for onboarding, and names whatever arrived instead.
+    ///
+    /// The app now looks for an existing plan before drawing anything, so there
+    /// are three ways to leave that check and only one of them is this suite's
+    /// starting point. Asserting the *absence* of the error screen was not
+    /// enough: it also passes while the lookup is still running, and it passes
+    /// when a plan already exists and onboarding is skipped entirely.
+    ///
+    /// Both wrong destinations are named here rather than left for the first
+    /// real assertion to report as "the question never appeared", which is true
+    /// and sends the reader to the wrong file.
+    private func requireOnboarding() {
+        if app.staticTexts["What are you quitting?"].waitForExistence(timeout: 10) { return }
+
+        if app.staticTexts["Can't reach your plan."].exists {
+            XCTFail(
+                "The app could not reach a backend, so onboarding was never shown. "
+                    + "This suite needs one running — `supabase start`."
+            )
+        } else if app.staticTexts["That's the plan."].exists {
+            XCTFail(
+                "This device already has a saved plan, so onboarding was skipped. "
+                    + "Clear it with `supabase db reset --local`."
+            )
+        } else {
+            XCTFail("Onboarding did not appear, and no state on screen explains why.")
+        }
     }
 
     /// Answers the age gate as an adult. Every test needs it, because it is now
