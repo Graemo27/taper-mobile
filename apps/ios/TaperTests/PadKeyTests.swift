@@ -36,7 +36,7 @@ struct PadSeedTests {
         // that got here named at least one source — a run with none cannot
         // produce a cap, and a run with no cap cannot produce a plan.
         let answers = answers()
-        let keys = answers.padKeys(for: plan(for: answers))
+        let keys = answers.padKeys(with: plan(for: answers).replacement)
 
         #expect(!keys.isEmpty)
         #expect(keys.contains { $0.ledger == .source })
@@ -45,7 +45,7 @@ struct PadSeedTests {
     @Test("every source the user named gets a key, in the order they were asked")
     func eachSourceIsOnThePad() {
         let answers = answers(sources: [.pouches, .cigarettes, .vape])
-        let sources = answers.padKeys(for: plan(for: answers)).filter { $0.ledger == .source }
+        let sources = answers.padKeys(with: plan(for: answers).replacement).filter { $0.ledger == .source }
 
         let named: [NicotineSource] = [.pouches, .cigarettes, .vape]
         #expect(sources.map(\.form) == named.map(\.padForm))
@@ -58,7 +58,7 @@ struct PadSeedTests {
         // pouch differently from the plan that was built on it — and the two
         // numbers are subtracted from each other every time somebody logs.
         let answers = answers(sources: [.pouches, .cigarettes])
-        let sources = answers.padKeys(for: plan(for: answers)).filter { $0.ledger == .source }
+        let sources = answers.padKeys(with: plan(for: answers).replacement).filter { $0.ledger == .source }
 
         #expect(sources.first { $0.form == .pouch }?.mg == 6, "the strength the user read off the tin")
         #expect(sources.first { $0.form == .cigarette }?.mg == NicotineSource.cigarettes.estimatedMgPerUnit)
@@ -72,7 +72,7 @@ struct PadSeedTests {
         // so a pad priced by a different rule makes the ceiling unreachable or
         // trivially met, with nothing on screen to explain either.
         let answers = answers(sources: [.pouches, .cigarettes, .vape, .dip, .nrt, .other])
-        let sources = answers.padKeys(for: plan(for: answers)).filter { $0.ledger == .source }
+        let sources = answers.padKeys(with: plan(for: answers).replacement).filter { $0.ledger == .source }
 
         #expect(sources.count == answers.orderedSources.count, "a source the cap counted has no key")
         for (key, source) in zip(sources, answers.orderedSources) {
@@ -99,7 +99,7 @@ struct PadSeedTests {
         answers.strengths[.cigarettes] = StrengthOption.nrt.first { $0.mg == 4 }
 
         #expect(answers.mgPerUnit(for: .cigarettes) == 4)
-        let key = answers.padKeys(for: plan(for: answers)).first { $0.form == .cigarette }
+        let key = answers.padKeys(with: plan(for: answers).replacement).first { $0.form == .cigarette }
         #expect(key?.mg == 4)
         // Both sides of the shared call, not just the pad's. A cap still built
         // on the estimate while the key is priced on the stated figure is the
@@ -114,7 +114,7 @@ struct PadSeedTests {
         // put the thing they are quitting on the list of what is helping them
         // quit, and the cap would then be measured against itself.
         let answers = answers(sources: [.nrt], treatments: [.lozenge])
-        let keys = answers.padKeys(for: plan(for: answers))
+        let keys = answers.padKeys(with: plan(for: answers).replacement)
 
         let quitting = keys.first { $0.label == NicotineSource.nrt.label }
         #expect(quitting?.ledger == .source)
@@ -127,7 +127,7 @@ struct PadSeedTests {
     func treatmentKeysQuoteThePlan() {
         let answers = answers(treatments: [.patch, .gum])
         let plan = plan(for: answers)
-        let treatment = answers.padKeys(for: plan).filter { $0.ledger == .treatment }
+        let treatment = answers.padKeys(with: plan.replacement).filter { $0.ledger == .treatment }
 
         #expect(treatment.map(\.form) == [.patch, .gum], "not the set's arbitrary order")
         #expect(treatment.first { $0.form == .patch }?.mg == Double(plan.replacement.patchMg!))
@@ -143,7 +143,7 @@ struct PadSeedTests {
         // build that ignored the refusal entirely.
         let answers = answers(treatments: [.patch, .lozenge])
         answers.deferTreatment()
-        let keys = answers.padKeys(for: plan(for: answers))
+        let keys = answers.padKeys(with: plan(for: answers).replacement)
 
         #expect(keys.allSatisfy { $0.ledger == .source })
         #expect(!keys.isEmpty, "declining a treatment must not empty the whole pad")
@@ -160,7 +160,7 @@ struct PadSeedTests {
         let plan = plan(for: answers)
         #expect(plan.replacement.patchMg == nil, "the fixture must be light enough to warrant no patch")
 
-        let treatment = answers.padKeys(for: plan).filter { $0.ledger == .treatment }
+        let treatment = answers.padKeys(with: plan.replacement).filter { $0.ledger == .treatment }
         #expect(treatment.map(\.form) == [.lozenge])
     }
 
@@ -171,7 +171,7 @@ struct PadSeedTests {
         // Numbering straight through would sort the treatment keys after a
         // gap whose size depends on how many things somebody is quitting.
         let answers = answers(sources: [.pouches, .cigarettes], treatments: [.patch, .lozenge])
-        let keys = answers.padKeys(for: plan(for: answers))
+        let keys = answers.padKeys(with: plan(for: answers).replacement)
 
         #expect(keys.filter { $0.ledger == .source }.map(\.position) == [0, 1])
         #expect(keys.filter { $0.ledger == .treatment }.map(\.position) == [0, 1])

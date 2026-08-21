@@ -38,6 +38,32 @@ struct TaperPlanDraft: Equatable, Sendable {
     var sickInBed: Bool
 }
 
+/// Everything a finished run hands over: the row to write, and the pad to seed.
+///
+/// One value rather than two arguments, because the two are answers to the same
+/// tap and must be built from the same reading of the clock. A caller holding
+/// them separately is a caller that can pass a draft from one moment and keys
+/// from another.
+struct CompletedRun: Equatable, Sendable {
+    var draft: TaperPlanDraft
+    var padKeys: [PadKey]
+}
+
+extension OnboardingAnswers {
+    /// The plan and the pad, both off the screen the user just agreed to.
+    ///
+    /// Nil for the same reasons `planDraft(shown:)` is nil — this is that
+    /// method plus the pad, and the pad needs nothing the draft does not
+    /// already require.
+    func completedRun(shown preview: PlanPreview) -> CompletedRun? {
+        guard let draft = planDraft(shown: preview) else { return nil }
+        // `preview.replacement`, not a freshly built plan. Rebuilding reads the
+        // clock again, and a day turning over in the gap would seed a pad from
+        // a plan nobody was ever shown.
+        return CompletedRun(draft: draft, padKeys: padKeys(with: preview.replacement))
+    }
+}
+
 extension OnboardingAnswers {
     /// The row for a plan the user has actually been shown, or nil while the
     /// run is still incomplete.

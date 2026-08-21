@@ -49,7 +49,7 @@ extension LiveBackendTests {
         // the app can emit, and the ledger/form pairing checked by Postgres
         // rather than by the enum that claims it.
         let answers = everySourceRun()
-        let seeded = answers.padKeys(for: TaperPlanner.plan(for: answers.taperInput!))
+        let seeded = answers.padKeys(with: TaperPlanner.plan(for: answers.taperInput!).replacement)
         #expect(seeded.count == NicotineSource.allCases.count + 2, "the fixture must cover both ledgers")
 
         let stored = try await padStore().seed(seeded)
@@ -134,6 +134,53 @@ extension LiveBackendTests {
 
         #expect(try await store.seed([]).isEmpty)
         #expect(try await store.currentKeys().isEmpty)
+    }
+
+    @MainActor
+    @Test("one tap at the end of onboarding puts both the plan and the pad on the server",
+          .enabled(if: LocalBackend.isAvailable))
+    func finishingARunWritesEverything() async throws {
+        // The whole path through the real stores: answers to a completed run,
+        // one `submit`, and both tables written against the real schema. The
+        // pieces are covered against fakes elsewhere; what only this can show
+        // is that a run assembled by `completedRun(shown:)` produces rows both
+        // tables actually accept, in one tap, in the order `submit` chose.
+        //
+        // It deliberately does *not* claim to prove the two stores share an
+        // identity. A mutation splitting them onto separate clients and
+        // separate coordinators still passes, because clients built against
+        // one URL share the same session storage and resolve to the same
+        // anonymous user. Sharing one `SessionCoordinator` in `liveStores()`
+        // is about coalescing concurrent sign-ins into a single request, and
+        // that remains an untested claim rather than one this test covers.
+        let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
+        try? await client.auth.signOut(scope: .local)
+        let session = SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
+        let pad = SupabasePadKeyStore(client: client, session: session)
+        let plans = SupabaseTaperPlanStore(client: client, session: session)
+
+        // The sign-out above is `try?`, so a session can survive it — and a
+        // surviving one already has a plan and a pad. Every assertion at the
+        // bottom would then pass on rows this test did not write, including
+        // the key count, because it is the same run that seeded them. Checked
+        // rather than assumed: this is the shape where a green test and a
+        // broken write are compatible states.
+        #expect(try await plans.currentPlan() == nil, "a previous session survived the sign-out")
+        #expect(try await pad.currentKeys().isEmpty, "a previous session survived the sign-out")
+
+        let answers = everySourceRun()
+        let run = answers.completedRun(shown: answers.planPreview!)!
+        let record = PlanRecord(store: plans, pad: pad)
+
+        await record.submit(run)
+
+        // The submit's own verdict, not only what is on the server. Without it
+        // a write that failed and left the earlier rows in place reads exactly
+        // like a write that succeeded.
+        #expect(record.status.isPresent, "the run did not finish")
+        #expect(try await plans.currentPlan() != nil, "the plan is not readable as this user")
+        #expect(try await pad.currentKeys().count == run.padKeys.count,
+                "the pad is not readable as this user")
     }
 
     @Test("the pad suite leaves no session behind",

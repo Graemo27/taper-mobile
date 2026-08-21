@@ -45,6 +45,14 @@ struct PlanPreview: Equatable, Sendable {
     var note: String
     /// Present only when the stated intake reads as a data-entry error.
     var caution: String?
+    /// The doses the plan committed to, carried but not drawn.
+    ///
+    /// Here so the pad can be seeded from the plan the user actually agreed to
+    /// rather than from one rebuilt afterwards. Rebuilding reads the clock a
+    /// second time, and the gap between seeing this screen and tapping Start
+    /// is however long somebody spends deciding — the same hazard
+    /// `planDraft(shown:)` exists to close.
+    var replacement: NicotineReplacement
 
     /// Builds the preview, or returns nil when there is no plan to describe.
     ///
@@ -61,6 +69,7 @@ struct PlanPreview: Equatable, Sendable {
         guard let cap = plan.weeklyCapsMg.first else { return nil }
         capMg = cap
         caution = Self.caution(cap: cap, isImplausible: plan.intakeLooksImplausible)
+        replacement = plan.replacement
 
         let hold = PlanMilestone(
             title: "Hold at \(cap.clean) mg — this week",

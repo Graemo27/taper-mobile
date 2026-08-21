@@ -49,6 +49,17 @@ protocol PadKeyReading: Sendable {
 /// Both halves, for the caller that finishes onboarding and needs each.
 typealias PadKeyStoring = PadKeyWriting & PadKeyReading
 
+/// What the app writes through, once a backend is configured.
+///
+/// Named together because they are built together and must share one session:
+/// the plan and the pad are written by a single tap, and two coordinators
+/// racing to sign in on that tap is the thing `SessionCoordinator` exists to
+/// prevent.
+struct AppStores {
+    let plans: any TaperPlanStoring
+    let pad: any PadKeyStoring
+}
+
 /// The real one.
 struct SupabasePadKeyStore: PadKeyWriting, PadKeyReading {
     let client: SupabaseClient

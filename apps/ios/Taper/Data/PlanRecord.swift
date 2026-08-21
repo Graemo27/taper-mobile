@@ -50,6 +50,8 @@ final class PlanRecord {
     /// while a test drove it, and the whole cost of that was the two looking
     /// identical on screen.
     private let store: (any TaperPlanStoring)?
+    /// The pad, seeded by the same tap that writes the plan.
+    private let pad: (any PadKeyStoring)?
 
     /// One lookup at a time.
     ///
@@ -65,7 +67,10 @@ final class PlanRecord {
     /// a different file.
     private var isLoading = false
 
-    init(store: (any TaperPlanStoring)?) { self.store = store }
+    init(store: (any TaperPlanStoring)?, pad: (any PadKeyStoring)? = nil) {
+        self.store = store
+        self.pad = pad
+    }
 
     /// Looks for a plan already on file.
     ///
@@ -91,23 +96,35 @@ final class PlanRecord {
         }
     }
 
-    /// Writes the plan, once.
+    /// Writes the pad and the plan, once.
     ///
     /// Returns immediately if a write is already in flight or a plan is already
     /// present. The CTA is disabled in both states, but a disabled button is a
     /// rendering decision and this is the rule — two taps landing either side
     /// of the first render would otherwise write twice.
-    func submit(_ draft: TaperPlanDraft) async {
+    func submit(_ run: CompletedRun) async {
         guard status != .saving, !status.isPresent else { return }
 
-        guard let store else {
+        guard let store, let pad else {
             status = .saveFailed(Self.noBackend)
             return
         }
 
         status = .saving
         do {
-            status = .present(try await store.save(draft))
+            // The pad first and the plan second, because that is the order
+            // that recovers from a half-finished write.
+            //
+            // Seeding is idempotent — a pad with keys already on it comes back
+            // untouched — so a pad written without a plan is a state the next
+            // run walks straight through: onboarding finds no plan, asks
+            // again, seeds nothing new, and saves. The other order strands
+            // people. A saved plan with an empty pad routes the next launch
+            // to the home screen, which never asks the questions again and has
+            // no way to fill the pad, and there is nothing to tap for the rest
+            // of the taper.
+            _ = try await pad.seed(run.padKeys)
+            status = .present(try await store.save(run.draft))
         } catch {
             // Deliberately one sentence for every failure. The distinctions the
             // client can actually draw — offline, refused, timed out — are not

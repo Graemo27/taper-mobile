@@ -34,7 +34,7 @@ struct OnboardingFlow: View {
     /// Called when the run is over. Required rather than optional: the last
     /// screen's CTA has to go somewhere, and a default of "do nothing" would
     /// make a finished run indistinguishable from a broken button.
-    let onFinish: (TaperPlanDraft) -> Void
+    let onFinish: (CompletedRun) -> Void
     /// Passed through to the last screen. The run does not own the write, but
     /// it owns the screen that reports it.
     var status: PlanStatus = .absent
@@ -130,7 +130,7 @@ struct OnboardingFlow: View {
                     // The draft is built from the preview on screen rather than
                     // from the answers again, so the row cannot disagree with
                     // what the user just agreed to.
-                    onContinue: { answers.planDraft(shown: preview).map(onFinish) },
+                    onContinue: { answers.completedRun(shown: preview).map(onFinish) },
                     onBack: goBack
                 )
             } else {
