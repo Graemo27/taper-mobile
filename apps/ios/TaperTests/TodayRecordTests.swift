@@ -6,6 +6,10 @@ import Testing
 private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
     var existing: [StoredCheckIn] = []
     var readFails = false
+    var writeFails = false
+    /// Holds a write open, so a second can be attempted while the first is in
+    /// flight.
+    var writeHangs = false
     /// Holds a read open, so a second can be attempted while the first is in
     /// flight.
     var readHangs = false
@@ -27,6 +31,8 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
 
     func log(_ draft: CheckInDraft) async throws -> StoredCheckIn {
         lock.withLock { _writes.append(draft) }
+        if writeHangs { try await Task.sleep(for: .seconds(30)) }
+        if writeFails { throw URLError(.notConnectedToInternet) }
         return StoredCheckIn(
             id: writes.count, ledger: draft.key.ledger, label: draft.key.label,
             form: draft.key.form, mg: draft.key.mg, quantity: draft.quantity
@@ -119,13 +125,7 @@ struct TodayRecordTests {
 
         let first = Task { await record.load() }
 
-        // Bounded, because an unbounded wait turns a regression here into a
-        // suite that hangs rather than one that fails.
-        let deadline = Date().addingTimeInterval(2)
-        while store.reads == 0, Date() < deadline {
-            await Task.yield()
-        }
-        #expect(store.reads == 1, "the first read never started")
+        await waitUntil { store.reads == 1 }
 
         await record.load()
 
@@ -227,5 +227,189 @@ struct TodayRecordTests {
 
         #expect(!record.hasRolledOver)
         #expect(record.tally(ceilingMg: 12).loggedMg == 3, "the new day's rows did not take over")
+    }
+
+    /// Waits, briefly, for something to become true.
+    ///
+    /// Bounded on purpose: an unbounded wait turns a regression in the code
+    /// under test into a suite that hangs rather than one that fails.
+    private func waitUntil(_ condition: () -> Bool) async {
+        let deadline = Date().addingTimeInterval(2)
+        while !condition(), Date() < deadline { await Task.yield() }
+        #expect(condition(), "the condition never became true")
+    }
+
+    // MARK: - Writing
+
+    @Test("checking in logs what was selected and adds it to today")
+    func aCheckInLandsOnTheDay() async {
+        let store = FakeCheckIns()
+        let record = record(store)
+        await record.load()
+        record.selection.tap(key(1))
+        record.selection.tap(key(1))
+
+        await record.checkIn()
+
+        #expect(store.writes.count == 1)
+        #expect(store.writes.first?.quantity == 2, "the count was not carried into the write")
+        #expect(store.writes.first?.day == day, "the entry was dated from somewhere other than the record's day")
+        #expect(record.entries.count == 1, "the entry did not reach today")
+        #expect(record.selection.pending == nil, "the selection survived a successful write")
+    }
+
+    @Test("the day is not re-read to learn what we were just told")
+    func aWriteDoesNotCostAReload() async {
+        // The row that comes back is the row that was written. A second round
+        // trip would put a spinner between the tap and the total, on the one
+        // interaction the whole app is built around.
+        let store = FakeCheckIns()
+        let record = record(store)
+        await record.load()
+        record.selection.tap(key(1))
+
+        await record.checkIn()
+
+        #expect(store.reads == 1, "the day was re-read after a write")
+    }
+
+    @Test("checking in with nothing selected writes nothing")
+    func anEmptyCheckInIsNotAWrite() async {
+        let store = FakeCheckIns()
+        let record = record(store)
+
+        await record.checkIn()
+
+        #expect(store.writes.isEmpty)
+    }
+
+    @Test("a write that fails keeps the selection for the retry")
+    func aFailedWriteHoldsOntoWhatWasTapped() async {
+        // Clearing it would make somebody re-tap a count they had already
+        // tapped out, on the attempt right after one that failed.
+        let store = FakeCheckIns()
+        store.writeFails = true
+        let record = record(store)
+        record.selection.tap(key(1))
+        record.selection.tap(key(1))
+
+        await record.checkIn()
+
+        #expect(record.selection.pending?.quantity == 2, "the selection was thrown away")
+        #expect(record.writeFailure?.contains("try again") == true)
+        #expect(!(record.writeFailure?.contains("URLError") ?? false))
+        #expect(record.entries.isEmpty, "a failed write reached the day anyway")
+    }
+
+    @Test("a retry that works clears the failure")
+    func aFailureDoesNotOutliveItsCause() async {
+        // Asserting the exit from the state, not only the entry.
+        let store = FakeCheckIns()
+        store.writeFails = true
+        let record = record(store)
+        record.selection.tap(key(1))
+        await record.checkIn()
+        #expect(record.writeFailure != nil)
+
+        store.writeFails = false
+        await record.checkIn()
+
+        #expect(record.writeFailure == nil)
+        #expect(record.entries.count == 1)
+        #expect(store.writes.count == 2, "the retry re-sent what was still selected")
+    }
+
+    @Test("clearing also clears a failure it is no longer about")
+    func clearingSilencesAStaleFailure() async {
+        let store = FakeCheckIns()
+        store.writeFails = true
+        let record = record(store)
+        record.selection.tap(key(1))
+        await record.checkIn()
+
+        record.clear()
+
+        #expect(record.writeFailure == nil, "a message about a write nobody is attempting")
+        #expect(record.selection.pending == nil)
+    }
+
+    @Test("a build with no backend says nothing can be logged")
+    func aMissingBackendCannotWriteEither() async {
+        let record = TodayRecord(store: nil, day: { self.day })
+        record.selection.tap(key(1))
+
+        await record.checkIn()
+
+        #expect(record.writeFailure?.contains("no backend") == true)
+        #expect(!(record.writeFailure?.contains("connection") ?? false))
+    }
+
+    @Test("a tap that crosses midnight starts the new day rather than joining the old one")
+    func aWriteAfterRolloverDoesNotJoinYesterday() async {
+        // The screen can be open across midnight with yesterday's rows behind
+        // it. The write lands on the new day — so the total beside it has to be
+        // the new day's too, or the first entry of the morning is added to a
+        // day that ended hours ago.
+        let store = FakeCheckIns()
+        store.existing = [
+            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4)
+        ]
+        let clock = Clock(day)
+        let record = record(store, clock: clock)
+        await record.load()
+        #expect(record.tally(ceilingMg: 12).loggedMg == 12)
+
+        clock.now = day.addingTimeInterval(86_400)
+        record.selection.tap(key(1, mg: 3))
+        await record.checkIn()
+
+        #expect(!record.hasRolledOver, "the record stayed on the day it just wrote past")
+        #expect(record.entries.count == 1, "yesterday's rows were carried into the new day")
+        #expect(record.tally(ceilingMg: 12).loggedMg == 3)
+    }
+
+    @Test("a write abandoned mid-flight reports nothing and keeps the selection")
+    func aCancelledWriteIsNotAFailure() async {
+        // Navigating away is not a refusal. It is not a success either — the
+        // row may or may not have landed, so the day is left as it was and the
+        // next load settles it.
+        let store = FakeCheckIns()
+        store.writeHangs = true
+        let record = record(store)
+        record.selection.tap(key(1))
+
+        let task = Task { await record.checkIn() }
+        await waitUntil { store.writes.count == 1 }
+        task.cancel()
+        await task.value
+
+        #expect(record.writeFailure == nil, "an abandoned write was reported as a failure")
+        #expect(record.selection.pending != nil, "the selection was cleared by a cancellation")
+        #expect(record.entries.isEmpty, "an unconfirmed row was added to the day")
+    }
+
+    @Test("a second check-in does not start while the first is in flight")
+    func concurrentWritesAreSerialised() async {
+        // The button is disabled while saving, but a disabled button is a
+        // rendering decision and this is the rule. Two taps either side of the
+        // first render would otherwise log the same thing twice.
+        let store = FakeCheckIns()
+        store.writeHangs = true
+        let record = record(store)
+        record.selection.tap(key(1))
+
+        let first = Task { await record.checkIn() }
+        await waitUntil { store.writes.count == 1 }
+
+        await record.checkIn()
+        #expect(store.writes.count == 1, "a second write started while the first was in flight")
+
+        first.cancel()
+        await first.value
+
+        // And the guard is released rather than latched, so a retry can run.
+        store.writeHangs = false
+        await record.checkIn()
+        #expect(store.writes.count == 2, "the guard stayed latched after the first write was abandoned")
     }
 }

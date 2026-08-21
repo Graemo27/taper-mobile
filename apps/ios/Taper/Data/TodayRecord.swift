@@ -13,11 +13,12 @@ enum DayStatus: Equatable, Sendable {
     case unavailable(String)
 }
 
-/// Owns today: what has been logged, and what is selected against it.
+/// Owns today: what has been logged, what is selected against it, and writing
+/// the two together.
 ///
-/// Writing a tap is the next thing; this reads the day the write will land on
-/// and folds the pending selection into the same tally, so the figure on screen
-/// is one number rather than two views of one.
+/// The selection is held here rather than beside it because clearing it on a
+/// successful write and keeping it through a failed one are rules about the
+/// write, and two owners would put half of each rule in a view.
 ///
 /// The day is read through a closure rather than captured once. An app left
 /// open across midnight should roll over on its own — "new day, new cap;
@@ -56,6 +57,10 @@ final class TodayRecord {
         return !calendar.isDate(loadedDay, inSameDayAs: day())
     }
     private(set) var status: DayStatus = .loading
+    /// Why the last check-in did not land. Separate from `status`, which is
+    /// about reading — a day that read fine and a write that failed are
+    /// different sentences, and only one of them has a retry.
+    private(set) var writeFailure: String?
     /// What is chosen on the pad. Held here rather than beside it, because the
     /// tally is the one place the day and the selection have to be read
     /// together, and two owners would make that a join at every call site.
@@ -68,6 +73,7 @@ final class TodayRecord {
     /// day ends would roll over at the wrong moment.
     private let calendar: Calendar
     private var isLoading = false
+    private var isWriting = false
 
     init(
         store: (any CheckInStoring)?,
@@ -121,5 +127,62 @@ final class TodayRecord {
         }
     }
 
-    private static let noBackend = "This build has no backend configured, so there is no log to read."
+    /// Puts the pad back to resting.
+    ///
+    /// Clears the failure too. A message about a write nobody is attempting any
+    /// more is a message about nothing.
+    func clear() {
+        selection.clear()
+        writeFailure = nil
+    }
+
+    /// Logs what is selected.
+    ///
+    /// The selection survives a failed write on purpose: it is what the retry
+    /// re-sends, and clearing it would make somebody re-tap a count they had
+    /// already tapped out.
+    func checkIn() async {
+        guard let entry = selection.pending, !isWriting else { return }
+
+        guard let store else {
+            writeFailure = Self.noBackend
+            return
+        }
+
+        isWriting = true
+        defer { isWriting = false }
+        writeFailure = nil
+
+        do {
+            // The day read now, not the one the last load asked about.
+            // Somebody logging at ten past midnight is logging on the new day,
+            // whatever day the rows on screen came from.
+            let today = day()
+            let written = try await store.log(CheckInDraft(pending: entry, day: today))
+
+            // Appended rather than re-read: the row that comes back is the row
+            // that was written, and a second round trip to learn what we were
+            // just told would put a spinner between the tap and the total.
+            //
+            // Onto the day it was written for, which is not always the day in
+            // hand. A tap that crosses midnight starts the new day rather than
+            // joining rows that stopped being today's while the screen was open.
+            if calendar.isDate(loadedDay ?? today, inSameDayAs: today) {
+                loadedEntries.append(written)
+            } else {
+                loadedEntries = [written]
+            }
+            loadedDay = today
+            status = .ready
+            selection.clear()
+        } catch {
+            // Abandoned, not refused — but not succeeded either. The row may or
+            // may not have landed, so the day is left as it was and the
+            // selection stays: the next load settles which it was.
+            guard !Task.isCancelled else { return }
+            writeFailure = "Couldn't log that. Check your connection and try again."
+        }
+    }
+
+    private static let noBackend = "This build has no backend configured, so nothing can be logged."
 }
