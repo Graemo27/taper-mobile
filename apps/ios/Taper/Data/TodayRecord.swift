@@ -141,6 +141,21 @@ final class TodayRecord {
     /// The selection survives a failed write on purpose: it is what the retry
     /// re-sends, and clearing it would make somebody re-tap a count they had
     /// already tapped out.
+    ///
+    /// **The write itself cannot be abandoned.** It runs in an unstructured
+    /// task, so a screen going away does not cancel it. Two reasons, and the
+    /// second is the load-bearing one:
+    ///
+    /// A tap that has been made should be recorded. Dropping a log because a
+    /// view disappeared would lose something the user did on purpose.
+    ///
+    /// And an abandoned write has no safe recovery. If the insert commits
+    /// before the cancellation reaches us, the retry writes it again —
+    /// `check_ins` has no operation id and nothing unique to conflict on. It
+    /// cannot be reconciled by content either: two 3 mg pouches half a minute
+    /// apart is an ordinary afternoon, so a duplicate is indistinguishable
+    /// from a second genuine tap. Letting the write finish removes the state
+    /// rather than trying to recover from it.
     func checkIn() async {
         guard let entry = selection.pending, !isWriting else { return }
 
@@ -158,7 +173,10 @@ final class TodayRecord {
             // Somebody logging at ten past midnight is logging on the new day,
             // whatever day the rows on screen came from.
             let today = day()
-            let written = try await store.log(CheckInDraft(pending: entry, day: today))
+            // Not `try await store.log(...)` directly: an unstructured task
+            // does not inherit cancellation, which is the whole point.
+            let draft = CheckInDraft(pending: entry, day: today)
+            let written = try await Task { try await store.log(draft) }.value
 
             // Appended rather than re-read: the row that comes back is the row
             // that was written, and a second round trip to learn what we were
@@ -176,10 +194,10 @@ final class TodayRecord {
             status = .ready
             selection.clear()
         } catch {
-            // Abandoned, not refused — but not succeeded either. The row may or
-            // may not have landed, so the day is left as it was and the
-            // selection stays: the next load settles which it was.
-            guard !Task.isCancelled else { return }
+            // No cancellation branch, because there is no longer a cancelled
+            // case to catch — the write above is not abandonable. A guard here
+            // would be a branch no test could reach, which is where defects
+            // hide.
             writeFailure = "Couldn't log that. Check your connection and try again."
         }
     }

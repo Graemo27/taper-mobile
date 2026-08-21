@@ -7,9 +7,10 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
     var existing: [StoredCheckIn] = []
     var readFails = false
     var writeFails = false
-    /// Holds a write open, so a second can be attempted while the first is in
-    /// flight.
-    var writeHangs = false
+    /// A brief, finite delay — long enough to interrupt during, short enough
+    /// to finish. Finite on purpose: the write cannot be cancelled, so a fake
+    /// that never returns would hang the suite rather than test it.
+    var writeDelay: Duration?
     /// Holds a read open, so a second can be attempted while the first is in
     /// flight.
     var readHangs = false
@@ -31,7 +32,10 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
 
     func log(_ draft: CheckInDraft) async throws -> StoredCheckIn {
         lock.withLock { _writes.append(draft) }
-        if writeHangs { try await Task.sleep(for: .seconds(30)) }
+        // `try`, not `try?`. Swallowing the cancellation here would let the
+        // write finish either way, and the test that asks whether it can be
+        // abandoned would pass against code that abandons it.
+        if let writeDelay { try await Task.sleep(for: writeDelay) }
         if writeFails { throw URLError(.notConnectedToInternet) }
         return StoredCheckIn(
             id: writes.count, ledger: draft.key.ledger, label: draft.key.label,
@@ -368,13 +372,17 @@ struct TodayRecordTests {
         #expect(record.tally(ceilingMg: 12).loggedMg == 3)
     }
 
-    @Test("a write abandoned mid-flight reports nothing and keeps the selection")
-    func aCancelledWriteIsNotAFailure() async {
-        // Navigating away is not a refusal. It is not a success either — the
-        // row may or may not have landed, so the day is left as it was and the
-        // next load settles it.
+    @Test("a screen going away does not drop the tap that was already made")
+    func aWriteIsNotAbandonedByItsCaller() async {
+        // The state this removes rather than handles. If a write could be
+        // abandoned after the insert commits, the retry would write it again —
+        // `check_ins` has nothing unique to conflict on, and content cannot
+        // tell a duplicate from a second genuine tap, because two 3 mg pouches
+        // half a minute apart is an ordinary afternoon.
+        //
+        // So the write finishes. A tap somebody made is recorded.
         let store = FakeCheckIns()
-        store.writeHangs = true
+        store.writeDelay = .milliseconds(120)
         let record = record(store)
         record.selection.tap(key(1))
 
@@ -383,9 +391,31 @@ struct TodayRecordTests {
         task.cancel()
         await task.value
 
-        #expect(record.writeFailure == nil, "an abandoned write was reported as a failure")
-        #expect(record.selection.pending != nil, "the selection was cleared by a cancellation")
-        #expect(record.entries.isEmpty, "an unconfirmed row was added to the day")
+        #expect(store.writes.count == 1)
+        #expect(record.entries.count == 1, "the tap was dropped when its caller went away")
+        #expect(record.selection.pending == nil, "a completed write left the selection behind")
+        #expect(record.writeFailure == nil, "a completed write was reported as a failure")
+    }
+
+    @Test("and the retry after it does not write a second row")
+    func theRetryAfterAnInterruptedWriteIsNotADuplicate() async {
+        // The consequence, stated as its own assertion: with nothing left
+        // pending, a second tap on the button has nothing to send. That is what
+        // makes the missing idempotency key survivable.
+        let store = FakeCheckIns()
+        store.writeDelay = .milliseconds(120)
+        let record = record(store)
+        record.selection.tap(key(1))
+
+        let task = Task { await record.checkIn() }
+        await waitUntil { store.writes.count == 1 }
+        task.cancel()
+        await task.value
+
+        await record.checkIn()
+
+        #expect(store.writes.count == 1, "the interrupted write was sent a second time")
+        #expect(record.entries.count == 1)
     }
 
     @Test("a second check-in does not start while the first is in flight")
@@ -393,8 +423,12 @@ struct TodayRecordTests {
         // The button is disabled while saving, but a disabled button is a
         // rendering decision and this is the rule. Two taps either side of the
         // first render would otherwise log the same thing twice.
+        //
+        // The first write is left to finish rather than cancelled, because it
+        // can no longer be cancelled — so the guard has to be seen releasing on
+        // its own.
         let store = FakeCheckIns()
-        store.writeHangs = true
+        store.writeDelay = .milliseconds(150)
         let record = record(store)
         record.selection.tap(key(1))
 
@@ -404,12 +438,11 @@ struct TodayRecordTests {
         await record.checkIn()
         #expect(store.writes.count == 1, "a second write started while the first was in flight")
 
-        first.cancel()
         await first.value
 
-        // And the guard is released rather than latched, so a retry can run.
-        store.writeHangs = false
+        // Released rather than latched: a fresh selection can still be logged.
+        record.selection.tap(key(1))
         await record.checkIn()
-        #expect(store.writes.count == 2, "the guard stayed latched after the first write was abandoned")
+        #expect(store.writes.count == 2, "the guard stayed latched after the first write finished")
     }
 }
