@@ -73,7 +73,7 @@ final class TodayRecord {
     /// day ends would roll over at the wrong moment.
     private let calendar: Calendar
     private var isLoading = false
-    private var isWriting = false
+    private(set) var isWriting = false
 
     init(
         store: (any CheckInStoring)?,
@@ -126,6 +126,23 @@ final class TodayRecord {
             status = .unavailable("Couldn't load today. Check your connection and try again.")
         }
     }
+
+    /// What the check-in button says.
+    ///
+    /// The pending total rather than the count, because the number that
+    /// matters is the one going against the cap — "Check in · 3 mg" is what
+    /// the meter above it is about to move by.
+    var checkInTitle: String {
+        guard let pending = selection.pending else { return "Check in" }
+        return "Check in · \(pending.totalMg.clean) mg"
+    }
+
+    /// Whether there is anything to check in.
+    ///
+    /// Here rather than in the view because it is a rule about the operation,
+    /// not about rendering. A disabled button is how it is *shown*; `checkIn()`
+    /// enforces the same thing whether or not anybody drew it that way.
+    var canCheckIn: Bool { selection.pending != nil && !isWriting }
 
     /// Puts the pad back to resting.
     ///

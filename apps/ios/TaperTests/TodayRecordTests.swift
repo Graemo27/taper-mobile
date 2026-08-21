@@ -445,4 +445,66 @@ struct TodayRecordTests {
         await record.checkIn()
         #expect(store.writes.count == 2, "the guard stayed latched after the first write finished")
     }
+
+    // MARK: - What the button says and whether it can be pressed
+
+    @Test("the button names what would be logged, not how many taps")
+    func theButtonCarriesThePendingTotal() {
+        // The number that matters is the one going against the cap. Three
+        // pouches at 3 mg is 9 going onto the day, and "× 3" is the count the
+        // readout already shows above the meter.
+        let record = record(FakeCheckIns())
+        record.selection.tap(key(1, mg: 3))
+        record.selection.tap(key(1, mg: 3))
+        record.selection.tap(key(1, mg: 3))
+
+        #expect(record.checkInTitle == "Check in · 9 mg")
+    }
+
+    @Test("with nothing selected the button says so and cannot be pressed")
+    func nothingToLogIsNotAnAction() {
+        let record = record(FakeCheckIns())
+
+        #expect(record.checkInTitle == "Check in")
+        #expect(!record.canCheckIn)
+    }
+
+    @Test("the button is dead while a write is in flight")
+    func theButtonCannotBePressedTwice() async {
+        // The guard in `checkIn()` is what actually prevents the second write.
+        // This is the rule the screen reads to *show* that, and the two must
+        // agree — a live-looking button over a guard that refuses is a tap that
+        // does nothing, which people press again.
+        // A short delay rather than a long one: the write is deliberately not
+        // cancellable, so a thirty-second hang would be thirty seconds of
+        // suite rather than a test.
+        let store = FakeCheckIns()
+        store.writeDelay = .milliseconds(200)
+        let record = record(store)
+        record.selection.tap(key(1))
+        #expect(record.canCheckIn)
+
+        let first = Task { await record.checkIn() }
+        await waitUntil { store.writes.count == 1 }
+
+        #expect(!record.canCheckIn, "the button stayed live over a guard that would refuse")
+
+        await first.value
+        #expect(record.entries.count == 1, "the write did not finish")
+    }
+
+    @Test("the button comes back once the write is done")
+    func theButtonIsNotDeadForever() async {
+        let store = FakeCheckIns()
+        let record = record(store)
+        record.selection.tap(key(1))
+
+        await record.checkIn()
+
+        // Nothing selected any more, so it is off for that reason rather than
+        // because the guard stayed latched — which the next tap proves.
+        #expect(!record.canCheckIn)
+        record.selection.tap(key(2))
+        #expect(record.canCheckIn)
+    }
 }
