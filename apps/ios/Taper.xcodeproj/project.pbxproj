@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		042B4D66BFA2B2C66D8C74C7 /* PadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */; };
 		04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1766359067A8528CBEB51E /* Treatment.swift */; };
 		095A3168DFDDE095210C453A /* AgeGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE1BA6ACDF80CF9C913E09D4 /* AgeGateTests.swift */; };
 		0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */; };
@@ -24,6 +25,7 @@
 		2F776532ECCCC2D5C65020EB /* PadKeyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B8A9244E6D32AD7E5A8592 /* PadKeyStoreTests.swift */; };
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		31F8639ED45E27F1E962635E /* PadKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00A51CDF3AFF7D94A08109B /* PadKey.swift */; };
+		35EE2A5244206B4871D6F8D2 /* PadKeyTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023D87A309D4250BB9299DF8 /* PadKeyTile.swift */; };
 		3CACAE459BB033FFC668B8D1 /* AgeGateRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5130DC0EF5BBB67260B85D27 /* AgeGateRunTests.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D71CAE19F0707B5BBCDF8 /* HomeView.swift */; };
@@ -87,6 +89,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		023D87A309D4250BB9299DF8 /* PadKeyTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadKeyTile.swift; sourceTree = "<group>"; };
 		0289FF648BC61AE569DB11FE /* PlanRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanRecord.swift; sourceTree = "<group>"; };
 		08785AAB390FD2A3138DB75C /* PriorAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorAttempt.swift; sourceTree = "<group>"; };
 		093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingAnswers.swift; sourceTree = "<group>"; };
@@ -99,6 +102,7 @@
 		1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Medium.otf"; sourceTree = "<group>"; };
 		29075C1BFAD49736B729C3DF /* AmountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountView.swift; sourceTree = "<group>"; };
 		29BE0845DD8EEF48524461D6 /* SickInBedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SickInBedView.swift; sourceTree = "<group>"; };
+		2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadView.swift; sourceTree = "<group>"; };
 		2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadKeyStore.swift; sourceTree = "<group>"; };
 		2E22FDA8B9704DCCFE7B3A5C /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
 		2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstUseView.swift; sourceTree = "<group>"; };
@@ -334,9 +338,19 @@
 				49B7B8F0DA18DE4516753F14 /* Home */,
 				0007BBFA873E0E9D71790521 /* Networking */,
 				871C1EB35ACC873E654C8086 /* Onboarding */,
+				F3824DDCABE37035E81E514D /* Pad */,
 				B7CF7635CA931D6444E011B8 /* Resources */,
 			);
 			path = Taper;
+			sourceTree = "<group>";
+		};
+		F3824DDCABE37035E81E514D /* Pad */ = {
+			isa = PBXGroup;
+			children = (
+				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
+				2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */,
+			);
+			path = Pad;
 			sourceTree = "<group>";
 		};
 		F6061D640A89BA3E01CD9C06 /* Design */ = {
@@ -508,7 +522,9 @@
 				DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */,
 				31F8639ED45E27F1E962635E /* PadKey.swift in Sources */,
 				9538768352F4B4C5F5BE0ED2 /* PadKeyStore.swift in Sources */,
+				35EE2A5244206B4871D6F8D2 /* PadKeyTile.swift in Sources */,
 				46709EE23E8233449745DA86 /* PadRecord.swift in Sources */,
+				042B4D66BFA2B2C66D8C74C7 /* PadView.swift in Sources */,
 				5FDF70B60F61B72A27995CAD /* PlanPreview.swift in Sources */,
 				BB130F9CEEB993188D46CB19 /* PlanPreviewView.swift in Sources */,
 				59CE24C6476EDA822E2ABD29 /* PlanProgress.swift in Sources */,

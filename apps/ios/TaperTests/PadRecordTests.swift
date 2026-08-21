@@ -242,3 +242,23 @@ struct PadRecordTests {
         await first.value
     }
 }
+
+/// Covers which forms the app has a mark for.
+@MainActor
+struct PadKeyMarkTests {
+    @Test("only the forms the board has drawn get a mark")
+    func theUndrawnFormsAreKnownAndListed() {
+        // A test rather than only a comment, because the gap is a design
+        // decision waiting on someone: the board has drawn four marks, and the
+        // other six would have to be invented. Pinning the split here means
+        // adding a mark is a deliberate edit rather than something that drifts
+        // in, and it keeps the list of what is missing somewhere it can be
+        // read off rather than counted by eye.
+        let drawn = PadForm.allCases.filter { PadKeyMark.isDrawn($0) }
+        #expect(Set(drawn) == [.patch, .lozenge, .pouch, .vape])
+
+        // Cigarettes are the most common thing anyone quits, so the most-used
+        // key in the app is one of the ones with no mark.
+        #expect(!PadKeyMark.isDrawn(.cigarette))
+    }
+}
