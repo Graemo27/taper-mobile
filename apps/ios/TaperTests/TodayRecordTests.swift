@@ -8,6 +8,8 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
     var readFails = false
     var writeFails = false
     var removeFails = false
+    /// Holds a removal open, so a reload can land while one is in flight.
+    var removeDelay: Duration?
     /// A brief, finite delay — long enough to interrupt during, short enough
     /// to finish. Finite on purpose: the write cannot be cancelled, so a fake
     /// that never returns would hang the suite rather than test it.
@@ -37,6 +39,7 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
 
     func remove(_ id: Int) async throws {
         lock.withLock { _removed.append(id) }
+        if let removeDelay { try await Task.sleep(for: removeDelay) }
         if removeFails { throw URLError(.notConnectedToInternet) }
     }
 
@@ -634,5 +637,48 @@ struct TodayRecordTests {
         await record.load()
 
         #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
+    }
+
+    @Test("a reload during a removal does not put the row back")
+    func aReloadCannotUndoACorrection() async {
+        // The day is read from the server, which still holds the row until the
+        // delete commits. Without excluding it, a reload landing mid-removal
+        // puts the entry back on screen in front of the person who has just
+        // taken it off — and then the delete succeeds, so the screen and the
+        // server disagree until something else reloads.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3), logged(2, mg: 6)]
+        store.removeDelay = .milliseconds(200)
+        let record = record(store)
+        await record.load()
+
+        let removing = Task { await record.remove(self.logged(2, mg: 6)) }
+        await waitUntil { store.removed == [2] }
+        await record.load()
+
+        #expect(record.entries.map(\.id) == [1], "the reload resurrected a row being removed")
+        await removing.value
+        #expect(record.entries.map(\.id) == [1])
+    }
+
+    @Test("a reload during a removal that fails leaves one row, not two")
+    func aFailedRemovalDoesNotDoubleAfterAReload() async {
+        // The other half. The reload already contains the entry, and the
+        // failure path puts it back — so without the exclusion the day ends up
+        // holding it twice, and the cap counts it twice with it.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3), logged(2, mg: 6)]
+        store.removeDelay = .milliseconds(200)
+        store.removeFails = true
+        let record = record(store)
+        await record.load()
+
+        let removing = Task { await record.remove(self.logged(2, mg: 6)) }
+        await waitUntil { store.removed == [2] }
+        await record.load()
+        await removing.value
+
+        #expect(record.entries.map(\.id) == [1, 2], "the entry came back twice, or in the wrong order")
+        #expect(record.tally(ceilingMg: 24).loggedMg == 9, "the cap counted a restored row twice")
     }
 }

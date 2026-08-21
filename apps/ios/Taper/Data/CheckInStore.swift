@@ -51,7 +51,8 @@ protocol CheckInRemoving: Sendable {
 /// All three, for the screen that logs, totals and corrects.
 typealias CheckInStoring = CheckInWriting & CheckInReading & CheckInRemoving
 
-/// The real one.
+/// Reads, writes and removes a day's check-ins through Supabase, as the
+/// signed-in anonymous user.
 struct SupabaseCheckInStore: CheckInWriting, CheckInReading, CheckInRemoving {
     let client: SupabaseClient
     let session: SessionCoordinator

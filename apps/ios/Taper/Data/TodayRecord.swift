@@ -77,6 +77,12 @@ final class TodayRecord {
     private let calendar: Calendar
     private var isLoading = false
     private(set) var isWriting = false
+    /// Entries whose removal is in flight.
+    ///
+    /// A day read back from the server still contains them until the delete
+    /// commits, so a reload landing mid-removal would put a row back on screen
+    /// that somebody has just taken off it.
+    private var removing: Set<Int> = []
 
     init(
         store: (any CheckInStoring)?,
@@ -115,7 +121,11 @@ final class TodayRecord {
             // Read once and kept together, so the rows and the day they answer
             // for cannot drift apart.
             let asked = day()
+            // Minus anything being removed right now: the server has not
+            // committed those deletes yet, and putting the rows back on screen
+            // would undo a correction in front of the person making it.
             loadedEntries = try await store.entries(on: asked)
+                .filter { !removing.contains($0.id) }
             loadedDay = asked
             status = .ready
         } catch {
@@ -155,14 +165,29 @@ final class TodayRecord {
     /// the order it was logged and a corrected entry that reappears at the
     /// bottom looks like a second one.
     func remove(_ entry: StoredCheckIn) async {
-        guard let store, let index = loadedEntries.firstIndex(of: entry) else { return }
+        guard let store, loadedEntries.contains(entry) else { return }
 
-        loadedEntries.remove(at: index)
+        loadedEntries.removeAll { $0.id == entry.id }
+        // Held for as long as the request is, and read by `load()`. A reload
+        // landing mid-removal answers from the server, which still has the row
+        // until the delete commits — so without this the entry comes back on
+        // screen after a delete that worked, or arrives twice after one that
+        // did not.
+        removing.insert(entry.id)
         removeFailure = nil
+        defer { removing.remove(entry.id) }
+
         do {
             try await Task { try await store.remove(entry.id) }.value
         } catch {
-            loadedEntries.insert(entry, at: min(index, loadedEntries.count))
+            // Back into id order rather than at a remembered index. A reload
+            // can have replaced the whole day while this was in flight, and an
+            // index from before that is a position in an array that no longer
+            // exists. The day is ordered by id — the read asks for it that way
+            // and a new entry always has the highest — so the order can be
+            // rebuilt from the entry itself.
+            let at = loadedEntries.firstIndex { $0.id > entry.id } ?? loadedEntries.count
+            loadedEntries.insert(entry, at: at)
             removeFailure = "Couldn't remove that. Check your connection and try again."
         }
     }
