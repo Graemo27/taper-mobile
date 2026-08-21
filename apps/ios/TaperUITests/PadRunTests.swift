@@ -11,24 +11,42 @@ import XCTest
 /// It needs a local backend and a database with no plan on it, like the rest of
 /// the run suite: `supabase start`, then `supabase db reset --local`.
 ///
-/// **It leaves a plan behind**, which the other run suites refuse to start
-/// with. They run first because `OnboardingRunTests` sorts before
-/// `PadRunTests`, and that is an ordering nobody declared — worth knowing
-/// before a class is renamed. A second run without a reset lands this suite on
-/// the tabs instead of onboarding, which it handles rather than fails on.
+/// **It leaves a plan behind**, and it refuses to start with one — like the
+/// other run suites, and for a sharper reason: every assertion here is about
+/// the plan this run builds, so an inherited one would either fail for
+/// unrelated data or pass without the handoff ever happening.
+///
+/// That makes the whole suite single-shot against a given database. The run
+/// suites happen to work today because `OnboardingRunTests` sorts before
+/// `PadRunTests`, which is an ordering nobody declared — worth knowing before
+/// a class is renamed.
 final class PadRunTests: TaperRunCase {
     /// The pouch key onboarding seeds from a 3 mg answer.
     private let pouches = "Pouches, 3 milligrams"
 
-    /// Onboarding, all the way to a saved plan — or straight past it when this
-    /// device already has one.
+    /// Onboarding, all the way to a saved plan.
+    ///
+    /// Onboarding is *required*, not preferred. Every assertion below is about
+    /// the plan this run builds — a 3 mg pouch, an 18 mg cap, a 14 mg patch —
+    /// and accepting whatever plan happened to be on the device would let the
+    /// suite pass without the onboarding-to-pad handoff ever happening, which
+    /// is the one thing it exists to check.
     private func reachTheTabs() {
         guard app.staticTexts["What are you quitting?"].waitForExistence(timeout: 10) else {
-            XCTAssertTrue(
-                app.buttons["tab.log"].waitForExistence(timeout: 5),
-                "Neither onboarding nor the tabs appeared. With no backend running the app "
-                    + "stops at the can't-reach screen — `supabase start`."
-            )
+            if app.buttons["tab.log"].exists {
+                XCTFail(
+                    "This device already has a saved plan, so onboarding was skipped — and the "
+                        + "assertions here are about the plan this run builds. "
+                        + "Clear it with `supabase db reset --local`."
+                )
+            } else if app.staticTexts["Can't reach your plan."].exists {
+                XCTFail(
+                    "The app could not reach a backend, so onboarding was never shown. "
+                        + "This suite needs one running — `supabase start`."
+                )
+            } else {
+                XCTFail("Onboarding did not appear, and no state on screen explains why.")
+            }
             return
         }
 
