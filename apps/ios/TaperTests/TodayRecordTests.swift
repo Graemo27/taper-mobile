@@ -132,6 +132,17 @@ struct TodayRecordTests {
         #expect(store.reads == 1, "a second read started while the first was in flight")
         first.cancel()
         await first.value
+
+        // What the cancelled load left behind, which the earlier version of
+        // this test never looked at. Two regressions hid in that gap: reporting
+        // an abandoned read as a failure, and leaving the guard latched so no
+        // read could ever start again.
+        #expect(record.status == .loading, "an abandoned read reported something")
+
+        store.readHangs = false
+        await record.load()
+        #expect(store.reads == 2, "the guard stayed latched after the first read was abandoned")
+        #expect(record.status == .ready)
     }
 
     // MARK: - The day turning over
@@ -156,19 +167,6 @@ struct TodayRecordTests {
         #expect(record.hasRolledOver)
         #expect(record.entries.isEmpty, "yesterday's rows were still being served as today's")
         #expect(record.tally(ceilingMg: 12).loggedMg == 0, "yesterday was counted against today's cap")
-    }
-
-    @Test("a later hour of the same day is not a rollover")
-    func theDayDoesNotTurnAtEveryTick() {
-        // The check is a calendar day, not an elapsed interval. Reading it as
-        // "more than a few hours" would drop a morning's entries at lunchtime.
-        let store = FakeCheckIns()
-        let clock = Clock(day)
-        let record = record(store, clock: clock)
-
-        clock.now = day.addingTimeInterval(60 * 60)
-
-        #expect(!record.hasRolledOver)
     }
 
     @Test("twenty minutes across midnight is a rollover; twenty hours inside a day is not")
