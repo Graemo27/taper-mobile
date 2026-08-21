@@ -54,10 +54,38 @@ struct SupabaseAnonymousAuth: AnonymousAuthClient {
 actor SessionCoordinator {
     private let auth: any AnonymousAuthClient
     private var pendingSignIn: Task<UUID, Error>?
+    /// Whether the stored session still has to be dropped.
+    ///
+    /// The decision lives in the actor rather than beside the client, because
+    /// the actor is what orders it: dropping the session in an unstructured
+    /// task alongside construction races the first read, and the run that
+    /// reads first wins. Here, nothing can ask for a user id before it has
+    /// happened.
+    private var mustForgetStoredSession: Bool
 
-    init(auth: any AnonymousAuthClient) { self.auth = auth }
+    init(
+        auth: any AnonymousAuthClient,
+        forgetStoredSession: Bool = ProcessInfo.processInfo.arguments
+            .contains("-TaperForgetSession")
+    ) {
+        self.auth = auth
+        mustForgetStoredSession = forgetStoredSession
+    }
 
     func userID() async throws -> UUID {
+        // Once, and before anything reads a session. The same shape as
+        // `-TaperForgetAge`: it *clears* device state and supplies none, so a
+        // run that uses it still signs in and still writes for real.
+        //
+        // It exists because a simulator keeps its session across launches while
+        // `supabase db reset --local` takes `auth.users` with it. The token
+        // still verifies — it is signed — so nothing looks wrong until the
+        // first insert fails a foreign key against a user the database has
+        // never heard of, and the screen blames the connection for it.
+        if mustForgetStoredSession {
+            mustForgetStoredSession = false
+            await auth.clearSession()
+        }
         do { return try await auth.validUserID() }
         catch where auth.canRecover(from: error) {
             return try await freshUserID()

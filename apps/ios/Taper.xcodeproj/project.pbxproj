@@ -27,11 +27,13 @@
 		2F776532ECCCC2D5C65020EB /* PadKeyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B8A9244E6D32AD7E5A8592 /* PadKeyStoreTests.swift */; };
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		31F8639ED45E27F1E962635E /* PadKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00A51CDF3AFF7D94A08109B /* PadKey.swift */; };
+		32A0BE9D766122AE40632C9C /* SessionCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ECEF2DA27BE2E09BE44244D /* SessionCoordinatorTests.swift */; };
 		35EE2A5244206B4871D6F8D2 /* PadKeyTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023D87A309D4250BB9299DF8 /* PadKeyTile.swift */; };
 		3BDAAD05A649B6D420DE5F49 /* TodaysTally.swift in Sources */ = {isa = PBXBuildFile; fileRef = 142209CB7BE6DD26367BB3ED /* TodaysTally.swift */; };
 		3CACAE459BB033FFC668B8D1 /* AgeGateRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5130DC0EF5BBB67260B85D27 /* AgeGateRunTests.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D71CAE19F0707B5BBCDF8 /* HomeView.swift */; };
+		421DF875F124088B9A404247 /* TaperRunCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66C7AC1982D58572E57F1FC /* TaperRunCase.swift */; };
 		427B60CD23C24CFDEF468EA9 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 9123F90062D0D9304669E9B2 /* Supabase */; };
 		4297BB6C43A7D64AB507AA10 /* PlanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0289FF648BC61AE569DB11FE /* PlanRecord.swift */; };
 		46709EE23E8233449745DA86 /* PadRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD07116EBF9CF6EE8E122698 /* PadRecord.swift */; };
@@ -49,6 +51,7 @@
 		73E63E6533098B20969D4EF7 /* PlanRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6C5F209132014C07F9CF88 /* PlanRecordTests.swift */; };
 		79FD6A2D96FDD74756B4F236 /* StrengthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42AA9319A756BB1539B49424 /* StrengthView.swift */; };
 		7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */; };
+		7CF719E37B2E4EE6A68A9849 /* PadRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D1598E57443987CD03A24 /* PadRunTests.swift */; };
 		8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */; };
 		9538768352F4B4C5F5BE0ED2 /* PadKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */; };
 		96B207CB5A6C660744D6DF15 /* TodaysTallyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */; };
@@ -148,6 +151,7 @@
 		76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStore.swift; sourceTree = "<group>"; };
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
 		7C04762C046C39BBF49A4545 /* TodayRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayRecordTests.swift; sourceTree = "<group>"; };
+		7ECEF2DA27BE2E09BE44244D /* SessionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinatorTests.swift; sourceTree = "<group>"; };
 		878DB78BEC425F63B60C1393 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		91C35928EF74BBD4AF319497 /* PadKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadKeyTests.swift; sourceTree = "<group>"; };
 		931D71CAE19F0707B5BBCDF8 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -157,6 +161,7 @@
 		9DA7E36678357D84CBFF846B /* PlanProgressTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanProgressTests.swift; sourceTree = "<group>"; };
 		A368BD902DA675BEB3D02749 /* TaperTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperTab.swift; sourceTree = "<group>"; };
 		A3907ACFA103C7A45EF00015 /* Taper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Taper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A66C7AC1982D58572E57F1FC /* TaperRunCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperRunCase.swift; sourceTree = "<group>"; };
 		A69F8D2D5922193467A92830 /* QuitDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuitDate.swift; sourceTree = "<group>"; };
 		A9B9903E0264C634FF6C6E5F /* TaperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperApp.swift; sourceTree = "<group>"; };
 		ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentView.swift; sourceTree = "<group>"; };
@@ -169,6 +174,7 @@
 		C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanDraft.swift; sourceTree = "<group>"; };
 		C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanTests.swift; sourceTree = "<group>"; };
 		C8CE03E1DFE9D4B43113814E /* PlanPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreview.swift; sourceTree = "<group>"; };
+		C92D1598E57443987CD03A24 /* PadRunTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadRunTests.swift; sourceTree = "<group>"; };
 		D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlan.swift; sourceTree = "<group>"; };
 		D72B9A0FEF4622A958D65D39 /* PlanProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanProgress.swift; sourceTree = "<group>"; };
 		EB37897EAEF2B704CA943033 /* ReadinessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
@@ -217,6 +223,8 @@
 			children = (
 				5130DC0EF5BBB67260B85D27 /* AgeGateRunTests.swift */,
 				EE7ACAD65956EFEBD97F2DC9 /* OnboardingRunTests.swift */,
+				C92D1598E57443987CD03A24 /* PadRunTests.swift */,
+				A66C7AC1982D58572E57F1FC /* TaperRunCase.swift */,
 			);
 			path = TaperUITests;
 			sourceTree = "<group>";
@@ -279,6 +287,7 @@
 				9761AFFAA18FB8818B892201 /* PadSelectionTests.swift */,
 				9DA7E36678357D84CBFF846B /* PlanProgressTests.swift */,
 				FA6C5F209132014C07F9CF88 /* PlanRecordTests.swift */,
+				7ECEF2DA27BE2E09BE44244D /* SessionCoordinatorTests.swift */,
 				0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */,
 				C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */,
 				7C04762C046C39BBF49A4545 /* TodayRecordTests.swift */,
@@ -531,6 +540,8 @@
 			files = (
 				3CACAE459BB033FFC668B8D1 /* AgeGateRunTests.swift in Sources */,
 				A65B4D477181B1DF0C5E40D6 /* OnboardingRunTests.swift in Sources */,
+				7CF719E37B2E4EE6A68A9849 /* PadRunTests.swift in Sources */,
+				421DF875F124088B9A404247 /* TaperRunCase.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -551,6 +562,7 @@
 				D5E11560EF09DAD985F07964 /* PadSelectionTests.swift in Sources */,
 				2900CBD113C33E7E6B0753C4 /* PlanProgressTests.swift in Sources */,
 				73E63E6533098B20969D4EF7 /* PlanRecordTests.swift in Sources */,
+				32A0BE9D766122AE40632C9C /* SessionCoordinatorTests.swift in Sources */,
 				0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */,
 				8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */,
 				7320791C1E1BCD24F1068CB1 /* TodayRecordTests.swift in Sources */,
