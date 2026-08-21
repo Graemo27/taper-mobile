@@ -89,19 +89,27 @@ struct TodaysTally: Equatable, Sendable {
 
     // MARK: - The meter
 
-    /// The already-logged share of the bar.
+    /// The logged run, up to the ceiling.
     ///
-    /// Under the cap, the bar *is* the cap and the segments are fractions of
-    /// it. Over the cap the bar rescales to the projected total instead, so the
-    /// overflow has somewhere to be drawn — the board shows it as a red tail
-    /// rather than a full bar, because "the meter shows the overflow honestly"
-    /// and a bar pinned at 100% would hide exactly the number that matters.
-    var loggedFraction: Double { fraction(of: loggedMg) }
+    /// These three are **segments of the bar, not shares of the total**, and
+    /// the distinction is the whole of this section. Under the cap the bar is
+    /// the cap and they simply add up. Over it the bar rescales to the
+    /// projected total so the overflow has somewhere to be drawn — the board
+    /// shows it as a red tail rather than a full bar, because "the meter shows
+    /// the overflow honestly" and a bar pinned at 100% would hide exactly the
+    /// number that matters.
+    ///
+    /// Splitting them this way is what keeps the milligrams past the ceiling in
+    /// one segment. Reporting each quantity's whole share instead would draw
+    /// the overflow twice whenever the pending tap is the thing that goes over.
+    var loggedFraction: Double { fraction(of: min(loggedMg, ceilingMg)) }
 
-    /// The pending share, drawn against the logged one.
-    var pendingFraction: Double { fraction(of: pendingMg) }
+    /// The pending run — only the part of it that still fits under the ceiling.
+    var pendingFraction: Double {
+        fraction(of: max(0, min(projectedMg, ceilingMg) - loggedMg))
+    }
 
-    /// The share past the ceiling, drawn in the over colour. Zero when under.
+    /// Everything past the ceiling, wherever it came from.
     var overflowFraction: Double { fraction(of: overByMg) }
 
     private func fraction(of amount: Double) -> Double {

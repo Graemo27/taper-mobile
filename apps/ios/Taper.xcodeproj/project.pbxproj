@@ -71,6 +71,7 @@
 		D5E11560EF09DAD985F07964 /* PadSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9761AFFAA18FB8818B892201 /* PadSelectionTests.swift */; };
 		DA0866AAF96102FAE82CA16E /* AgeGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455904243A3D920555A6529C /* AgeGate.swift */; };
 		DC85DF3A980C421F0613913E /* PadRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B60B9E2BC8CE60893633421 /* PadRecordTests.swift */; };
+		DDFBD225F7AFF64FDD535DD4 /* CapMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA00ED9C801626583C7F0F8F /* CapMeter.swift */; };
 		DF19A8B86E15E68CEDD4948C /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = F975269EB5F504D1744C6A25 /* Controls.swift */; };
 		DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */; };
 		F130D3ABB24EFA3BCC9F8307 /* FirstUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */; };
@@ -170,6 +171,7 @@
 		F00A51CDF3AFF7D94A08109B /* PadKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadKey.swift; sourceTree = "<group>"; };
 		F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		F975269EB5F504D1744C6A25 /* Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controls.swift; sourceTree = "<group>"; };
+		FA00ED9C801626583C7F0F8F /* CapMeter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapMeter.swift; sourceTree = "<group>"; };
 		FA6C5F209132014C07F9CF88 /* PlanRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanRecordTests.swift; sourceTree = "<group>"; };
 		FE1BA6ACDF80CF9C913E09D4 /* AgeGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -380,6 +382,7 @@
 		F3824DDCABE37035E81E514D /* Pad */ = {
 			isa = PBXGroup;
 			children = (
+				FA00ED9C801626583C7F0F8F /* CapMeter.swift */,
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
 				2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */,
 			);
@@ -550,6 +553,7 @@
 				A9F27E1C4941FEEBD02B53BC /* AgeGateView.swift in Sources */,
 				6FC5F8FF70EEE97E2A587D01 /* AmountView.swift in Sources */,
 				98AF5F5F106A9B6BEFBB0D75 /* AppConfiguration.swift in Sources */,
+				DDFBD225F7AFF64FDD535DD4 /* CapMeter.swift in Sources */,
 				B8B045739B342AF7403E3D45 /* CheckInStore.swift in Sources */,
 				DF19A8B86E15E68CEDD4948C /* Controls.swift in Sources */,
 				B495B01DAD58B742106956BB /* DesignTokens.swift in Sources */,
