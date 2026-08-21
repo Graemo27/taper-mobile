@@ -21,7 +21,9 @@ struct CapMeter: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.top, AppSpacing.sm)
         }
-        .padding(.horizontal, AppLayout.gutter)
+        // No gutter of its own. `PadView` pads the whole screen, and a second
+        // one here would inset the meter twice — narrower than the keys below
+        // it, and misaligned with them.
         .accessibilityElement(children: .combine)
     }
 
@@ -70,12 +72,15 @@ struct CapMeter: View {
     private var track: some View {
         GeometryReader { proxy in
             let widths = Self.segmentWidths(in: proxy.size.width, for: tally)
+            // No trailing spacer. It would be another child, and `HStack`
+            // spaces between children — so a full bar would reserve two gaps
+            // and be given three, putting it 2pt past its own end again.
             HStack(spacing: Self.gap) {
                 segment(AppColor.accentTintStrong, width: widths.logged)
                 segment(AppColor.accent, width: widths.pending)
                 segment(AppColor.over, width: widths.overflow)
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(height: 10)
         .background(AppColor.sunken, in: Capsule())
@@ -118,6 +123,7 @@ struct CapMeter: View {
 }
 
 #Preview("under the cap") {
+    // Padded here, because the meter no longer carries a gutter of its own.
     CapMeter(
         tally: TodaysTally(
             entries: [StoredCheckIn(id: 1, ledger: .source, label: "Pouches",
@@ -129,4 +135,5 @@ struct CapMeter: View {
         pending: PendingEntry(key: StoredPadKey(id: 1, form: .pouch, label: "Pouch",
                                                 mg: 3, position: 0, ndc: nil))
     )
+    .padding(.horizontal, AppLayout.gutter)
 }
