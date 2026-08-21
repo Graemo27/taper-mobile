@@ -33,11 +33,26 @@ protocol CheckInReading: Sendable {
     func entries(on day: Date) async throws -> [StoredCheckIn]
 }
 
-/// Both halves, for the screen that logs and then shows the total.
-typealias CheckInStoring = CheckInWriting & CheckInReading
+/// Taking an entry back.
+///
+/// Separate from writing because it is a different permission and a different
+/// intention. `check_ins` grants delete to its owner deliberately — a log
+/// nobody can correct is one people stop trusting, and a mis-tap that
+/// permanently distorts the cap is worse than no record at all.
+protocol CheckInRemoving: Sendable {
+    /// Removes one entry, by id.
+    ///
+    /// By id and never by content: two 3 mg pouches an hour apart are an
+    /// ordinary afternoon, and a delete matched on what an entry *says* would
+    /// take the wrong one about half the time.
+    func remove(_ id: Int) async throws
+}
+
+/// All three, for the screen that logs, totals and corrects.
+typealias CheckInStoring = CheckInWriting & CheckInReading & CheckInRemoving
 
 /// The real one.
-struct SupabaseCheckInStore: CheckInWriting, CheckInReading {
+struct SupabaseCheckInStore: CheckInWriting, CheckInReading, CheckInRemoving {
     let client: SupabaseClient
     let session: SessionCoordinator
     /// The zone the user's day is reckoned in, fixed in tests for the reason
@@ -59,6 +74,22 @@ struct SupabaseCheckInStore: CheckInWriting, CheckInReading {
 }
 
 extension SupabaseCheckInStore {
+    func remove(_ id: Int) async throws {
+        try await session.authenticated { userID in
+            // Both predicates, though either alone would do: RLS scopes the
+            // delete to its owner, and the id is unique. Written out because a
+            // delete is the one statement where a missing filter is not a bug
+            // that shows up as wrong data — it shows up as no data.
+            _ = try await client
+                .from("check_ins")
+                .delete()
+                .eq("id", value: id)
+                .eq("user_id", value: userID)
+                .execute()
+                .status
+        }
+    }
+
     func entries(on day: Date) async throws -> [StoredCheckIn] {
         let wire = PlanDay.wireFormat(day, timeZone: timeZone)
         return try await session.authenticated { userID in

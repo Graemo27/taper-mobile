@@ -120,6 +120,45 @@ extension LiveBackendTests {
         #expect(try await checkIns.entries(on: day).map(\.quantity) == [1, 2, 3])
     }
 
+    @Test("an entry can be taken back off the day",
+          .enabled(if: LocalBackend.isAvailable))
+    func removingAnEntryLeavesTheDay() async throws {
+        // `check_ins` grants delete to its owner, unlike `taper_plans` which
+        // grants none — the difference is deliberate and this is the half that
+        // uses it. A log nobody can correct is one people stop trusting.
+        let (checkIns, pad) = await checkInBackend()
+        let key = try await seededKey(pad)
+        let day = whenTheDaysDisagreeForLogging
+        let first = try await checkIns.log(CheckInDraft(pending: PendingEntry(key: key), day: day))
+        _ = try await checkIns.log(
+            CheckInDraft(pending: PendingEntry(key: key, quantity: 2), day: day)
+        )
+        #expect(try await checkIns.entries(on: day).count == 2)
+
+        try await checkIns.remove(first.id)
+
+        let left = try await checkIns.entries(on: day)
+        #expect(left.count == 1)
+        #expect(left.first?.quantity == 2, "the wrong entry was removed")
+    }
+
+    @Test("removing an entry that is already gone is not an error",
+          .enabled(if: LocalBackend.isAvailable))
+    func aSecondRemovalIsQuiet() async throws {
+        // Two screens can be open on the same day, and a delete matching no
+        // rows is how Postgres reports "already gone". Raising on it would
+        // send somebody a failure about a correction that had happened.
+        let (checkIns, pad) = await checkInBackend()
+        let key = try await seededKey(pad)
+        let day = whenTheDaysDisagreeForLogging
+        let entry = try await checkIns.log(CheckInDraft(pending: PendingEntry(key: key), day: day))
+
+        try await checkIns.remove(entry.id)
+        try await checkIns.remove(entry.id)
+
+        #expect(try await checkIns.entries(on: day).isEmpty)
+    }
+
     @Test("the check-in suite leaves no session behind",
           .enabled(if: LocalBackend.isAvailable))
     func checkInTestsSignOutWhenDone() async throws {

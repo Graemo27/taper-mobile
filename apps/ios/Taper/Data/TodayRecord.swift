@@ -61,6 +61,9 @@ final class TodayRecord {
     /// about reading — a day that read fine and a write that failed are
     /// different sentences, and only one of them has a retry.
     private(set) var writeFailure: String?
+    /// Why the last removal did not land. Its own sentence, because a failed
+    /// delete and a failed write send somebody to different buttons.
+    private(set) var removeFailure: String?
     /// What is chosen on the pad. Held here rather than beside it, because the
     /// tally is the one place the day and the selection have to be read
     /// together, and two owners would make that a join at every call site.
@@ -127,6 +130,43 @@ final class TodayRecord {
         }
     }
 
+    /// The day read back in a line: how many entries, and where they leave it.
+    ///
+    /// Counts every entry, including treatment — the list shows what happened,
+    /// and a patch taken is something that happened. The milligrams beside it
+    /// are the ones that count against the cap, which is why the two numbers
+    /// can look unrelated and are not.
+    func summary(ceilingMg: Double) -> String {
+        let count = entries.count
+        let noun = count == 1 ? "check-in" : "check-ins"
+        let tally = tally(ceilingMg: ceilingMg)
+        return "\(count) \(noun) · \(tally.loggedMg.clean) of \(ceilingMg.clean) mg"
+    }
+
+    /// Takes an entry back.
+    ///
+    /// Removed from the day before the request, and put back if it fails. The
+    /// alternative — waiting on the server before the row leaves the screen —
+    /// makes correcting a mis-tap feel like it might not have worked, and the
+    /// most common reason somebody deletes is that they just tapped the wrong
+    /// key and want it gone now.
+    ///
+    /// Restored to its own place rather than appended, because the day is in
+    /// the order it was logged and a corrected entry that reappears at the
+    /// bottom looks like a second one.
+    func remove(_ entry: StoredCheckIn) async {
+        guard let store, let index = loadedEntries.firstIndex(of: entry) else { return }
+
+        loadedEntries.remove(at: index)
+        removeFailure = nil
+        do {
+            try await Task { try await store.remove(entry.id) }.value
+        } catch {
+            loadedEntries.insert(entry, at: min(index, loadedEntries.count))
+            removeFailure = "Couldn't remove that. Check your connection and try again."
+        }
+    }
+
     /// What the check-in button says.
     ///
     /// The pending total rather than the count, because the number that
@@ -151,6 +191,7 @@ final class TodayRecord {
     func clear() {
         selection.clear()
         writeFailure = nil
+        removeFailure = nil
     }
 
     /// Logs what is selected.

@@ -7,6 +7,7 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
     var existing: [StoredCheckIn] = []
     var readFails = false
     var writeFails = false
+    var removeFails = false
     /// A brief, finite delay — long enough to interrupt during, short enough
     /// to finish. Finite on purpose: the write cannot be cancelled, so a fake
     /// that never returns would hang the suite rather than test it.
@@ -28,6 +29,15 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
         if readHangs { try await Task.sleep(for: .seconds(30)) }
         if readFails { throw URLError(.notConnectedToInternet) }
         return existing
+    }
+
+    private var _removed: [Int] = []
+    /// Every id it was asked to remove, in order.
+    var removed: [Int] { lock.withLock { _removed } }
+
+    func remove(_ id: Int) async throws {
+        lock.withLock { _removed.append(id) }
+        if removeFails { throw URLError(.notConnectedToInternet) }
     }
 
     func log(_ draft: CheckInDraft) async throws -> StoredCheckIn {
@@ -506,5 +516,123 @@ struct TodayRecordTests {
         #expect(!record.canCheckIn)
         record.selection.tap(key(2))
         #expect(record.canCheckIn)
+    }
+
+    // MARK: - Taking one back
+
+    private func logged(_ id: Int, mg: Double, quantity: Int = 1) -> StoredCheckIn {
+        StoredCheckIn(id: id, ledger: .source, label: "Pouches",
+                      form: .pouch, mg: mg, quantity: quantity)
+    }
+
+    @Test("removing an entry takes it off the day and off the server")
+    func aMistapCanBeTakenBack() async {
+        // A log nobody can correct is one people stop trusting, and a mis-tap
+        // that permanently distorts the cap is worse than no record at all.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3), logged(2, mg: 6)]
+        let record = record(store)
+        await record.load()
+
+        await record.remove(logged(2, mg: 6))
+
+        #expect(store.removed == [2], "the wrong entry was removed, or none was")
+        #expect(record.entries.map(\.id) == [1])
+        #expect(record.tally(ceilingMg: 12).loggedMg == 3, "the cap still counted what was removed")
+    }
+
+    @Test("the row leaves the day before the server is asked")
+    func removingDoesNotWaitToLookLikeItWorked() async {
+        // The commonest reason to delete is having just tapped the wrong key.
+        // Waiting on a round trip before the row goes makes correcting it feel
+        // like it might not have worked, which is when people tap again.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        let removing = Task { await record.remove(self.logged(1, mg: 3)) }
+        await waitUntil { store.removed == [1] }
+        #expect(record.entries.isEmpty, "the row was still on the day while the request was open")
+
+        await removing.value
+    }
+
+    @Test("a removal that fails puts the entry back where it was")
+    func aFailedRemovalIsNotSilent() async {
+        // Optimistic and then wrong is worse than slow: somebody who believes
+        // an entry is gone will not go looking for it again, and the cap would
+        // disagree with the log for the rest of the day.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3), logged(2, mg: 6), logged(3, mg: 1.5)]
+        store.removeFails = true
+        let record = record(store)
+        await record.load()
+
+        await record.remove(logged(2, mg: 6))
+
+        #expect(record.entries.map(\.id) == [1, 2, 3], "the entry came back in the wrong place")
+        #expect(record.removeFailure?.contains("try again") == true)
+        #expect(!(record.removeFailure?.contains("URLError") ?? false))
+    }
+
+    @Test("removing something that is not on the day does nothing")
+    func aStaleRowIsNotSentToTheServer() async {
+        // Two screens can be open on the same day. A delete issued against a
+        // row another one already removed should not be sent again — the id is
+        // gone, and the request would report a failure about nothing.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        await record.remove(logged(99, mg: 3))
+
+        #expect(store.removed.isEmpty)
+        #expect(record.entries.count == 1)
+    }
+
+    @Test("the day reads back as a count and a total")
+    func theSummaryNamesBothNumbers() async {
+        // The count includes treatment and the milligrams do not, which is why
+        // the two can look unrelated. The list shows what happened; the cap
+        // counts what is being tapered off.
+        let store = FakeCheckIns()
+        store.existing = [
+            logged(1, mg: 3),
+            logged(2, mg: 4.5),
+            StoredCheckIn(id: 3, ledger: .treatment, label: "Patch",
+                          form: .patch, mg: 14, quantity: 1),
+        ]
+        let record = record(store)
+        await record.load()
+
+        #expect(record.summary(ceilingMg: 12) == "3 check-ins · 7.5 of 12 mg")
+    }
+
+    @Test("the summary reports what happened, not what is about to")
+    func aPendingTapIsNotACheckIn() async {
+        // The meter above shows where a tap would leave the day. This line is
+        // a statement about the day itself, and counting a selection here
+        // would tell somebody they had logged something they have not — on the
+        // one screen whose whole job is to say what is on the record.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        record.selection.tap(key(9, mg: 4.5))
+
+        #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
+    }
+
+    @Test("one check-in is not plural")
+    func theSummaryCountsInEnglish() async {
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
     }
 }
