@@ -26,7 +26,35 @@ enum DayStatus: Equatable, Sendable {
 @Observable
 @MainActor
 final class TodayRecord {
-    private(set) var entries: [StoredCheckIn] = []
+    /// What the last read returned, and the day it was asked about.
+    ///
+    /// Private as a pair, because either one alone is a trap: rows without the
+    /// day they belong to are rows that look like today's forever.
+    private var loadedEntries: [StoredCheckIn] = []
+    private var loadedDay: Date?
+
+    /// Today's entries — empty when the last read was for a different day.
+    ///
+    /// A record that outlives midnight holds rows that belong to yesterday, and
+    /// measuring them against today's ceiling reports a day somebody has not
+    /// had yet. Yesterday stays in yesterday, so those rows stop counting the
+    /// moment the date turns rather than when something happens to re-read
+    /// them.
+    ///
+    /// Empty rather than stale is the safe direction: at the moment of rollover
+    /// today genuinely has nothing on it, and under-reporting for the seconds
+    /// before a reload is a smaller lie than carrying a whole day across.
+    var entries: [StoredCheckIn] { hasRolledOver ? [] : loadedEntries }
+
+    /// True once the calendar day has turned since the last read.
+    ///
+    /// Exposed so the screen can re-read. Nothing here schedules that: a timer
+    /// firing at midnight is a second source of truth about what day it is, and
+    /// this type already has one.
+    var hasRolledOver: Bool {
+        guard let loadedDay else { return false }
+        return !calendar.isDate(loadedDay, inSameDayAs: day())
+    }
     private(set) var status: DayStatus = .loading
     /// What is chosen on the pad. Held here rather than beside it, because the
     /// tally is the one place the day and the selection have to be read
@@ -35,15 +63,21 @@ final class TodayRecord {
 
     private let store: (any CheckInStoring)?
     private let day: () -> Date
+    /// How a day is bounded. The device's, matching the zone the store writes
+    /// `logged_on` in — a record that disagreed with the column about where a
+    /// day ends would roll over at the wrong moment.
+    private let calendar: Calendar
     private var isLoading = false
 
     init(
         store: (any CheckInStoring)?,
         selection: PadSelection = PadSelection(),
+        calendar: Calendar = .current,
         day: @escaping () -> Date = { Date() }
     ) {
         self.store = store
         self.selection = selection
+        self.calendar = calendar
         self.day = day
     }
 
@@ -69,7 +103,11 @@ final class TodayRecord {
 
         status = .loading
         do {
-            entries = try await store.entries(on: day())
+            // Read once and kept together, so the rows and the day they answer
+            // for cannot drift apart.
+            let asked = day()
+            loadedEntries = try await store.entries(on: asked)
+            loadedDay = asked
             status = .ready
         } catch {
             // Abandoned, not failed. This read is driven by a view's `task`, so

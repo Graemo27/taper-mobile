@@ -47,6 +47,18 @@ struct TodayRecordTests {
         TodayRecord(store: store, day: { self.day })
     }
 
+    /// A record whose idea of "now" the test can move, for the day that turns
+    /// over while the app is still open.
+    private func record(_ store: FakeCheckIns, clock: Clock) -> TodayRecord {
+        TodayRecord(store: store, day: { clock.now })
+    }
+
+    /// A movable clock. A class so the record's closure sees the change.
+    private final class Clock: @unchecked Sendable {
+        var now: Date
+        init(_ now: Date) { self.now = now }
+    }
+
     @Test("today is read into the tally, and a pending tap is folded on top")
     func theTallyIsBuiltFromBoth() async {
         let store = FakeCheckIns()
@@ -120,5 +132,102 @@ struct TodayRecordTests {
         #expect(store.reads == 1, "a second read started while the first was in flight")
         first.cancel()
         await first.value
+    }
+
+    // MARK: - The day turning over
+
+    @Test("yesterday's entries stop counting the moment the date turns")
+    func midnightIsNotSomethingToSleepThrough() async {
+        // A record that outlives midnight holds rows belonging to yesterday.
+        // Measuring them against today's ceiling reports a day nobody has had
+        // yet — and on the last week of a taper, where the cap is small, it
+        // reports one somebody has already blown before waking up.
+        let store = FakeCheckIns()
+        store.existing = [
+            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4)
+        ]
+        let clock = Clock(day)
+        let record = record(store, clock: clock)
+        await record.load()
+        #expect(record.tally(ceilingMg: 12).loggedMg == 12, "the fixture must start with a full day")
+
+        clock.now = day.addingTimeInterval(86_400)
+
+        #expect(record.hasRolledOver)
+        #expect(record.entries.isEmpty, "yesterday's rows were still being served as today's")
+        #expect(record.tally(ceilingMg: 12).loggedMg == 0, "yesterday was counted against today's cap")
+    }
+
+    @Test("a later hour of the same day is not a rollover")
+    func theDayDoesNotTurnAtEveryTick() {
+        // The check is a calendar day, not an elapsed interval. Reading it as
+        // "more than a few hours" would drop a morning's entries at lunchtime.
+        let store = FakeCheckIns()
+        let clock = Clock(day)
+        let record = record(store, clock: clock)
+
+        clock.now = day.addingTimeInterval(60 * 60)
+
+        #expect(!record.hasRolledOver)
+    }
+
+    @Test("twenty minutes across midnight is a rollover; twenty hours inside a day is not")
+    func theBoundaryIsTheDateAndNotTheDuration() async {
+        // The case a duration cannot express, and the one people actually hit:
+        // logging at ten to midnight and looking again at ten past. Twenty
+        // minutes have passed and the day is gone. The mirror matters as much —
+        // a long single day must not roll over just because hours have piled
+        // up, or a morning's entries vanish at bedtime.
+        var calendar = Calendar(identifier: .gregorian)
+        let zone = TimeZone(identifier: "America/Los_Angeles")!
+        calendar.timeZone = zone
+
+        func at(_ hour: Int, _ minute: Int, day: Int) -> Date {
+            calendar.date(from: DateComponents(
+                timeZone: zone, year: 2025, month: 10, day: day, hour: hour, minute: minute
+            ))!
+        }
+
+        let clock = Clock(at(23, 50, day: 9))
+        let store = FakeCheckIns()
+        let record = TodayRecord(store: store, calendar: calendar, day: { clock.now })
+        await record.load()
+
+        clock.now = at(0, 10, day: 10)
+        #expect(record.hasRolledOver, "twenty minutes across midnight is a new day")
+
+        // And the other way: a whole day is still one day.
+        let longDay = Clock(at(0, 5, day: 9))
+        let steady = TodayRecord(store: FakeCheckIns(), calendar: calendar, day: { longDay.now })
+        await steady.load()
+        longDay.now = at(23, 55, day: 9)
+        #expect(!steady.hasRolledOver, "almost twenty-four hours inside one day is not a rollover")
+    }
+
+    @Test("a record that has never read anything has not rolled over")
+    func nothingLoadedIsNotStale() {
+        // Otherwise the very first render would report a rollover before there
+        // was a day to roll over from.
+        #expect(!record(FakeCheckIns()).hasRolledOver)
+    }
+
+    @Test("re-reading on the new day settles it")
+    func aReloadPutsTheRecordBackOnToday() async {
+        let store = FakeCheckIns()
+        store.existing = [
+            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4)
+        ]
+        let clock = Clock(day)
+        let record = record(store, clock: clock)
+        await record.load()
+        clock.now = day.addingTimeInterval(86_400)
+
+        store.existing = [
+            StoredCheckIn(id: 2, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 1)
+        ]
+        await record.load()
+
+        #expect(!record.hasRolledOver)
+        #expect(record.tally(ceilingMg: 12).loggedMg == 3, "the new day's rows did not take over")
     }
 }
