@@ -58,6 +58,7 @@ typealias PadKeyStoring = PadKeyWriting & PadKeyReading
 struct AppStores {
     let plans: any TaperPlanStoring
     let pad: any PadKeyStoring
+    let checkIns: any CheckInStoring
 }
 
 /// The real one.

@@ -30,11 +30,14 @@ struct RootView: View {
     @State private var isUnderage = false
     @State private var record: PlanRecord
 
+    private let stores: AppStores?
+
     init(
         verification: any AdultVerificationStore = DeviceAdultVerification(),
         stores: AppStores? = RootView.liveStores()
     ) {
         self.verification = verification
+        self.stores = stores
         _isAdult = State(initialValue: verification.isVerifiedAdult)
         _record = State(initialValue: PlanRecord(store: stores?.plans, pad: stores?.pad))
     }
@@ -56,7 +59,8 @@ struct RootView: View {
         let session = SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
         return AppStores(
             plans: SupabaseTaperPlanStore(client: client, session: session),
-            pad: SupabasePadKeyStore(client: client, session: session)
+            pad: SupabasePadKeyStore(client: client, session: session),
+            checkIns: SupabaseCheckInStore(client: client, session: session)
         )
     }
 
@@ -92,7 +96,7 @@ struct RootView: View {
                 // drawn. It reuses the could-not-check screen rather than
                 // rendering a home screen with holes in it.
                 if let progress = PlanProgress(plan: plan, today: Date()) {
-                    HomeView(progress: progress)
+                    TaperTabs(progress: progress, stores: stores)
                 } else {
                     CannotCheckView(
                         message: "Your plan came back in a form this version can't read."
