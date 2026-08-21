@@ -28,6 +28,7 @@
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D71CAE19F0707B5BBCDF8 /* HomeView.swift */; };
 		4297BB6C43A7D64AB507AA10 /* PlanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0289FF648BC61AE569DB11FE /* PlanRecord.swift */; };
+		46709EE23E8233449745DA86 /* PadRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD07116EBF9CF6EE8E122698 /* PadRecord.swift */; };
 		46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D11BCE9F23EB213922A688E /* Trigger.swift */; };
 		579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */; };
 		59CE24C6476EDA822E2ABD29 /* PlanProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72B9A0FEF4622A958D65D39 /* PlanProgress.swift */; };
@@ -59,6 +60,7 @@
 		C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */; };
 		CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */; };
 		DA0866AAF96102FAE82CA16E /* AgeGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455904243A3D920555A6529C /* AgeGate.swift */; };
+		DC85DF3A980C421F0613913E /* PadRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B60B9E2BC8CE60893633421 /* PadRecordTests.swift */; };
 		DF19A8B86E15E68CEDD4948C /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = F975269EB5F504D1744C6A25 /* Controls.swift */; };
 		DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */; };
 		F130D3ABB24EFA3BCC9F8307 /* FirstUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */; };
@@ -110,6 +112,7 @@
 		5218152C4EC89C9B5D06D692 /* StartingLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLine.swift; sourceTree = "<group>"; };
 		54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		58A09EF7EF844EE19A6EA3D2 /* LinearGrotesk-SemiBold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-SemiBold.otf"; sourceTree = "<group>"; };
+		5B60B9E2BC8CE60893633421 /* PadRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadRecordTests.swift; sourceTree = "<group>"; };
 		5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatYouUseView.swift; sourceTree = "<group>"; };
 		63F7D57B4CA77D384577A81C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLineView.swift; sourceTree = "<group>"; };
@@ -133,6 +136,7 @@
 		B81A7A846268DDB13563347F /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
 		B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriedBeforeView.swift; sourceTree = "<group>"; };
+		BD07116EBF9CF6EE8E122698 /* PadRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadRecord.swift; sourceTree = "<group>"; };
 		C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanDraft.swift; sourceTree = "<group>"; };
 		C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanTests.swift; sourceTree = "<group>"; };
 		C8CE03E1DFE9D4B43113814E /* PlanPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreview.swift; sourceTree = "<group>"; };
@@ -182,6 +186,7 @@
 			isa = PBXGroup;
 			children = (
 				2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */,
+				BD07116EBF9CF6EE8E122698 /* PadRecord.swift */,
 				0289FF648BC61AE569DB11FE /* PlanRecord.swift */,
 				B81A908B1CD8408CDBD9D905 /* SessionCoordinator.swift */,
 				76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */,
@@ -227,6 +232,7 @@
 				F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */,
 				97B8A9244E6D32AD7E5A8592 /* PadKeyStoreTests.swift */,
 				91C35928EF74BBD4AF319497 /* PadKeyTests.swift */,
+				5B60B9E2BC8CE60893633421 /* PadRecordTests.swift */,
 				9DA7E36678357D84CBFF846B /* PlanProgressTests.swift */,
 				FA6C5F209132014C07F9CF88 /* PlanRecordTests.swift */,
 				0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */,
@@ -475,6 +481,7 @@
 				F27B8E52E6909FD0813F0402 /* OnboardingTests.swift in Sources */,
 				2F776532ECCCC2D5C65020EB /* PadKeyStoreTests.swift in Sources */,
 				F5D11A597CF3E5EF7925075B /* PadKeyTests.swift in Sources */,
+				DC85DF3A980C421F0613913E /* PadRecordTests.swift in Sources */,
 				2900CBD113C33E7E6B0753C4 /* PlanProgressTests.swift in Sources */,
 				73E63E6533098B20969D4EF7 /* PlanRecordTests.swift in Sources */,
 				0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */,
@@ -501,6 +508,7 @@
 				DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */,
 				31F8639ED45E27F1E962635E /* PadKey.swift in Sources */,
 				9538768352F4B4C5F5BE0ED2 /* PadKeyStore.swift in Sources */,
+				46709EE23E8233449745DA86 /* PadRecord.swift in Sources */,
 				5FDF70B60F61B72A27995CAD /* PlanPreview.swift in Sources */,
 				BB130F9CEEB993188D46CB19 /* PlanPreviewView.swift in Sources */,
 				59CE24C6476EDA822E2ABD29 /* PlanProgress.swift in Sources */,
