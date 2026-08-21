@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(23);
+select plan(32);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -242,6 +242,104 @@ select throws_ok(
   '42501',
   null,
   'nobody deletes a plan, because no delete policy was ever granted'
+);
+
+-- MARK: the log, and what must outlive the pad it was logged from
+
+select throws_ok(
+  $$insert into public.check_ins (user_id, logged_on, ledger, label, form, mg)
+    values ('11111111-1111-1111-1111-111111111111', current_date, 'source', 'Urge passed', 'pouch', 0)$$,
+  '23514',
+  null,
+  'an entry worth nothing is refused — which the board''s own zero-mg key will hit'
+);
+
+select throws_ok(
+  $$insert into public.check_ins (user_id, logged_on, ledger, label, form, mg, quantity)
+    values ('11111111-1111-1111-1111-111111111111', current_date, 'source', 'Pouch', 'pouch', 6, 21)$$,
+  '23514',
+  null,
+  'a quantity past the column''s ceiling is refused'
+);
+
+select throws_ok(
+  $$insert into public.check_ins (user_id, logged_on, ledger, label, form, mg, quantity)
+    values ('11111111-1111-1111-1111-111111111111', current_date, 'source', 'Pouch', 'pouch', 6, 0)$$,
+  '23514',
+  null,
+  'a quantity of none is refused too — logging nothing is not a check-in'
+);
+
+-- The snapshot's whole purpose, checked where it is actually enforced. Removing
+-- a key from the pad must not remove the record of having used it: deleting
+-- "Pouch, 6 mg" cannot be allowed to rewrite last month's totals.
+create function pg_temp.entry_outliving_its_key() returns bigint as $$
+declare
+  key_id bigint;
+  entry_id bigint;
+begin
+  insert into public.pad_keys (user_id, ledger, label, form, mg)
+  values ('11111111-1111-1111-1111-111111111111', 'source', 'Doomed', 'pouch', 6)
+  returning id into key_id;
+
+  insert into public.check_ins (user_id, pad_key_id, logged_on, ledger, label, form, mg)
+  values ('11111111-1111-1111-1111-111111111111', key_id, current_date, 'source', 'Doomed', 'pouch', 6)
+  returning id into entry_id;
+
+  delete from public.pad_keys where id = key_id;
+  return entry_id;
+end;
+$$ language plpgsql;
+
+create temporary table orphaned as select pg_temp.entry_outliving_its_key() as id;
+
+select is(
+  (select count(*)::int from public.check_ins c join orphaned o on c.id = o.id),
+  1,
+  'deleting a key leaves the history of having used it'
+);
+
+select is(
+  (select c.pad_key_id from public.check_ins c join orphaned o on c.id = o.id),
+  null::bigint,
+  'only the provenance is cleared, and the snapshot stands on its own'
+);
+
+-- The row surviving is half the claim. What makes it a snapshot is that its
+-- own four columns are untouched by the key going away — a row that survived
+-- with its label or strength cleared would render last month as blanks.
+select is(
+  (select c.label || '/' || c.form || '/' || c.ledger || '/' || c.mg::text
+     from public.check_ins c join orphaned o on c.id = o.id),
+  'Doomed/pouch/source/6.00',
+  'the snapshot itself is untouched by the key being deleted'
+);
+
+-- RLS on the log itself. The client filters by user_id as well, but a mutation
+-- dropping that filter still passes every client-side test — the policy is
+-- what is actually holding, and this is the only place that can be shown.
+
+select is(
+  pg_temp.as_user('11111111-1111-1111-1111-111111111111',
+                  'select * from public.check_ins'),
+  1,
+  'a user reads their own log'
+);
+
+select is(
+  pg_temp.as_user('22222222-2222-2222-2222-222222222222',
+                  'select * from public.check_ins'),
+  0,
+  'a stranger reads none of it'
+);
+
+select throws_ok(
+  $$select pg_temp.as_user('22222222-2222-2222-2222-222222222222',
+      $q$insert into public.check_ins (user_id, logged_on, ledger, label, form, mg)
+         values ('11111111-1111-1111-1111-111111111111', current_date, 'source', 'X', 'pouch', 6)$q$)$$,
+  '42501',
+  null,
+  'a stranger cannot log on somebody else''s behalf'
 );
 
 select * from finish();
