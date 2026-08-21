@@ -88,10 +88,11 @@ struct HomeView: View {
             }
             .foregroundStyle(AppColor.onSecondary)
 
-            // The board fills a bar with what has been used today. Nothing is
-            // logged yet, so there is no figure to fill it with — and a bar
-            // drawn empty would say the day is untouched, which the app has no
-            // way to know.
+            // The board fills a bar here with what has been used today. There
+            // is a figure for it now that the log tab exists, but this screen
+            // is given the plan and not the day — and reading the day here
+            // would make every launch wait on a request somebody who only
+            // wants their cap never asked for.
             if let next = progress.nextStep {
                 Text("drops to \(next.capMg.clean) \(next.whenPhrase)")
                     .font(AppFont.text(AppSize.micro))
@@ -110,10 +111,15 @@ struct HomeView: View {
     /// Says what is missing, for the same reason every other unfinished surface
     /// in this app does: a screen that quietly lacks its main action reads as
     /// broken, and one that says so reads as early.
+    ///
+    /// Rewritten when the log tab landed. It used to say logging was the next
+    /// thing to build, which stopped being true the moment there was a way to
+    /// reach it — and a note about what is missing is worth nothing once it is
+    /// quietly wrong.
     private var unbuilt: some View {
         Text("""
-        Logging is the next thing to build. Your cap and your dates are on the server — there's \
-        just nowhere to record against them yet.
+        The craving prompt and the daily check-in still belong here. Logging what you use now \
+        lives on the log tab.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)
