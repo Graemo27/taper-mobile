@@ -121,9 +121,48 @@ struct TodaysTallyTests {
         )
 
         #expect(tally.overflowFraction == 1.5 / 13.5)
-        #expect(tally.loggedFraction == 1, "the logged run should fill the whole rescaled bar")
-        // And the cap's share of it is what the green run stops at.
-        #expect(tally.loggedFraction - tally.overflowFraction == 12 / 13.5)
+        // The green run stops at the ceiling; the rest is the red tail. The two
+        // together are the whole bar, with nothing counted twice.
+        #expect(tally.loggedFraction == 12 / 13.5)
+        #expect(tally.loggedFraction + tally.overflowFraction == 1)
+    }
+
+    @Test("when the pending tap is what goes over, it is drawn once and in the over colour")
+    func theOverflowIsNotDrawnTwice() {
+        // Twelve logged against a ceiling of twelve, and a 1.5 mg tap pending.
+        // The logged run is entirely under the cap and the pending run is
+        // entirely past it — so there is no pending segment at all, and the
+        // 1.5 belongs to the overflow alone.
+        //
+        // Reporting each quantity's whole share instead would give a pending
+        // run *and* an overflow of the same 1.5, drawing it twice and pushing
+        // the bar past its own end.
+        let tally = TodaysTally(
+            entries: [entry(.source, mg: 12)],
+            pending: PendingEntry(key: padKey(.source, mg: 1.5)),
+            ceilingMg: 12
+        )
+
+        #expect(tally.loggedFraction == 12 / 13.5)
+        #expect(tally.pendingFraction == 0, "the pending run was drawn under a ceiling it is past")
+        #expect(tally.overflowFraction == 1.5 / 13.5)
+        #expect(tally.loggedFraction + tally.pendingFraction + tally.overflowFraction == 1)
+    }
+
+    @Test("a tap that straddles the ceiling is drawn on both sides of it")
+    func aStraddlingTapIsSplit() {
+        // Ten logged against twelve, and a 4 mg tap: two of it fits under the
+        // cap and two does not. The bar has to show both parts.
+        let tally = TodaysTally(
+            entries: [entry(.source, mg: 10)],
+            pending: PendingEntry(key: padKey(.source, mg: 4)),
+            ceilingMg: 12
+        )
+
+        #expect(tally.loggedFraction == 10.0 / 14)
+        #expect(tally.pendingFraction == 2.0 / 14, "the part of the tap that fits was not drawn")
+        #expect(tally.overflowFraction == 2.0 / 14)
+        #expect(tally.loggedFraction + tally.pendingFraction + tally.overflowFraction == 1)
     }
 
     @Test("a ceiling of zero does not divide by it")
