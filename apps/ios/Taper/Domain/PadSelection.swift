@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// What is chosen on the pad but not yet logged.
 ///

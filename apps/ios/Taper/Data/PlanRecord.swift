@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// What the app knows about the user's plan, and what it has done about it.
 ///
