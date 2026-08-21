@@ -92,6 +92,18 @@ final class PlanRecord {
         do {
             status = try await store.currentPlan().map(PlanStatus.present) ?? .absent
         } catch {
+            // Abandoned, not failed. This read is driven by a view's `task`,
+            // and reporting a cancellation would put "check your connection"
+            // in front of somebody whose connection was never the problem.
+            // The flag rather than `catch is CancellationError`, because a
+            // request already in flight arrives as `URLError.cancelled`, and
+            // asking the flag covers both routes.
+            //
+            // Only the read. `submit` is left alone deliberately: a write
+            // cancelled in flight has genuinely unknown outcome, and reporting
+            // it as failed sends the user to a retry that upserts — which is
+            // the safe direction to be wrong in.
+            guard !Task.isCancelled else { return }
             status = .unknown("Couldn't check for your plan. Check your connection and try again.")
         }
     }

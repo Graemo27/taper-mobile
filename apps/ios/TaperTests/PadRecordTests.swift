@@ -9,6 +9,10 @@ private final class FakeReader: PadKeyReading, @unchecked Sendable {
     /// Holds a read open, so a second can be attempted while the first is in
     /// flight.
     var hangs = false
+    /// Waits for cancellation and then throws the way a cancelled URL request
+    /// does — `URLError.cancelled`, not `CancellationError`. The two arrive by
+    /// different routes and only one of them is a `catch` pattern.
+    var throwsCancelledRequest = false
 
     private let lock = NSLock()
     private var _reads = 0
@@ -16,6 +20,10 @@ private final class FakeReader: PadKeyReading, @unchecked Sendable {
 
     func currentKeys() async throws -> [StoredPadKey] {
         lock.withLock { _reads += 1 }
+        if throwsCancelledRequest {
+            while !Task.isCancelled { await Task.yield() }
+            throw URLError(.cancelled)
+        }
         if hangs { try await Task.sleep(for: .seconds(30)) }
         if fails { throw URLError(.notConnectedToInternet) }
         return keys
@@ -153,6 +161,52 @@ struct PadRecordTests {
 
         #expect(record.status != .unavailable(""))
         #expect(reader.reads == 2)
+    }
+
+    @Test("a read abandoned mid-flight is not reported as a connection failure")
+    func cancellingAReadSaysNothing() async {
+        // The read is driven by a view's `task`, so it is cancelled exactly
+        // when somebody navigates away. `Task.sleep` throws `CancellationError`
+        // from inside the store, and catching that as a failure would put
+        // "check your connection" on screen for a connection that was fine.
+        let reader = FakeReader()
+        reader.hangs = true
+        let record = PadRecord(store: reader)
+
+        let task = Task { await record.load() }
+        await waitForFirstRead(reader)
+        task.cancel()
+        await task.value
+
+        #expect(record.status == .loading, "an abandoned read reported something")
+    }
+
+    @Test("a request cancelled in flight is not reported either")
+    func aCancelledRequestSaysNothing() async {
+        // The other half, and the reason a `catch is CancellationError` alone
+        // is not enough: URLSession reports a cancelled request as
+        // `URLError.cancelled`, which is an ordinary error until the task's
+        // own cancellation flag is consulted.
+        let reader = FakeReader()
+        reader.throwsCancelledRequest = true
+        let record = PadRecord(store: reader)
+
+        let task = Task { await record.load() }
+        await waitForFirstRead(reader)
+        task.cancel()
+        await task.value
+
+        #expect(record.status == .loading, "a cancelled request was reported as a failure")
+    }
+
+    /// Waits for the read to actually start, with a bound — an unbounded wait
+    /// turns a regression into a suite that hangs rather than one that fails.
+    private func waitForFirstRead(_ reader: FakeReader) async {
+        let deadline = Date().addingTimeInterval(2)
+        while reader.reads == 0, Date() < deadline {
+            await Task.yield()
+        }
+        #expect(reader.reads == 1, "the read never started")
     }
 
     @Test("a second read does not start while the first is in flight")

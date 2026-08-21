@@ -82,6 +82,19 @@ final class PadRecord {
         do {
             status = .ready(Pad(keys: try await store.currentKeys()))
         } catch {
+            // Cancellation is not a failure to report. This read is driven by
+            // a view's `task`, so it is cancelled precisely when whatever
+            // asked for it went away — and telling somebody their connection
+            // is bad because they navigated off the screen is a sentence about
+            // nothing that happened. The status stays `loading`, which is what
+            // it is: the read never finished, and returning re-runs it.
+            //
+            // One guard rather than a `catch is CancellationError` beside it.
+            // Cancellation arrives by two routes — `CancellationError` from a
+            // sleep, `URLError.cancelled` from a request already in flight —
+            // and only the second is not a pattern. Asking the flag catches
+            // both, and a mutation proved the extra case unreachable.
+            guard !Task.isCancelled else { return }
             // One sentence for every failure, as elsewhere: the distinctions
             // the client can draw are not ones the user acts on differently.
             status = .unavailable("Couldn't load your pad. Check your connection and try again.")

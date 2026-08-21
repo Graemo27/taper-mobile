@@ -243,6 +243,29 @@ struct PlanRecordTests {
     }
 
 
+    @Test("a check abandoned mid-flight is not reported as a connection failure")
+    func cancellingTheCheckSaysNothing() async {
+        // The launch check runs in a view's `task`, so it is cancelled exactly
+        // when the view goes away. Reporting that as `unknown` would put the
+        // could-not-check screen in front of somebody whose connection was
+        // fine — and that screen's whole job is to be believed.
+        let store = FakeStore()
+        store.existing = existingPlan
+        store.readHangs = true
+        let record = PlanRecord(store: store, pad: FakePad())
+
+        let task = Task { await record.load() }
+        let deadline = Date().addingTimeInterval(2)
+        while store.readCount == 0, Date() < deadline {
+            await Task.yield()
+        }
+        #expect(store.readCount == 1, "the read never started")
+        task.cancel()
+        await task.value
+
+        #expect(record.status == .checking, "an abandoned check reported something")
+    }
+
     @Test("a second lookup does not start while the first is in flight")
     func concurrentLoadsAreSerialised() async {
         // One tap on Try again issues two reads: the retry starts a load, which
