@@ -31,6 +31,7 @@
 		3CACAE459BB033FFC668B8D1 /* AgeGateRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5130DC0EF5BBB67260B85D27 /* AgeGateRunTests.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D71CAE19F0707B5BBCDF8 /* HomeView.swift */; };
+		427B60CD23C24CFDEF468EA9 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 9123F90062D0D9304669E9B2 /* Supabase */; };
 		4297BB6C43A7D64AB507AA10 /* PlanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0289FF648BC61AE569DB11FE /* PlanRecord.swift */; };
 		46709EE23E8233449745DA86 /* PadRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD07116EBF9CF6EE8E122698 /* PadRecord.swift */; };
 		46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D11BCE9F23EB213922A688E /* Trigger.swift */; };
@@ -171,6 +172,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				222A8572E9A13370F23CAF8B /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D28BCBBCAC5A61BEFBD7EAB7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				427B60CD23C24CFDEF468EA9 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -382,6 +391,7 @@
 			buildConfigurationList = 79707F7BE49C086CC76C45BD /* Build configuration list for PBXNativeTarget "TaperTests" */;
 			buildPhases = (
 				1FDF4E33573757EAA842C9DE /* Sources */,
+				D28BCBBCAC5A61BEFBD7EAB7 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -390,6 +400,7 @@
 			);
 			name = TaperTests;
 			packageProductDependencies = (
+				9123F90062D0D9304669E9B2 /* Supabase */,
 			);
 			productName = TaperTests;
 			productReference = 18B449F8640CEFAA743C9ADE /* TaperTests.xctest */;
@@ -861,6 +872,11 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		1756A8AE10A5643796F48366 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 204234518E3AA0696F322E23 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		9123F90062D0D9304669E9B2 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 204234518E3AA0696F322E23 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;

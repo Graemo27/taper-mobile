@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(30);
+select plan(32);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -262,6 +262,14 @@ select throws_ok(
   'a quantity past the column''s ceiling is refused'
 );
 
+select throws_ok(
+  $$insert into public.check_ins (user_id, logged_on, ledger, label, form, mg, quantity)
+    values ('11111111-1111-1111-1111-111111111111', current_date, 'source', 'Pouch', 'pouch', 6, 0)$$,
+  '23514',
+  null,
+  'a quantity of none is refused too — logging nothing is not a check-in'
+);
+
 -- The snapshot's whole purpose, checked where it is actually enforced. Removing
 -- a key from the pad must not remove the record of having used it: deleting
 -- "Pouch, 6 mg" cannot be allowed to rewrite last month's totals.
@@ -295,6 +303,16 @@ select is(
   (select c.pad_key_id from public.check_ins c join orphaned o on c.id = o.id),
   null::bigint,
   'only the provenance is cleared, and the snapshot stands on its own'
+);
+
+-- The row surviving is half the claim. What makes it a snapshot is that its
+-- own four columns are untouched by the key going away — a row that survived
+-- with its label or strength cleared would render last month as blanks.
+select is(
+  (select c.label || '/' || c.form || '/' || c.ledger || '/' || c.mg::text
+     from public.check_ins c join orphaned o on c.id = o.id),
+  'Doomed/pouch/source/6.00',
+  'the snapshot itself is untouched by the key being deleted'
 );
 
 -- RLS on the log itself. The client filters by user_id as well, but a mutation

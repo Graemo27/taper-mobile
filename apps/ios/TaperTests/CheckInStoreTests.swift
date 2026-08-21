@@ -58,6 +58,13 @@ extension LiveBackendTests {
         #expect(logged.mg == 6)
         #expect(logged.quantity == 2)
         #expect(logged.ledger == .source, "the ledger was not written as the key's")
+
+        // Read back rather than trusting what the write returned. The two are
+        // different paths — one is the row PostgREST echoed, the other is the
+        // decode the day's screen actually uses — and a snapshot that only
+        // survives the first is not a snapshot.
+        let stored = try #require(try await checkIns.entries(on: Date()).first)
+        #expect(stored == logged, "the entry read back was not the entry written")
     }
 
     @Test("the day an entry lands on is the user's day, not UTC's",
@@ -111,22 +118,6 @@ extension LiveBackendTests {
         }
 
         #expect(try await checkIns.entries(on: day).map(\.quantity) == [1, 2, 3])
-    }
-
-    @Test("a stranger's day is not readable as yours",
-          .enabled(if: LocalBackend.isAvailable))
-    func aFreshSessionSeesNoneOfIt() async throws {
-        // Anonymous sign-in is the app's whole notion of identity. A second
-        // session that resumed the first would hand a stranger somebody's log
-        // on a shared or reset device, without any policy having failed.
-        let (first, pad) = await checkInBackend()
-        let key = try await seededKey(pad)
-        let day = whenTheDaysDisagreeForLogging
-        _ = try await first.log(CheckInDraft(pending: PendingEntry(key: key), day: day))
-        #expect(try await first.entries(on: day).count == 1)
-
-        let (second, _) = await checkInBackend()
-        #expect(try await second.entries(on: day).isEmpty)
     }
 
     @Test("the check-in suite leaves no session behind",

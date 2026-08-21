@@ -53,6 +53,11 @@ targets:
     sources: [TaperTests]
     dependencies:
       - target: Taper
+      # Declared rather than inherited. Three test files `import Supabase`
+      # directly, and they resolve today only because the bundle is hosted in
+      # an app that links it — a transitive path that a non-hosted bundle or a
+      # different configuration would not give them.
+      - package: Supabase
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
