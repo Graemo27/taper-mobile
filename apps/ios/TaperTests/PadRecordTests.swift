@@ -159,7 +159,10 @@ struct PadRecordTests {
         reader.fails = false
         await record.load()
 
-        #expect(record.status != .unavailable(""))
+        // The pad it should now be showing, not merely "some state other than
+        // one particular failure message" — which the previous assertion was,
+        // and which a retry that failed differently would have satisfied.
+        #expect(record.status == .ready(Pad(keys: reader.keys)))
         #expect(reader.reads == 2)
     }
 
@@ -232,6 +235,10 @@ struct PadRecordTests {
         await record.load()
 
         #expect(reader.reads == 1, "a second read started while the first was in flight")
+        // `cancel()` only asks. Returning here would leave a 30-second sleep
+        // running past the end of the test, inside a suite that runs its cases
+        // concurrently.
         first.cancel()
+        await first.value
     }
 }

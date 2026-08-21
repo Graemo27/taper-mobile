@@ -16,6 +16,10 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
     /// tests.
     var existing: StoredTaperPlan?
     var readFails = false
+    /// Waits for cancellation and then throws the way a cancelled URL request
+    /// does. `CancellationError` and `URLError.cancelled` reach the catch by
+    /// different routes, and only one of them is a pattern.
+    var readCancelledInFlight = false
     /// Holds a read open, so a second one can be attempted while the first is
     /// still in flight.
     var readHangs = false
@@ -39,6 +43,10 @@ private final class FakeStore: TaperPlanStoring, @unchecked Sendable {
 
     func currentPlan() async throws -> StoredTaperPlan? {
         lock.withLock { _reads += 1 }
+        if readCancelledInFlight {
+            while !Task.isCancelled { await Task.yield() }
+            throw URLError(.cancelled)
+        }
         if readHangs { try await Task.sleep(for: .seconds(30)) }
         if readFails { throw URLError(.notConnectedToInternet) }
         return existing
@@ -264,6 +272,29 @@ struct PlanRecordTests {
         await task.value
 
         #expect(record.status == .checking, "an abandoned check reported something")
+    }
+
+    @Test("a check whose request is cancelled in flight is not reported either")
+    func aCancelledCheckRequestSaysNothing() async {
+        // The route a `catch is CancellationError` misses: a request already
+        // in flight is reported as `URLError.cancelled`, which is an ordinary
+        // error until the task's own flag is consulted. It is the reason the
+        // guard asks the flag instead of matching a type.
+        let store = FakeStore()
+        store.existing = existingPlan
+        store.readCancelledInFlight = true
+        let record = PlanRecord(store: store, pad: FakePad())
+
+        let task = Task { await record.load() }
+        let deadline = Date().addingTimeInterval(2)
+        while store.readCount == 0, Date() < deadline {
+            await Task.yield()
+        }
+        #expect(store.readCount == 1, "the read never started")
+        task.cancel()
+        await task.value
+
+        #expect(record.status == .checking, "a cancelled request was reported as a failure")
     }
 
     @Test("a second lookup does not start while the first is in flight")
