@@ -26,6 +26,7 @@
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		31F8639ED45E27F1E962635E /* PadKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00A51CDF3AFF7D94A08109B /* PadKey.swift */; };
 		35EE2A5244206B4871D6F8D2 /* PadKeyTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023D87A309D4250BB9299DF8 /* PadKeyTile.swift */; };
+		3BDAAD05A649B6D420DE5F49 /* TodaysTally.swift in Sources */ = {isa = PBXBuildFile; fileRef = 142209CB7BE6DD26367BB3ED /* TodaysTally.swift */; };
 		3CACAE459BB033FFC668B8D1 /* AgeGateRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5130DC0EF5BBB67260B85D27 /* AgeGateRunTests.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D71CAE19F0707B5BBCDF8 /* HomeView.swift */; };
@@ -44,6 +45,7 @@
 		7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */; };
 		8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */; };
 		9538768352F4B4C5F5BE0ED2 /* PadKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */; };
+		96B207CB5A6C660744D6DF15 /* TodaysTallyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */; };
 		98AF5F5F106A9B6BEFBB0D75 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17238832684900B8083CBB09 /* AppConfiguration.swift */; };
 		9E4D6288522F4AB37A15D35D /* TriggersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300FADDE21E940AC947261F7 /* TriggersView.swift */; };
 		9F0B1DAEDC3D1334DAA333FF /* SickInBedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BE0845DD8EEF48524461D6 /* SickInBedView.swift */; };
@@ -95,6 +97,7 @@
 		093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingAnswers.swift; sourceTree = "<group>"; };
 		0CD1316F44498C566B2C429B /* HTTPClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClientTests.swift; sourceTree = "<group>"; };
 		0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStoreTests.swift; sourceTree = "<group>"; };
+		142209CB7BE6DD26367BB3ED /* TodaysTally.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaysTally.swift; sourceTree = "<group>"; };
 		17238832684900B8083CBB09 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		18B449F8640CEFAA743C9ADE /* TaperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TaperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C563728D3BDCA753BECF337 /* OnboardingScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScaffold.swift; sourceTree = "<group>"; };
@@ -108,6 +111,7 @@
 		2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstUseView.swift; sourceTree = "<group>"; };
 		2E45457AC76C6CF565C978F6 /* QuitDateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuitDateView.swift; sourceTree = "<group>"; };
 		300FADDE21E940AC947261F7 /* TriggersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggersView.swift; sourceTree = "<group>"; };
+		31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaysTallyTests.swift; sourceTree = "<group>"; };
 		3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionCard.swift; sourceTree = "<group>"; };
 		42AA9319A756BB1539B49424 /* StrengthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthView.swift; sourceTree = "<group>"; };
 		4442F6D8FC00924EFF766298 /* PlanPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreviewView.swift; sourceTree = "<group>"; };
@@ -241,6 +245,7 @@
 				FA6C5F209132014C07F9CF88 /* PlanRecordTests.swift */,
 				0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */,
 				C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */,
+				31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */,
 			);
 			path = TaperTests;
 			sourceTree = "<group>";
@@ -323,6 +328,7 @@
 				5218152C4EC89C9B5D06D692 /* StartingLine.swift */,
 				D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */,
 				C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */,
+				142209CB7BE6DD26367BB3ED /* TodaysTally.swift */,
 				9C1766359067A8528CBEB51E /* Treatment.swift */,
 			);
 			path = Domain;
@@ -500,6 +506,7 @@
 				73E63E6533098B20969D4EF7 /* PlanRecordTests.swift in Sources */,
 				0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */,
 				8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */,
+				96B207CB5A6C660744D6DF15 /* TodaysTallyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -543,6 +550,7 @@
 				C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */,
 				CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */,
 				BA6295E73EF573B9CEB7B34F /* TaperPlanStore.swift in Sources */,
+				3BDAAD05A649B6D420DE5F49 /* TodaysTally.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
 				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
 				2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */,

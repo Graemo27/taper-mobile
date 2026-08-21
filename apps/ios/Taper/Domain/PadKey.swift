@@ -10,7 +10,7 @@ struct PadKey: Equatable, Sendable {
     /// are treating with. One table separated by a column rather than two
     /// tables, because the pad is one surface and every read would otherwise
     /// be a union.
-    enum Ledger: String, Sendable {
+    enum Ledger: String, Decodable, Sendable {
         case treatment, source
     }
 
