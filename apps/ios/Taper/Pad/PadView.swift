@@ -3,20 +3,24 @@ import SwiftUI
 /// L3 — the pad, drawn.
 ///
 /// Two sections in the board's order, treatment above what you are quitting,
-/// with the keys three to a row. Nothing here is tappable yet: selection, the
-/// running total and the check-in are the next thing, and a key that looks
-/// pressable and logs nothing is worse than one that plainly does not.
+/// with the keys three to a row, a meter above and the two actions below.
+///
+/// The screen owns no state of its own. Every figure comes off the record and
+/// every tap goes back to it, so what is on screen and what would be written
+/// cannot drift apart.
 struct PadView: View {
     let status: PadStatus
-    /// Today, measured against the plan's ceiling. Passed in rather than held,
-    /// because the pad draws the day and does not own it.
-    let tally: TodaysTally
-    /// What is selected, read back above the meter.
-    let pending: PendingEntry?
+    /// Today: the entries, the selection, and writing them.
+    @Bindable var record: TodayRecord
+    /// The cap the day is measured against, off the plan. Passed rather than
+    /// held, because the pad draws the plan's number and does not own it.
+    let ceilingMg: Double
+
+    private var tally: TodaysTally { record.tally(ceilingMg: ceilingMg) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.lPlus) {
-            CapMeter(tally: tally, pending: pending)
+            CapMeter(tally: tally, pending: record.selection.pending)
 
             switch status {
             case .loading:
@@ -33,10 +37,28 @@ struct PadView: View {
             case let .unavailable(message):
                 unavailable(message)
             }
+
             Spacer(minLength: 0)
+
+            // The question comes before the button it is about, and the failure
+            // after the button that caused it. Both sit directly above the
+            // actions rather than at the top: they are about the tap that is
+            // happening now, and a message off screen is a message nobody
+            // reads.
+            if let question = tally.questionBeforeLogging { note(question, tone: AppColor.cautionInk) }
+            if let failure = record.writeFailure { note(failure, tone: AppColor.over) }
+
+            PadActionBar(
+                title: record.checkInTitle,
+                isEnabled: record.canCheckIn,
+                onClear: record.clear,
+                onCheckIn: { Task { await record.checkIn() } }
+            )
+            .padding(.top, AppSpacing.m)
         }
         .padding(.horizontal, AppLayout.gutter)
         .padding(.top, AppSpacing.lPlus)
+        .padding(.bottom, AppSpacing.l)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppColor.ground)
     }
@@ -84,11 +106,23 @@ struct PadView: View {
         return VStack(alignment: .leading, spacing: AppLayout.padGap) {
             ForEach(chunks, id: \.first?.id) { row in
                 HStack(spacing: AppLayout.padGap) {
-                    ForEach(row, id: \.id) { PadKeyTile(key: $0) }
+                    ForEach(row, id: \.id) { key in
+                        PadKeyTile(key: key) { record.selection.tap(key) }
+                    }
                     Spacer(minLength: 0)
                 }
             }
         }
+    }
+
+    /// A line about the tap in hand, above the actions.
+    private func note(_ text: String, tone: Color) -> some View {
+        Text(text)
+            .font(AppFont.text(AppSize.caption))
+            .lineSpacing(AppLeading.snug - AppSize.caption)
+            .foregroundStyle(tone)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var loading: some View {
@@ -131,21 +165,17 @@ struct PadView: View {
 }
 
 #Preview {
-    let key = StoredPadKey(id: 3, form: .pouch, label: "Pouches", mg: 3, position: 0, ndc: nil)
+    let record = TodayRecord(store: nil)
+    record.selection.tap(StoredPadKey(id: 3, form: .pouch, label: "Pouches",
+                                      mg: 3, position: 0, ndc: nil))
     return PadView(
         status: .ready(Pad(keys: [
-        StoredPadKey(id: 1, form: .patch, label: "Patch", mg: 21, position: 0, ndc: nil),
-        StoredPadKey(id: 2, form: .lozenge, label: "Lozenge", mg: 4, position: 1, ndc: nil),
-        StoredPadKey(id: 3, form: .pouch, label: "Pouches", mg: 3, position: 0, ndc: nil),
-        StoredPadKey(id: 4, form: .vape, label: "Vape", mg: 2, position: 1, ndc: nil),
-        StoredPadKey(id: 5, form: .cigarette, label: "Cigarettes", mg: 1.5, position: 2, ndc: nil),
+            StoredPadKey(id: 1, form: .patch, label: "Patch", mg: 21, position: 0, ndc: nil),
+            StoredPadKey(id: 2, form: .lozenge, label: "Lozenge", mg: 4, position: 1, ndc: nil),
+            StoredPadKey(id: 3, form: .pouch, label: "Pouches", mg: 3, position: 0, ndc: nil),
+            StoredPadKey(id: 4, form: .vape, label: "Vape", mg: 2, position: 1, ndc: nil),
         ])),
-        tally: TodaysTally(
-            entries: [StoredCheckIn(id: 1, ledger: .source, label: "Pouches",
-                                    form: .pouch, mg: 7.5, quantity: 1)],
-            pending: PendingEntry(key: key),
-            ceilingMg: 12
-        ),
-        pending: PendingEntry(key: key)
+        record: record,
+        ceilingMg: 12
     )
 }

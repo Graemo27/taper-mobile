@@ -10,8 +10,23 @@ import SwiftUI
 /// colour before it is read as words.
 struct PadKeyTile: View {
     let key: StoredPadKey
+    let onTap: () -> Void
 
     var body: some View {
+        Button(action: onTap) { face }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(key.label), \(key.mg.clean) milligrams")
+            .accessibilityAddTraits(.isButton)
+    }
+
+    /// The key itself.
+    ///
+    /// Deliberately no selected state. The board shows a selection once, in the
+    /// readout above the meter, and never on the key — a pad tapped at speed is
+    /// read at the top, and marking the key as well would be the same fact in
+    /// two places, free to disagree while a write is in flight.
+    private var face: some View {
         VStack(spacing: AppSpacing.s) {
             if PadKeyMark.isDrawn(key.form) { PadKeyMark(form: key.form) }
             Text(key.label)
@@ -27,8 +42,6 @@ struct PadKeyTile: View {
             RoundedRectangle(cornerRadius: AppRadius.large)
                 .strokeBorder(AppColor.line, lineWidth: 1)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(key.label), \(key.mg.clean) milligrams")
     }
 
     private var strengthPill: some View {
