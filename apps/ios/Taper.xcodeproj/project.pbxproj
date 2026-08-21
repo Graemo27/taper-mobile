@@ -79,6 +79,7 @@
 		F5D11A597CF3E5EF7925075B /* PadKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C35928EF74BBD4AF319497 /* PadKeyTests.swift */; };
 		F98DCA94C38917A3AB92645B /* TodayRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DE5ABE508EA7257C871ED1A /* TodayRecord.swift */; };
 		F9AE040439B95F79AFDCC07C /* TaperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B9903E0264C634FF6C6E5F /* TaperApp.swift */; };
+		FC9E8BBCE3E7A68A44D4EAA2 /* CapMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45FFE4EFBF63FA80529D45A3 /* CapMeterTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -126,6 +127,7 @@
 		42AA9319A756BB1539B49424 /* StrengthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthView.swift; sourceTree = "<group>"; };
 		4442F6D8FC00924EFF766298 /* PlanPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreviewView.swift; sourceTree = "<group>"; };
 		455904243A3D920555A6529C /* AgeGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGate.swift; sourceTree = "<group>"; };
+		45FFE4EFBF63FA80529D45A3 /* CapMeterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapMeterTests.swift; sourceTree = "<group>"; };
 		5130DC0EF5BBB67260B85D27 /* AgeGateRunTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateRunTests.swift; sourceTree = "<group>"; };
 		5218152C4EC89C9B5D06D692 /* StartingLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLine.swift; sourceTree = "<group>"; };
 		54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
@@ -259,6 +261,7 @@
 			isa = PBXGroup;
 			children = (
 				FE1BA6ACDF80CF9C913E09D4 /* AgeGateTests.swift */,
+				45FFE4EFBF63FA80529D45A3 /* CapMeterTests.swift */,
 				081821A6E6E57C36D4D50320 /* CheckInStoreTests.swift */,
 				6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */,
 				B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */,
@@ -527,6 +530,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				095A3168DFDDE095210C453A /* AgeGateTests.swift in Sources */,
+				FC9E8BBCE3E7A68A44D4EAA2 /* CapMeterTests.swift in Sources */,
 				009FD55C98E5EAE76374091D /* CheckInStoreTests.swift in Sources */,
 				579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */,
 				7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */,

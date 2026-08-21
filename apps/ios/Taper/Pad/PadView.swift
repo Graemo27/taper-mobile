@@ -8,9 +8,16 @@ import SwiftUI
 /// pressable and logs nothing is worse than one that plainly does not.
 struct PadView: View {
     let status: PadStatus
+    /// Today, measured against the plan's ceiling. Passed in rather than held,
+    /// because the pad draws the day and does not own it.
+    let tally: TodaysTally
+    /// What is selected, read back above the meter.
+    let pending: PendingEntry?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.lPlus) {
+            CapMeter(tally: tally, pending: pending)
+
             switch status {
             case .loading:
                 loading
@@ -124,11 +131,21 @@ struct PadView: View {
 }
 
 #Preview {
-    PadView(status: .ready(Pad(keys: [
+    let key = StoredPadKey(id: 3, form: .pouch, label: "Pouches", mg: 3, position: 0, ndc: nil)
+    return PadView(
+        status: .ready(Pad(keys: [
         StoredPadKey(id: 1, form: .patch, label: "Patch", mg: 21, position: 0, ndc: nil),
         StoredPadKey(id: 2, form: .lozenge, label: "Lozenge", mg: 4, position: 1, ndc: nil),
         StoredPadKey(id: 3, form: .pouch, label: "Pouches", mg: 3, position: 0, ndc: nil),
         StoredPadKey(id: 4, form: .vape, label: "Vape", mg: 2, position: 1, ndc: nil),
         StoredPadKey(id: 5, form: .cigarette, label: "Cigarettes", mg: 1.5, position: 2, ndc: nil),
-    ])))
+        ])),
+        tally: TodaysTally(
+            entries: [StoredCheckIn(id: 1, ledger: .source, label: "Pouches",
+                                    form: .pouch, mg: 7.5, quantity: 1)],
+            pending: PendingEntry(key: key),
+            ceilingMg: 12
+        ),
+        pending: PendingEntry(key: key)
+    )
 }
