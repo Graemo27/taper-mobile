@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// The pad, grouped and ordered the way L3 draws it.
 ///

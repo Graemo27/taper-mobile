@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// What the user is quitting.
 ///
