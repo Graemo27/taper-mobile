@@ -57,8 +57,10 @@ struct RootView: View {
         // racing on the same tap is exactly what it exists to prevent, and the
         // pad and the plan are written by one tap.
         let session = SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
+        let plans = SupabaseTaperPlanStore(client: client, session: session)
         return AppStores(
-            plans: SupabaseTaperPlanStore(client: client, session: session),
+            plans: plans,
+            planVersions: plans,
             pad: SupabasePadKeyStore(client: client, session: session),
             checkIns: SupabaseCheckInStore(client: client, session: session)
         )
