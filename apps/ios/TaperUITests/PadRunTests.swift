@@ -110,6 +110,32 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    func testHomeShowsTodayAndItsButtonReachesThePad() throws {
+        // Home reads the day now, which it deliberately did not before — every
+        // other figure on that screen comes off the plan and is known at
+        // launch. The card is the first thing there that waits on a request,
+        // so the check is that it arrives at all rather than sitting on a dash.
+        reachTheTabs()
+
+        XCTAssertTrue(
+            app.staticTexts["Today so far"].waitForExistence(timeout: 10),
+            "Home never drew the tracking card"
+        )
+        XCTAssertTrue(
+            app.staticTexts["Today so far, 0 of 18 milligrams"].waitForExistence(timeout: 10),
+            "The card never resolved to a real day — it is still showing a dash, which is what "
+                + "it draws when the read has not come back"
+        )
+
+        // The card's whole job: it is the door to the pad, and until L7 exists
+        // it is the only button on it.
+        app.buttons["home.checkIn"].tap()
+        XCTAssertTrue(
+            app.buttons[pouches].waitForExistence(timeout: 10),
+            "\"Check in on the pad\" did not land on the pad"
+        )
+    }
+
     func testTappingAKeyMovesTheDayItWouldLeaveBehind() throws {
         // The gap named in the PR that made keys tappable: `simctl` cannot
         // inject a tap and nothing could reach this screen, so the button was

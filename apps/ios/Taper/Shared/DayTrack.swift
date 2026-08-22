@@ -3,15 +3,30 @@ import SwiftUI
 /// The day as a bar: what is logged, what a pending tap would add, and anything
 /// past the ceiling.
 ///
-/// Pulled out of `CapMeter` ahead of the second screen that needs it. The
+/// Shared by the pad's meter and home's card rather than drawn twice. The
 /// rescaling that happens once somebody goes over is the part worth keeping in
 /// one place — past the ceiling the bar stops being the cap and becomes the
 /// projected total, so the overflow has somewhere to be drawn — and two copies
 /// of that arithmetic would be free to disagree about the one number the app
-/// exists to report — so the bar moves out before there are two of them, not
-/// after.
+/// exists to report.
 struct DayTrack: View {
     let tally: TodaysTally
+    /// Which job the bar is doing. The only thing that differs between the two
+    /// screens drawing it, and named for the situation rather than the colour
+    /// so a call site cannot quietly pick a third.
+    let context: Context
+
+    /// Why the logged run is not the same colour on both screens.
+    enum Context {
+        /// The pad, where a pending tap sits beside the logged run. What is
+        /// already logged is dimmed so the tap about to happen is the brighter
+        /// of the two — the contrast is the information.
+        case selectable
+        /// Home's card, where nothing is pending. Nothing needs dimming, so the
+        /// day is drawn at full strength; dimming it there would just make the
+        /// day look quieter than it is.
+        case summary
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -20,9 +35,7 @@ struct DayTrack: View {
             // spaces between children — so a full bar would reserve two gaps
             // and be given three, putting it 2pt past its own end again.
             HStack(spacing: Self.gap) {
-                // Dimmed, because the pending segment sits next to it and the
-                // tap about to happen has to be the brighter of the two.
-                segment(AppColor.accentTintStrong, width: widths.logged)
+                segment(loggedColour, width: widths.logged)
                 segment(AppColor.accent, width: widths.pending)
                 segment(AppColor.over, width: widths.overflow)
             }
@@ -31,6 +44,16 @@ struct DayTrack: View {
         .frame(height: 10)
         .background(AppColor.sunken, in: Capsule())
         .clipShape(Capsule())
+    }
+
+    /// How the logged run is drawn. Internal so the rule can be checked without
+    /// rendering — the two screens differing is the point, and a silent
+    /// convergence would look like nothing at all on either.
+    var loggedColour: Color {
+        switch context {
+        case .selectable: return AppColor.accentTintStrong
+        case .summary: return AppColor.accent
+        }
     }
 
     /// The board sets the segments 2pt apart.
