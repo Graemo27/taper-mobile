@@ -62,8 +62,8 @@ struct CapMeter: View {
     /// Label line, gap, figure line — reserved whether or not it is filled.
     private var readoutHeight: CGFloat { AppLeading.snug + AppSpacing.xxs + AppLeading.figure }
 
-    /// The day as a bar. Drawn by `DayTrack`, which home's card will share.
-    private var track: some View { DayTrack(tally: tally) }
+    /// The day as a bar, drawn by `DayTrack` — the same bar home's card uses.
+    private var track: some View { DayTrack(tally: tally, context: .selectable) }
 }
 
 #Preview("under the cap") {

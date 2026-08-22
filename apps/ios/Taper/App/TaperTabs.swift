@@ -28,7 +28,7 @@ struct TaperTabs: View {
         VStack(spacing: 0) {
             switch selection {
             case .home:
-                HomeView(progress: progress)
+                HomeView(progress: progress, today: today) { selection = .log }
             case .log:
                 PadView(status: pad.status, record: today, ceilingMg: progress.todaysCapMg)
             case .plan:
@@ -38,14 +38,24 @@ struct TaperTabs: View {
             TaperTabBar(selection: $selection)
         }
         .background(AppColor.ground)
-        // Both reads start when the pad is first opened rather than at launch:
-        // somebody who only wants to see their cap should not wait on two
-        // requests they never asked for. `PadRecord` and `TodayRecord` each
-        // guard against a second read, so returning to the tab is free.
+        // Home needs the day for its tracking card; the pad needs the keys as
+        // well. Neither read holds a screen up — both tabs draw their plan
+        // figures first and fill the day in — and `PadRecord` and `TodayRecord`
+        // each guard against a second read, so returning to a tab is free.
+        //
+        // Keyed on the tab so switching re-reads. That is what refreshes home
+        // after a check-in made on the pad, and it is also the path that put
+        // `TodayRecord` under a reload-during-removal race worth remembering.
         .task(id: selection) {
-            guard selection == .log else { return }
-            await pad.load()
-            await today.load()
+            switch selection {
+            case .home:
+                await today.load()
+            case .log:
+                await pad.load()
+                await today.load()
+            case .plan:
+                break
+            }
         }
     }
 }

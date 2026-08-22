@@ -68,6 +68,24 @@ struct DayTrackTests {
         #expect(widths.overflow == 0)
     }
 
+    @Test("the logged run is dimmed only where something brighter sits beside it")
+    func theTwoScreensDrawTheDayDifferently() {
+        // The pad dims what is already logged so the pending tap stands out
+        // against it. Home has no pending segment, so dimming there would only
+        // make the day look quieter than it is — and the board draws it at full
+        // strength for exactly that reason.
+        //
+        // Pinned now rather than when the bar moved out, because until home
+        // drew one there was only one colour and nothing to converge with.
+        let tally = TodaysTally(entries: logged(6), pending: nil, ceilingMg: 12)
+
+        #expect(DayTrack(tally: tally, context: .summary).loggedColour == AppColor.accent)
+        #expect(
+            DayTrack(tally: tally, context: .selectable).loggedColour == AppColor.accentTintStrong,
+            "the pad stopped dimming the logged run"
+        )
+    }
+
     @Test("a track with no width does not produce a negative one")
     func theFirstLayoutPassIsSurvivable() {
         // `GeometryReader` reports zero before it has been measured, and a

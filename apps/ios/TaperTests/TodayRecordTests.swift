@@ -643,6 +643,29 @@ struct TodayRecordTests {
         #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
     }
 
+    @Test("a pending tap belongs to the pad, not to a summary of the day")
+    func aSelectionDoesNotReachTheSummary() async {
+        // The selection survives a tab switch on purpose — it is a count
+        // somebody is still tapping out. But home's card is a statement about
+        // what has happened, and folding a tap nobody has committed into it
+        // would draw usage against a figure that does not count it, and could
+        // turn that figure red for a milligram never logged.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        record.selection.tap(key(9, mg: 6))
+
+        let summary = record.loggedTally(ceilingMg: 12)
+        #expect(summary.loggedMg == 3)
+        #expect(summary.pendingMg == 0, "a pad selection reached home's card")
+        #expect(!summary.isOver, "an uncommitted tap put the day over the cap")
+
+        // The pad still folds it in — that is the whole point of the meter.
+        #expect(record.tally(ceilingMg: 12).pendingMg == 6)
+    }
+
     @Test("a reload during a removal does not put the row back")
     func aReloadCannotUndoACorrection() async {
         // The day is read from the server, which still holds the row until the

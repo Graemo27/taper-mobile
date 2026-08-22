@@ -110,6 +110,69 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    func testAPendingTapOnThePadDoesNotReachHome() throws {
+        // The selection survives a tab switch on purpose — it is a count
+        // somebody is still tapping out. Home's card is a statement about what
+        // has happened, so a tap nobody has committed must not appear in it:
+        // the bar would draw milligrams the figure beside it does not count,
+        // and a big enough selection would turn that figure red for a dose
+        // never taken.
+        //
+        // Tapped past the cap on purpose. A single 3 mg tap leaks invisibly —
+        // home's figure counts what is logged either way, so only the bar and
+        // the red would differ and neither is a thing this suite can read. Over
+        // the 18 mg cap the leak has to say itself out loud.
+        openTheLog()
+        for _ in 1...7 { app.buttons[pouches].tap() }
+        XCTAssertTrue(
+            app.buttons["Check in · 21 mg"].waitForExistence(timeout: 5),
+            "The pad did not take seven taps, so there was no pending selection to carry home"
+        )
+
+        app.buttons["tab.home"].tap()
+        XCTAssertTrue(
+            app.staticTexts["Today so far, 0 of 18 milligrams"].waitForExistence(timeout: 10),
+            "An uncommitted tap on the pad reached home's card — the label would read "
+                + "\"over today's cap\" off 21 mg nobody has logged"
+        )
+
+        // Said outright rather than left to the exact-match semantics of the
+        // assertion above. That one fails against the leak because the label
+        // grows a suffix, which is true and is not obvious from reading it —
+        // and the whole point of tapping past the cap was to make the leak
+        // speak. This is the sentence it would say.
+        expectNever(
+            "Today so far, 0 of 18 milligrams, over today's cap",
+            "Home called a day over its cap on 21 mg that only exist as a selection on the pad"
+        )
+    }
+
+    func testHomeShowsTodayAndItsButtonReachesThePad() throws {
+        // Home reads the day now, which it deliberately did not before — every
+        // other figure on that screen comes off the plan and is known at
+        // launch. The card is the first thing there that waits on a request,
+        // so the check is that it arrives at all rather than sitting on a dash.
+        reachTheTabs()
+
+        XCTAssertTrue(
+            app.staticTexts["Today so far"].waitForExistence(timeout: 10),
+            "Home never drew the tracking card"
+        )
+        XCTAssertTrue(
+            app.staticTexts["Today so far, 0 of 18 milligrams"].waitForExistence(timeout: 10),
+            "The card never resolved to a real day — it is still showing a dash, which is what "
+                + "it draws when the read has not come back"
+        )
+
+        // The card's whole job: it is the door to the pad, and until L7 exists
+        // it is the only button on it.
+        app.buttons["home.checkIn"].tap()
+        XCTAssertTrue(
+            app.buttons[pouches].waitForExistence(timeout: 10),
+            "\"Check in on the pad\" did not land on the pad"
+        )
+    }
+
     func testTappingAKeyMovesTheDayItWouldLeaveBehind() throws {
         // The gap named in the PR that made keys tappable: `simctl` cannot
         // inject a tap and nothing could reach this screen, so the button was

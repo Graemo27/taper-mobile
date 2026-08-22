@@ -3,11 +3,18 @@ import SwiftUI
 /// L1 — where the app opens once there is a plan: the day, the countdown and
 /// today's cap.
 ///
-/// Deliberately a subset of the board, because the craving prompt, the check-in
-/// and the tracking card each need a screen or a table that does not exist yet,
-/// and a control that cannot do its job is worse than an absent one.
+/// Deliberately a subset of the board, because the craving prompt and the daily
+/// check-in each need a screen or a table that does not exist yet, and a control
+/// that cannot do its job is worse than an absent one.
 struct HomeView: View {
     let progress: PlanProgress
+    /// Today, for the tracking card. Passed rather than made here, because the
+    /// pad holds the same record and two of them would be two answers about one
+    /// day.
+    @Bindable var today: TodayRecord
+    /// Switches to the log tab. Home does not own the selection, so the card's
+    /// button reports the intent and lets the bar act on it.
+    let onCheckIn: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -16,6 +23,7 @@ struct HomeView: View {
                 .padding(.top, AppSpacing.smPlus)
 
             tiles.padding(.top, AppSpacing.xxl)
+            tracking.padding(.top, AppSpacing.xxl)
             unbuilt.padding(.top, AppSpacing.xxl)
 
             Spacer(minLength: 0)
@@ -88,11 +96,10 @@ struct HomeView: View {
             }
             .foregroundStyle(AppColor.onSecondary)
 
-            // The board fills a bar here with what has been used today. There
-            // is a figure for it now that the log tab exists, but this screen
-            // is given the plan and not the day — and reading the day here
-            // would make every launch wait on a request somebody who only
-            // wants their cap never asked for.
+            // The board fills a bar here with what has been used today. That
+            // now lives in the tracking card below, which is where the board
+            // puts the day — this tile stays the plan's number alone, so it can
+            // still be drawn before any request comes back.
             if let next = progress.nextStep {
                 Text("drops to \(next.capMg.clean) \(next.whenPhrase)")
                     .font(AppFont.text(AppSize.micro))
@@ -108,6 +115,25 @@ struct HomeView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// L2's tracking section: the eyebrow, then the card.
+    ///
+    /// The one figure on this screen that needs a request. It is read here
+    /// rather than on the log tab alone because the card is home's — but the
+    /// tiles above do not wait for it, so somebody who only wants their cap
+    /// still gets it at launch.
+    private var tracking: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.m) {
+            Text("Nicotine tracking")
+                .font(AppFont.text(AppSize.caption))
+                .foregroundStyle(AppColor.inkMuted)
+            TodaySoFarCard(
+                status: today.status,
+                tally: today.loggedTally(ceilingMg: progress.todaysCapMg),
+                onCheckIn: onCheckIn
+            )
+        }
+    }
+
     /// Says what is missing, for the same reason every other unfinished surface
     /// in this app does: a screen that quietly lacks its main action reads as
     /// broken, and one that says so reads as early.
@@ -118,8 +144,8 @@ struct HomeView: View {
     /// quietly wrong.
     private var unbuilt: some View {
         Text("""
-        The craving prompt and the daily check-in still belong here. Logging what you use now \
-        lives on the log tab.
+        The craving prompt and the daily check-in still belong here, and the card above will \
+        grow a breakdown and a link to the full list.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)
@@ -140,5 +166,5 @@ struct HomeView: View {
             sickInBed: true
         ),
         today: Date()
-    )!)
+    )!, today: TodayRecord(store: nil), onCheckIn: {})
 }
