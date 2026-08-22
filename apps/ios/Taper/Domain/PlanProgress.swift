@@ -91,7 +91,11 @@ struct PlanProgress: Equatable, Sendable {
             }
         )).weeklyCapsMg
 
-        todaysCapMg = Self.capInForce(plan: plan, schedule: schedule, week: week)
+        // The same rule every past day is read by, so home and the log cannot
+        // disagree about one day.
+        todaysCapMg = TaperCap.inForce(
+            pinned: plan.currentCapMg, schedule: schedule, week: week
+        )
         nextStep = Self.nextStep(
             schedule: schedule,
             week: week,
@@ -100,28 +104,6 @@ struct PlanProgress: Equatable, Sendable {
             now: now,
             calendar: calendar
         )
-    }
-
-    /// Today's ceiling: the row's figure or the descent's, whichever is lower.
-    ///
-    /// `current_cap_mg` and `cap_effective_from` are a pair — a cap, and the
-    /// day it began applying — and nothing in the app advances either, so the
-    /// row stops being current the moment its week ends. Honouring it alone
-    /// would read 18 mg on day fifty-five of a taper to zero.
-    ///
-    /// Taking the lower of the two keeps what the pin was actually for: a plan
-    /// stretched, or a cap corrected by hand, must never *raise* the ceiling
-    /// somebody is already living under.
-    private static func capInForce(
-        plan: StoredTaperPlan,
-        schedule: [Double],
-        week: Int
-    ) -> Double {
-        // Clamped to the last week rather than falling back to the row. Past
-        // the end of the descent the plan has reached zero, and the figure
-        // onboarding wrote is the one number that is certainly wrong there.
-        guard let last = schedule.indices.last else { return plan.currentCapMg }
-        return min(plan.currentCapMg, schedule[min(week, last)])
     }
 
     /// The step after this week, and when it lands.
