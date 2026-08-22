@@ -147,6 +147,31 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    func testTheCardOpensTheDayAsAList() throws {
+        // The card is the only door to this screen — the board's flows note
+        // routes nothing else there — so the one path in is the one thing that
+        // has to be driven rather than inspected.
+        reachTheTabs()
+        app.buttons["home.seeHistory"].tap()
+
+        XCTAssertTrue(
+            app.staticTexts["Today"].waitForExistence(timeout: 10),
+            "\"See check-in history\" did not open the day's list"
+        )
+
+        // The bar stays, with home still lit. The board is explicit about it,
+        // and it is the reason this is a push above the bar rather than a
+        // screen of its own — somebody correcting a mis-tap here usually wants
+        // the pad next.
+        XCTAssertTrue(app.buttons["tab.log"].exists, "the tab bar went away under the list")
+
+        app.buttons["today.back"].tap()
+        XCTAssertTrue(
+            app.staticTexts["Today so far"].waitForExistence(timeout: 5),
+            "Back did not return to home"
+        )
+    }
+
     func testHomeShowsTodayAndItsButtonReachesThePad() throws {
         // Home reads the day now, which it deliberately did not before — every
         // other figure on that screen comes off the plan and is known at

@@ -14,6 +14,14 @@ struct TaperTabs: View {
     let stores: AppStores?
 
     @State private var selection: TaperTab = .home
+    /// Whether home has pushed the day's list on top of itself.
+    ///
+    /// A flag rather than a `NavigationStack` path, because there is one
+    /// destination and the bar has to stay put underneath it. A stack here
+    /// would bring its own bar to hide and would take the tab bar with it on
+    /// push, which is the one thing the board is explicit about: L7 keeps the
+    /// bar, with home still lit.
+    @State private var isShowingToday = false
     @State private var pad: PadRecord
     @State private var today: TodayRecord
 
@@ -28,7 +36,22 @@ struct TaperTabs: View {
         VStack(spacing: 0) {
             switch selection {
             case .home:
-                HomeView(progress: progress, today: today) { selection = .log }
+                if isShowingToday {
+                    TodayListView(
+                        status: today.status,
+                        entries: today.entries,
+                        summary: today.summary(ceilingMg: progress.todaysCapMg),
+                        onBack: { isShowingToday = false }
+                    )
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                } else {
+                    HomeView(
+                        progress: progress,
+                        today: today,
+                        onCheckIn: { selection = .log },
+                        onSeeHistory: { isShowingToday = true }
+                    )
+                }
             case .log:
                 PadView(status: pad.status, record: today, ceilingMg: progress.todaysCapMg)
             case .plan:
@@ -37,6 +60,7 @@ struct TaperTabs: View {
 
             TaperTabBar(selection: $selection)
         }
+        .animation(.easeOut(duration: 0.22), value: isShowingToday)
         .background(AppColor.ground)
         // Home needs the day for its tracking card; the pad needs the keys as
         // well. Neither read holds a screen up — both tabs draw their plan
