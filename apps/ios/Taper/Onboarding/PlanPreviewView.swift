@@ -20,13 +20,15 @@ struct PlanPreviewView: View {
             section: "Your plan",
             progress: OnboardingStep.planPreview.progress,
             question: "Here's your plan.",
-            // The board names the plan tab, which does not exist. Dropping the
-            // destination but keeping "changes later" was the worse half of
-            // that fix: the promise survived and only its falsifiable part
-            // went. Today the CTA is one-way, so the actionable half of this
-            // sentence has to be one the build can honour — going back. The
-            // reassurance the board wanted is the other half, and it stays
-            // true either way: a plan is not a commitment.
+            // The board sends this sentence to the plan tab. That tab exists
+            // now, but it has no editor behind it, so pointing someone at it
+            // would still be a promise the build cannot honour — the same
+            // reason the destination was dropped when the tab did not exist at
+            // all. Keeping "changes later" without the destination was the
+            // worse half of that first fix: the promise survived and only its
+            // falsifiable part went. So the actionable half is the one this
+            // screen can honour — going back — and the reassurance the board
+            // wanted stays true either way: a plan is not a commitment.
             helper: "Built from what you told us. Nothing here is a commitment — go back and change any answer before you start.",
             cta: status == .saving ? "Saving…" : "Start tracking",
             // Nil while a write is in flight or already done. A second tap

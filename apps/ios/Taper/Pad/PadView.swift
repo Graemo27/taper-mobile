@@ -142,7 +142,7 @@ struct PadView: View {
     private var empty: some View {
         Text("""
         There's nothing on your pad yet. Keys are set up from what you told us during onboarding, \
-        and adding them by hand is the next thing to build.
+        and adding them by hand isn't built yet.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)

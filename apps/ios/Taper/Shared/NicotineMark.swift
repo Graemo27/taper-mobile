@@ -1,24 +1,26 @@
 import SwiftUI
 
-/// The board's mark for a nicotine form, on its own 22-unit grid.
+/// The board's mark for a nicotine form, on its own 22-unit grid. A form the
+/// board has not drawn gets no mark at all, never a stand-in.
 ///
-/// Five forms are drawn — patch, lozenge, gum, pouch, vape — and every other
-/// form gets **no mark at all**. That is deliberate rather than unfinished: the
-/// board has never drawn a cigarette, a dip, an inhaler or a spray, and a
-/// guessed mark would be the app extending a design language it does not own. A
-/// neutral placeholder was worse in practice — the first one drew as a circle
-/// and was indistinguishable from the lozenge, which is how a stand-in starts
+/// Patch, lozenge, gum, pouch and vape are drawn. Cigarette, dip, inhaler and
+/// spray are not — as of 2026-08 the board has no mark for them — and `.other`
+/// never will be, since it is whatever someone typed rather than a form with a
+/// shape. A placeholder was tried and was worse: it drew as a circle,
+/// indistinguishable from the lozenge, which is how a stand-in starts
 /// impersonating a real thing.
 ///
-/// Drawn square, with no tilt of its own. Two surfaces compose these marks
-/// differently — a pad key leans the pouch, the log's rows lean the whole tile
-/// they sit in — so the shape lives here and the angle belongs to the caller. A
-/// mark that carried its own lean would arrive at the second one already
-/// crooked and be tilted twice.
+/// That list is a claim about a Paper file, and nothing here can check it. It
+/// named gum until 2026-08-22 and was wrong the day it was written — the mark
+/// was already on the board's log rows, and only the pad's artboard had been
+/// looked at. Check the board before trusting it; `NicotineMarkTests` pins what
+/// the app currently believes.
 ///
-/// A `Canvas` rather than composed shapes because the marks are single strokes
-/// with exact endpoints, and reproducing those by insetting a `RoundedRectangle`
-/// is arithmetic that drifts every time the size changes.
+/// Drawn square, with no tilt of its own: a pad key leans the pouch, the log's
+/// rows lean the whole tile, so the shape lives here and the angle belongs to
+/// the caller. A `Canvas` rather than composed shapes because these are single
+/// strokes with exact endpoints, and insetting a `RoundedRectangle` to match is
+/// arithmetic that drifts with every change of size.
 struct NicotineMark: View {
     let form: PadForm
     /// How big to draw it. The board sets a pad key's mark at 26 and a log

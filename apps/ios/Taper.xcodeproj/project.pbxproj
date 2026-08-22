@@ -11,6 +11,7 @@
 		042B4D66BFA2B2C66D8C74C7 /* PadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */; };
 		04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1766359067A8528CBEB51E /* Treatment.swift */; };
 		095A3168DFDDE095210C453A /* AgeGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE1BA6ACDF80CF9C913E09D4 /* AgeGateTests.swift */; };
+		098B6622974DA110BDA7A5C5 /* CleanNumberTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 848DE3C0A2B296D372C55B52 /* CleanNumberTests.swift */; };
 		0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */; };
 		0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81A7A846268DDB13563347F /* OnboardingFlow.swift */; };
 		0EB3DA0ADAA962AFBD654AE2 /* TaperTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 532DB0500227003AC5EB5DF3 /* TaperTabs.swift */; };
@@ -157,6 +158,7 @@
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
 		7C04762C046C39BBF49A4545 /* TodayRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayRecordTests.swift; sourceTree = "<group>"; };
 		7ECEF2DA27BE2E09BE44244D /* SessionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinatorTests.swift; sourceTree = "<group>"; };
+		848DE3C0A2B296D372C55B52 /* CleanNumberTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanNumberTests.swift; sourceTree = "<group>"; };
 		878DB78BEC425F63B60C1393 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8ADDAD495331A13B8885B775 /* DayTrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTrackTests.swift; sourceTree = "<group>"; };
 		91C35928EF74BBD4AF319497 /* PadKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadKeyTests.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 			children = (
 				FE1BA6ACDF80CF9C913E09D4 /* AgeGateTests.swift */,
 				081821A6E6E57C36D4D50320 /* CheckInStoreTests.swift */,
+				848DE3C0A2B296D372C55B52 /* CleanNumberTests.swift */,
 				6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */,
 				8ADDAD495331A13B8885B775 /* DayTrackTests.swift */,
 				B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */,
@@ -574,6 +577,7 @@
 			files = (
 				095A3168DFDDE095210C453A /* AgeGateTests.swift in Sources */,
 				009FD55C98E5EAE76374091D /* CheckInStoreTests.swift in Sources */,
+				098B6622974DA110BDA7A5C5 /* CleanNumberTests.swift in Sources */,
 				579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */,
 				F9DC16D7896F210B92C01CD8 /* DayTrackTests.swift in Sources */,
 				7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */,
