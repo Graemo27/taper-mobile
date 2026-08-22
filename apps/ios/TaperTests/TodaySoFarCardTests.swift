@@ -7,7 +7,7 @@ import Testing
 @MainActor
 struct TodaySoFarCardTests {
     private func card(_ status: DayStatus, tally: TodaysTally) -> TodaySoFarCard {
-        TodaySoFarCard(status: status, tally: tally, onCheckIn: {})
+        TodaySoFarCard(status: status, tally: tally, onCheckIn: {}, onSeeHistory: {})
     }
 
     private func tally(logged: Double, ceiling: Double = 12) -> TodaysTally {

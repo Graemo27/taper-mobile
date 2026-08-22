@@ -15,6 +15,8 @@ struct HomeView: View {
     /// Switches to the log tab. Home does not own the selection, so the card's
     /// button reports the intent and lets the bar act on it.
     let onCheckIn: () -> Void
+    /// Opens today as a list. Home does not own the navigation stack either.
+    let onSeeHistory: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -129,7 +131,8 @@ struct HomeView: View {
             TodaySoFarCard(
                 status: today.status,
                 tally: today.loggedTally(ceilingMg: progress.todaysCapMg),
-                onCheckIn: onCheckIn
+                onCheckIn: onCheckIn,
+                onSeeHistory: onSeeHistory
             )
         }
     }
@@ -166,5 +169,5 @@ struct HomeView: View {
             sickInBed: true
         ),
         today: Date()
-    )!, today: TodayRecord(store: nil), onCheckIn: {})
+    )!, today: TodayRecord(store: nil), onCheckIn: {}, onSeeHistory: {})
 }
