@@ -10,7 +10,8 @@ private func tap(_ mg: Double) -> PendingEntry {
     PendingEntry(key: StoredPadKey(id: 1, form: .pouch, label: "Pouch", mg: mg, position: 0, ndc: nil))
 }
 
-/// Covers the one piece of the meter that is arithmetic rather than layout.
+/// Covers the one piece of the bar that is arithmetic rather than layout: how
+/// three segments and the gaps between them divide a track of a given width.
 @MainActor
 struct DayTrackTests {
     private let track: CGFloat = 362
