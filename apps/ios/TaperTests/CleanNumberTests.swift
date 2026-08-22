@@ -46,11 +46,24 @@ struct CleanNumberTests {
             #expect(!value.clean.contains(","), "\(value) printed with a comma separator")
         }
 
-        // Weak on its own — this suite runs under one locale, so it cannot
-        // catch a formatter that follows the phone. What it does catch is
-        // somebody reaching for a localized formatter here at all, which is
-        // also the change that would break the rounding below.
+        // The assertion with teeth, and it does not depend on the runner's
+        // locale. A formatter that follows the phone has to take the localized
+        // path, and that path rounds a half to even — so this fails on an
+        // en_US runner too, where every assertion above would still pass.
         #expect(0.005.clean == "0.01", "half rounded to even, which the mg column does not")
+
+        // The comma assertions above only bite under a comma-decimal locale,
+        // which this suite does not run in. That is one command, and it is
+        // worth running when this file changes:
+        //
+        //   xcodebuild test -project apps/ios/Taper.xcodeproj -scheme Taper \
+        //     -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+        //     -only-testing:TaperTests/CleanNumberTests -testLanguage fr -testRegion FR
+        //
+        // Green under fr_FR and de_DE as of 2026-08-22. Against a formatter
+        // that follows the phone it reports `100.0.clean → "100,"` — a whole
+        // number left wearing a separator, which is the failure this test is
+        // named for.
     }
 
     @Test("rounding is to the two decimals the column carries")
