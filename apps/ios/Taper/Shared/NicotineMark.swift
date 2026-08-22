@@ -3,12 +3,19 @@ import SwiftUI
 /// The board's mark for a nicotine form, on its own 22-unit grid.
 ///
 /// Five forms are drawn — patch, lozenge, gum, pouch, vape — and every other
-/// form gets **no mark at all**. That is deliberate rather than unfinished: the
-/// board has never drawn a cigarette, a dip, an inhaler or a spray, and a
-/// guessed mark would be the app extending a design language it does not own. A
-/// neutral placeholder was worse in practice — the first one drew as a circle
-/// and was indistinguishable from the lozenge, which is how a stand-in starts
+/// form gets **no mark at all**. That is deliberate rather than unfinished: as
+/// of 2026-08 the board has no cigarette, dip, inhaler or spray, and a guessed
+/// mark would be the app extending a design language it does not own. A neutral
+/// placeholder was worse in practice — the first one drew as a circle and was
+/// indistinguishable from the lozenge, which is how a stand-in starts
 /// impersonating a real thing.
+///
+/// **Dated, because the sentence above has been wrong before.** It used to name
+/// gum in that list — and was wrong the day it was written, because the mark
+/// was already on the board's log rows and only the pad's artboard had been
+/// looked at. Nothing in this repo can notice when a Paper file changes, so the
+/// list is a claim about another tool and has to be checked against it rather
+/// than trusted. `NicotineMarkTests` pins what the app currently believes.
 ///
 /// Drawn square, with no tilt of its own. Two surfaces compose these marks
 /// differently — a pad key leans the pouch, the log's rows lean the whole tile
