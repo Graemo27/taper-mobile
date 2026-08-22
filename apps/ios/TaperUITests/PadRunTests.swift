@@ -117,6 +117,7 @@ final class PadRunTests: TaperRunCase {
         // the bar would draw milligrams the figure beside it does not count,
         // and a big enough selection would turn that figure red for a dose
         // never taken.
+        //
         // Tapped past the cap on purpose. A single 3 mg tap leaks invisibly —
         // home's figure counts what is logged either way, so only the bar and
         // the red would differ and neither is a thing this suite can read. Over
@@ -133,6 +134,16 @@ final class PadRunTests: TaperRunCase {
             app.staticTexts["Today so far, 0 of 18 milligrams"].waitForExistence(timeout: 10),
             "An uncommitted tap on the pad reached home's card — the label would read "
                 + "\"over today's cap\" off 21 mg nobody has logged"
+        )
+
+        // Said outright rather than left to the exact-match semantics of the
+        // assertion above. That one fails against the leak because the label
+        // grows a suffix, which is true and is not obvious from reading it —
+        // and the whole point of tapping past the cap was to make the leak
+        // speak. This is the sentence it would say.
+        expectNever(
+            "Today so far, 0 of 18 milligrams, over today's cap",
+            "Home called a day over its cap on 21 mg that only exist as a selection on the pad"
         )
     }
 
