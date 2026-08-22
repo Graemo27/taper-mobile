@@ -162,6 +162,19 @@ extension Double {
         // rounding to two places falls out of the format rather than needing a
         // step of its own. An earlier version rounded first as well, and
         // mutation testing showed the extra step changed no answer.
+        //
+        // **No locale, deliberately, and it was checked.** The strip loop
+        // below only stops on a period, so a comma separator would leave "3,"
+        // standing where a whole number belongs. Driven under fr_FR and de_DE,
+        // where `Locale.current.decimalSeparator` really is a comma: this line
+        // still produces "3.00". `String(format:)` without a locale does not
+        // localize.
+        //
+        // Passing one explicitly is the obvious "fix" and is worse. It takes
+        // the localized formatting path, which rounds a half to even — 0.005
+        // becomes "0" rather than "0.01" — and `mg numeric(6, 2)` rounds half
+        // away from zero, so the screen would stop agreeing with the column it
+        // is reading.
         var text = String(format: "%.2f", self)
         // Trailing zeros go, so 3.60 reads as "3.6" and 3.00 as "3". The point
         // stops the loop before it can eat a whole number's own zeros — "100"

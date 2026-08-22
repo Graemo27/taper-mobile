@@ -37,6 +37,22 @@ struct CleanNumberTests {
         #expect(0.25.clean == "0.25")
     }
 
+    @Test("a dose is written the same way wherever the phone is")
+    func theSeparatorIsNotTheUsers() {
+        // A milligram figure is not prose. The strip loop only stops on a
+        // period, so a comma separator would leave "3," standing where a whole
+        // number belongs — and half of Europe has a comma.
+        for value in [3.0, 1.5, 12.5, 1.2 * 3, 100.0] {
+            #expect(!value.clean.contains(","), "\(value) printed with a comma separator")
+        }
+
+        // Weak on its own — this suite runs under one locale, so it cannot
+        // catch a formatter that follows the phone. What it does catch is
+        // somebody reaching for a localized formatter here at all, which is
+        // also the change that would break the rounding below.
+        #expect(0.005.clean == "0.01", "half rounded to even, which the mg column does not")
+    }
+
     @Test("rounding is to the two decimals the column carries")
     func nothingFinerThanTheColumnIsClaimed() {
         // `mg numeric(6, 2)` cannot hold a third decimal, so printing one
