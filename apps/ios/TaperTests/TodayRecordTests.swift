@@ -17,6 +17,9 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
     /// Holds a read open, so a second can be attempted while the first is in
     /// flight.
     var readHangs = false
+    /// Holds a read open for a fixed spell, so a removal can settle while the
+    /// read is still in flight and the read answers from before it.
+    var readDelay: Duration?
 
     private let lock = NSLock()
     private var _writes: [CheckInDraft] = []
@@ -28,6 +31,7 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
 
     func entries(on day: Date) async throws -> [StoredCheckIn] {
         lock.withLock { _reads += 1 }
+        if let readDelay { try await Task.sleep(for: readDelay) }
         if readHangs { try await Task.sleep(for: .seconds(30)) }
         if readFails { throw URLError(.notConnectedToInternet) }
         return existing
@@ -707,5 +711,31 @@ struct TodayRecordTests {
         #expect(record.entries.map(\.id) == [7], "yesterday's entry was restored into today")
         #expect(record.tally(ceilingMg: 24).loggedMg == 4.5, "today's cap counted yesterday's row")
         #expect(record.removeFailure != nil, "a removal that failed said nothing")
+    }
+
+    @Test("a read that predates a delete does not put the row back")
+    func aStaleReadCannotResurrectARemovedRow() async {
+        // The other end of the same race. `removing` says what is in flight
+        // now, and a read that started before the delete and lands after it
+        // finds the set already empty — so the pre-delete snapshot it is
+        // holding goes straight onto the day, and the row somebody removed is
+        // back with its milligrams.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3), logged(2, mg: 6)]
+        let record = record(store)
+        await record.load()
+
+        store.readDelay = .milliseconds(300)
+        let reloading = Task { await record.load() }
+        await waitUntil { store.reads == 2 }
+        // Settles while that read is still open. `existing` is left alone on
+        // purpose: it is what the server hands back to a read taken before the
+        // delete committed.
+        await record.remove(logged(2, mg: 6))
+        await reloading.value
+
+        #expect(record.entries.map(\.id) == [1], "a read from before the delete put the row back")
+        #expect(record.tally(ceilingMg: 24).loggedMg == 3, "the cap counted a row that was removed")
+        #expect(record.status == .ready, "the day was left on a spinner")
     }
 }

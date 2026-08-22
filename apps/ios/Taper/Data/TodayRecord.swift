@@ -83,6 +83,18 @@ final class TodayRecord {
     /// commits, so a reload landing mid-removal would put a row back on screen
     /// that somebody has just taken off it.
     private var removing: Set<Int> = []
+    /// How many removals have settled. Bumped when one finishes, either way.
+    ///
+    /// `removing` answers "what is in flight right now", which is the wrong
+    /// question for a read that started before a delete and lands after it: by
+    /// the time it resumes, the removal has let go of the id and the snapshot
+    /// it is holding predates the delete. This counts what happened *during*
+    /// the read instead, which is the thing that makes the answer stale.
+    ///
+    /// Either way on purpose. A removal that reported failure may still have
+    /// committed — a connection can drop after the delete lands — so a read
+    /// spanning one cannot be trusted to reflect it whichever way it went.
+    private var removals = 0
 
     init(
         store: (any CheckInStoring)?,
@@ -121,11 +133,24 @@ final class TodayRecord {
             // Read once and kept together, so the rows and the day they answer
             // for cannot drift apart.
             let asked = day()
+            let settled = removals
+            let read = try await store.entries(on: asked)
+
+            // A removal settled while this read was open, so the read is
+            // answering from before it. Dropped rather than applied: what is
+            // already on screen is the last good day minus the row that was
+            // taken off it, and that is nearer the truth than a snapshot from
+            // before the delete. Nothing is lost — a removal can only settle
+            // against a day that loaded, so there is always a day to keep.
+            guard removals == settled else {
+                status = .ready
+                return
+            }
+
             // Minus anything being removed right now: the server has not
             // committed those deletes yet, and putting the rows back on screen
             // would undo a correction in front of the person making it.
-            loadedEntries = try await store.entries(on: asked)
-                .filter { !removing.contains($0.id) }
+            loadedEntries = read.filter { !removing.contains($0.id) }
             loadedDay = asked
             status = .ready
         } catch {
@@ -180,7 +205,10 @@ final class TodayRecord {
         // did not.
         removing.insert(entry.id)
         removeFailure = nil
-        defer { removing.remove(entry.id) }
+        defer {
+            removing.remove(entry.id)
+            removals += 1
+        }
 
         do {
             try await Task { try await store.remove(entry.id) }.value
