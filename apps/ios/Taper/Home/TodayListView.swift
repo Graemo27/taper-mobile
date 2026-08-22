@@ -21,6 +21,13 @@ struct TodayListView: View {
     /// Opens one entry. The rows were drawn before there was anywhere for them
     /// to go, which is why this arrives after the list rather than with it.
     let onSelect: (StoredCheckIn) -> Void
+    /// Yesterday, when it has been read. Nil while it is still loading or when
+    /// it could not be — an absent section says less wrongly than an empty one.
+    var yesterday: DayRollup?
+    /// Set when yesterday could not be read. Drawn as a line rather than left
+    /// out, because a section that silently vanishes reads as an app losing
+    /// track of days rather than as a request that failed.
+    var isYesterdayUnavailable = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -41,6 +48,15 @@ struct TodayListView: View {
                         rows.padding(.top, AppSpacing.sm)
                     case let .unavailable(message):
                         note(message).padding(.top, AppSpacing.l)
+                    }
+
+                    if let yesterday {
+                        yesterdaySection(yesterday).padding(.top, AppSpacing.xxl)
+                    } else if isYesterdayUnavailable {
+                        Text("Couldn't load yesterday.")
+                            .font(AppFont.text(AppSize.caption))
+                            .foregroundStyle(AppColor.cautionInk)
+                            .padding(.top, AppSpacing.xxl)
                     }
 
                     unbuilt.padding(.top, AppSpacing.xxl)
@@ -157,9 +173,61 @@ struct TodayListView: View {
     }
 
     /// Says what is missing, as every unfinished surface here does.
+    /// Yesterday, collapsed to what it came to and the ceiling it came to it
+    /// against.
+    ///
+    /// Its own cap, not today's. That is the whole reason the plan is versioned:
+    /// a day is a fact about the plan in force on it, and measuring last Tuesday
+    /// against this Tuesday's ceiling would restate it every time the taper
+    /// steps down.
+    private func yesterdaySection(_ day: DayRollup) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.smPlus) {
+            HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
+                    Text("Yesterday")
+                        .font(AppFont.display(AppSize.unit))
+                        .foregroundStyle(AppColor.ink)
+                    Text(day.countText)
+                        .font(AppFont.text(AppSize.caption))
+                        .foregroundStyle(AppColor.inkMuted)
+                }
+                Spacer(minLength: AppSpacing.sm)
+                Text(day.totalText)
+                    .font(AppFont.text(AppSize.caption, .medium))
+                    .foregroundStyle(day.isOver ? AppColor.over : AppColor.inkMuted)
+            }
+
+            miniTrack(day)
+
+            Text(day.summarySentence)
+                .font(AppFont.text(AppSize.caption))
+                .foregroundStyle(AppColor.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Yesterday, \(day.countText), \(day.totalText). \(day.summarySentence)")
+    }
+
+    /// A 6pt bar, and only ever one segment of it.
+    ///
+    /// Today's meter has three because today has a tap in progress. Yesterday
+    /// has none — it is finished — so the bar fills and the colour says whether
+    /// it went over, rather than a tail running past the end.
+    private func miniTrack(_ day: DayRollup) -> some View {
+        GeometryReader { proxy in
+            Capsule()
+                .fill(day.isOver ? AppColor.over : AppColor.accent)
+                .frame(width: proxy.size.width * day.fraction)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: 6)
+        .background(AppColor.sunken, in: Capsule())
+        .clipShape(Capsule())
+    }
+
     private var unbuilt: some View {
         Text("""
-        The days before today and editing a check-in both belong here and aren't built yet.
+        The days before yesterday belong here too, and aren't built yet.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)

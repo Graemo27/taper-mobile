@@ -150,12 +150,24 @@ protocol TaperPlanReading: Sendable {
     func currentPlan() async throws -> StoredTaperPlan?
 }
 
+/// Reading the plan's history.
+///
+/// Separate from `TaperPlanReading` rather than folded into it: the screens
+/// that ask "what is my plan" and "what was my plan in August" are different
+/// screens, and the record that draws today has no business being able to ask
+/// the second question.
+protocol PlanVersionReading: Sendable {
+    /// Every version this user has, newest first.
+    func versions() async throws -> [StoredPlanVersion]
+}
+
 /// Both halves, for the one caller that needs each. Named rather than written
 /// as `TaperPlanWriting & TaperPlanReading` at every use site, because the
 /// composition is the thing the app actually depends on.
 typealias TaperPlanStoring = TaperPlanWriting & TaperPlanReading
 
-/// The real one.
+/// Saves and reads the plan, and its history, through Supabase as the
+/// signed-in anonymous user.
 ///
 /// Upserts rather than inserts. `taper_plans` holds one row per person by
 /// unique index, and re-running onboarding is not an error state — it is what
@@ -234,7 +246,7 @@ struct StoredPlanVersion: Decodable, Equatable, Sendable {
     }
 }
 
-extension SupabaseTaperPlanStore {
+extension SupabaseTaperPlanStore: PlanVersionReading {
     /// Every version this user has, newest first.
     ///
     /// The order the reader wants: a past day's plan is the first version at or

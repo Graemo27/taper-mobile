@@ -57,6 +57,9 @@ typealias PadKeyStoring = PadKeyWriting & PadKeyReading
 /// prevent.
 struct AppStores {
     let plans: any TaperPlanStoring
+    /// The same object as `plans` in the app, named apart because the log asks
+    /// it a question no other screen does.
+    let planVersions: any PlanVersionReading
     let pad: any PadKeyStoring
     let checkIns: any CheckInStoring
 }
