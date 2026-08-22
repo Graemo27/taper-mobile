@@ -143,9 +143,31 @@ struct StrengthView: View {
 }
 
 extension Double {
+    /// A dose, written the way a person reads one.
+    ///
     /// Drops a trailing `.0`, so 3 reads as "3 mg" and 1.5 as "1.5 mg" — the
     /// lozenge strengths make the fractional case real rather than theoretical.
+    ///
+    /// Rounded to two decimals first, which is the fix for the failure this
+    /// used to have. `String(aDouble)` prints the shortest text that
+    /// round-trips the *binary* value, and 1.2 mg logged three times is
+    /// 3.5999999999999996 — true of the Double and not of the dose. It reached
+    /// every screen that shows a total rather than a single strength.
+    ///
+    /// Two decimals because `mg numeric(6, 2)` cannot hold a third. Printing
+    /// one would be the screen claiming a precision the record does not have.
     var clean: String {
-        self == rounded() ? String(Int(self)) : String(self)
+        // Formatted rather than interpolated. Interpolation asks the Double
+        // what it is; this asks what is worth saying about it — and the
+        // rounding to two places falls out of the format rather than needing a
+        // step of its own. An earlier version rounded first as well, and
+        // mutation testing showed the extra step changed no answer.
+        var text = String(format: "%.2f", self)
+        // Trailing zeros go, so 3.60 reads as "3.6" and 3.00 as "3". The point
+        // stops the loop before it can eat a whole number's own zeros — "100"
+        // survives because "100." is not a suffix of "0".
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text
     }
 }
