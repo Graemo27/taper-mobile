@@ -71,7 +71,7 @@ struct CapMeter: View {
     CapMeter(
         tally: TodaysTally(
             entries: [StoredCheckIn(id: 1, ledger: .source, label: "Pouches",
-                                    form: .pouch, mg: 7.5, quantity: 1)],
+                                    form: .pouch, mg: 7.5, quantity: 1, createdAt: .now)],
             pending: PendingEntry(key: StoredPadKey(id: 1, form: .pouch, label: "Pouch",
                                                     mg: 3, position: 0, ndc: nil)),
             ceilingMg: 12

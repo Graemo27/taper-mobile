@@ -168,8 +168,7 @@ struct TodayListView: View {
     /// Says what is missing, as every unfinished surface here does.
     private var unbuilt: some View {
         Text("""
-        The time each one was logged, the days before today, and editing a check-in all belong \
-        here and aren't built yet.
+        The days before today and editing a check-in both belong here and aren't built yet.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)
@@ -190,10 +189,15 @@ struct CheckInListRow: View {
     var body: some View {
         HStack(spacing: AppSpacing.m) {
             tile
-            Text(labelText)
-                .font(AppFont.text(AppSize.bodyLarge, .medium))
-                .foregroundStyle(AppColor.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                Text(labelText)
+                    .font(AppFont.text(AppSize.bodyLarge, .medium))
+                    .foregroundStyle(AppColor.ink)
+                Text(entry.detailText)
+                    .font(AppFont.text(AppSize.caption))
+                    .foregroundStyle(AppColor.inkMuted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Text(figureText)
                 .font(AppFont.display(AppSize.unitSmall))
                 .foregroundStyle(AppColor.ink)
@@ -220,8 +224,25 @@ struct CheckInListRow: View {
     /// What the day was charged for this row.
     var figureText: String { "\(entry.totalMg.clean) mg" }
 
+    /// The row read out, in the order the eye takes it: what, which kind, how
+    /// much, when.
+    ///
+    /// The form is spoken because it is the one word that says whether the row
+    /// counts against the cap — "Nicorette ice mint" does not tell you that and
+    /// "Gum" does. Leaving it to the sighted row only would make the listened
+    /// version the poorer of the two on exactly the fact it exists to carry.
+    ///
+    /// Dropped when the label already is the form. The board's own first row is
+    /// "Pouch" filed under `.pouch`, which reads fine at two sizes on screen
+    /// and as a stutter out loud.
     var spokenText: String {
-        "\(labelText), \(entry.totalMg.clean) milligrams"
+        var parts = [labelText]
+        if entry.label.caseInsensitiveCompare(entry.form.label) != .orderedSame {
+            parts.append(entry.form.label)
+        }
+        parts.append("\(entry.totalMg.clean) milligrams")
+        parts.append(entry.timeText)
+        return parts.joined(separator: ", ")
     }
 
     @ViewBuilder

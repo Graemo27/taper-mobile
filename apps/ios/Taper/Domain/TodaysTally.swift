@@ -15,12 +15,34 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
     let form: PadForm
     let mg: Double
     let quantity: Int
+    /// When the row was written, off the server's clock.
+    ///
+    /// Not the same question as `logged_on`, which is the reader's own date and
+    /// is what a day is counted by. This is the moment, and it is only ever
+    /// shown — a check-in made at 11:58pm in California belongs to that day
+    /// whatever UTC thinks, which is why the two columns exist separately.
+    let createdAt: Date
 
     /// What this entry contributes: the strength, however many times.
     var totalMg: Double { mg * Double(quantity) }
 
+    /// The moment, as a clock reads it: "12:40 pm", or "12:40" where that is
+    /// how people tell the time.
+    ///
+    /// Lowercased because the board sets it that way and because a row is a
+    /// list of small facts, not a heading. Locale-aware rather than forced to
+    /// twelve hours — the separator lesson from #110 applies here too, and a
+    /// 24-hour reader should get a 24-hour clock.
+    var timeText: String {
+        createdAt.formatted(date: .omitted, time: .shortened).lowercased()
+    }
+
+    /// "Pouch · 12:40 pm" — the category it files under, and when.
+    var detailText: String { "\(form.label) · \(timeText)" }
+
     enum CodingKeys: String, CodingKey {
         case id, ledger, label, form, mg, quantity
+        case createdAt = "created_at"
     }
 }
 

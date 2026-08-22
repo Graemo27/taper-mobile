@@ -48,6 +48,31 @@ enum PadForm: String, CaseIterable, Decodable, Sendable {
         case .pouch, .vape, .cigarette, .dip, .other: return .source
         }
     }
+
+    /// What to call this form when it appears beside a label the user chose.
+    ///
+    /// Sentence case, and never a substitute for the label. The log's rows read
+    /// "Nicorette ice mint / Gum · 10:05 am" — the product is what somebody
+    /// recognises, and the form is the category it files under.
+    ///
+    /// `.other` says "Something else", which is what it is: a source with no
+    /// case of its own, named by whatever the user typed. Naming it after a
+    /// form it is not would put a word in their mouth about what they are
+    /// quitting.
+    var label: String {
+        switch self {
+        case .patch: return "Patch"
+        case .lozenge: return "Lozenge"
+        case .gum: return "Gum"
+        case .inhaler: return "Inhaler"
+        case .spray: return "Spray"
+        case .pouch: return "Pouch"
+        case .vape: return "Vape"
+        case .cigarette: return "Cigarette"
+        case .dip: return "Dip"
+        case .other: return "Something else"
+        }
+    }
 }
 
 extension TreatmentForm {

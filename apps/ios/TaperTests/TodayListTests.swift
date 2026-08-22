@@ -9,7 +9,7 @@ struct TodayListTests {
     private func entry(_ id: Int, mg: Double, quantity: Int = 1,
                        label: String = "Pouch", form: PadForm = .pouch) -> StoredCheckIn {
         StoredCheckIn(id: id, ledger: .source, label: label,
-                      form: form, mg: mg, quantity: quantity)
+                      form: form, mg: mg, quantity: quantity, createdAt: .testMoment)
     }
 
     @Test("a row shows what the day was charged, not the strength of one")
@@ -35,6 +35,62 @@ struct TodayListTests {
         #expect(row.figureText == "3.6 mg")
     }
 
+    @Test("a row says which form it was and when")
+    func theSubtitleNamesTheFormAndTheTime() {
+        // The label is what somebody recognises — a product name, often — and
+        // the form is the category it files under. "Nicorette ice mint" tells
+        // you nothing about whether it counts against the cap; "Gum" does.
+        let gum = CheckInListRow(entry: StoredCheckIn(
+            id: 1, ledger: .treatment, label: "Nicorette ice mint",
+            form: .gum, mg: 2, quantity: 1, createdAt: .testMoment
+        ))
+
+        #expect(gum.entry.detailText.hasPrefix("Gum · "))
+        #expect(gum.entry.timeText == gum.entry.timeText.lowercased(), "the clock shouted")
+        #expect(!gum.entry.timeText.isEmpty)
+
+        // A time, not a date. Every row on this screen is today's, so the date
+        // would be the same noise repeated down the column — and the year is
+        // the part that gives away a formatter reaching for one.
+        let year = String(Calendar.current.component(.year, from: .testMoment))
+        #expect(!gum.entry.timeText.contains(year), "the row printed the date as well as the time")
+    }
+
+    @Test("what a row says out loud carries the form the row shows")
+    func theListenedRowIsNotThePoorerOne() {
+        // The form is the one word that says whether a row counts against the
+        // cap. A product name does not: somebody listening to "Nicorette ice
+        // mint, 2 milligrams" has been told everything except the part that
+        // decides what it means.
+        let gum = CheckInListRow(entry: StoredCheckIn(
+            id: 1, ledger: .treatment, label: "Nicorette ice mint",
+            form: .gum, mg: 2, quantity: 1, createdAt: .testMoment
+        ))
+
+        #expect(gum.spokenText.contains("Gum"), "the spoken row dropped the form")
+        #expect(gum.spokenText.hasPrefix("Nicorette ice mint, Gum, 2 milligrams, "))
+
+        // And a label that is the form in different clothes is still the form.
+        // Source labels will be typed by hand once adding a key is built, and
+        // "pouch" is what somebody types; hearing "pouch, Pouch" back would
+        // read as a bug in the app rather than a difference in case.
+        let typed = CheckInListRow(entry: StoredCheckIn(
+            id: 2, ledger: .source, label: "pouch",
+            form: .pouch, mg: 3, quantity: 1, createdAt: .testMoment
+        ))
+
+        #expect(typed.spokenText.hasPrefix("pouch, 3 milligrams, "), "the form was said twice")
+    }
+
+    @Test("a source with no form of its own says so rather than borrowing one")
+    func otherIsNamedHonestly() {
+        // `.other` is whatever somebody typed for a source with no case of its
+        // own. Calling it "Pouch" because that is the nearest shape would put a
+        // word in their mouth about what they are quitting.
+        #expect(PadForm.other.label == "Something else")
+        #expect(PadForm.cigarette.label == "Cigarette")
+    }
+
     @Test("a single tap is not counted at you")
     func oneIsNotWrittenOut() {
         // "Pouch × 1" is noise on the common case.
@@ -48,7 +104,14 @@ struct TodayListTests {
     func theRowIsSpokenWhole() {
         let row = CheckInListRow(entry: entry(1, mg: 3, quantity: 2))
 
-        #expect(row.spokenText == "Pouch × 2, 6 milligrams")
+        // The time is deliberately not pinned: it is rendered in the runner's
+        // own zone, so a fixed instant reads as a different clock time
+        // depending on where the machine is.
+        //
+        // "Pouch" filed under `.pouch` — the label already is the form, so it
+        // is not said twice. That is the board's own first row.
+        #expect(row.spokenText.hasPrefix("Pouch × 2, 6 milligrams, "))
+        #expect(row.spokenText.hasSuffix(row.entry.timeText))
     }
 
     @Test("an empty day and an unreadable one are different screens")
@@ -93,4 +156,12 @@ struct TodayListTests {
         #expect(!loading.isEmptyDay, "a day still loading was drawn as an empty one")
         #expect(loading.failureText == nil)
     }
+}
+
+extension Date {
+    /// A fixed moment for tests that construct a stored check-in.
+    ///
+    /// Most of them do not care when it happened; the ones that print a time
+    /// need it not to move. 2026-08-22, 12:40 — the board's own example row.
+    static let testMoment = Date(timeIntervalSince1970: 1_787_402_400)
 }

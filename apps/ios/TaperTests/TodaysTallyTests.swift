@@ -10,7 +10,7 @@ private func entry(_ ledger: PadKey.Ledger, mg: Double, quantity: Int = 1) -> St
         form: ledger == .source ? .pouch : .lozenge,
         mg: mg,
         quantity: quantity
-    )
+    , createdAt: .testMoment)
 }
 
 private func padKey(_ ledger: PadKey.Ledger, mg: Double) -> StoredPadKey {

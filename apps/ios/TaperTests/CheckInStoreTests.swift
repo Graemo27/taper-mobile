@@ -54,6 +54,13 @@ extension LiveBackendTests {
         )
 
         #expect(logged.label == "Pouches")
+        // `created_at` is a `timestamptz`, which is a type boundary no fake
+        // crosses. If the decoder cannot read what Postgres writes, this is
+        // where it fails rather than on a screen.
+        #expect(
+            abs(logged.createdAt.timeIntervalSinceNow) < 300,
+            "created_at came back as \(logged.createdAt), which is not about now"
+        )
         #expect(logged.form == .pouch)
         #expect(logged.mg == 6)
         #expect(logged.quantity == 2)
