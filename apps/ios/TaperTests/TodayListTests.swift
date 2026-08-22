@@ -120,9 +120,9 @@ struct TodayListTests {
         // yet" over a day that could not be read is what invites a second
         // dose against a day the app cannot see.
         let empty = TodayListView(status: .ready, entries: [], summary: "0 check-ins · 0 of 12 mg",
-                                  onBack: {})
+                                  onBack: {}, onSelect: { _ in })
         let failed = TodayListView(status: .unavailable("Couldn't load today."), entries: [],
-                                   summary: "0 check-ins · 0 of 12 mg", onBack: {})
+                                   summary: "0 check-ins · 0 of 12 mg", onBack: {}, onSelect: { _ in })
 
         #expect(empty.isEmptyDay)
         #expect(!failed.isEmptyDay, "a failed read was drawn as a day with nothing on it")
@@ -140,18 +140,18 @@ struct TodayListTests {
         // The same defect the card's bar had, and the same fix.
         let real = "3 check-ins · 7.5 of 12 mg"
 
-        #expect(TodayListView(status: .ready, entries: [], summary: real, onBack: {})
+        #expect(TodayListView(status: .ready, entries: [], summary: real, onBack: {}, onSelect: { _ in })
             .summaryText == real)
-        #expect(TodayListView(status: .loading, entries: [], summary: real, onBack: {})
+        #expect(TodayListView(status: .loading, entries: [], summary: real, onBack: {}, onSelect: { _ in })
             .summaryText == nil, "a reload kept the last day's count in the header")
         #expect(TodayListView(status: .unavailable("Couldn't load today."), entries: [],
-                              summary: real, onBack: {})
+                              summary: real, onBack: {}, onSelect: { _ in })
             .summaryText == nil, "a failed read kept the last day's total in the header")
     }
 
     @Test("a day still loading is neither of those")
     func loadingIsItsOwnState() {
-        let loading = TodayListView(status: .loading, entries: [], summary: "", onBack: {})
+        let loading = TodayListView(status: .loading, entries: [], summary: "", onBack: {}, onSelect: { _ in })
 
         #expect(!loading.isEmptyDay, "a day still loading was drawn as an empty one")
         #expect(loading.failureText == nil)

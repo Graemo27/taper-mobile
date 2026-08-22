@@ -579,8 +579,11 @@ struct TodayRecordTests {
         await record.remove(logged(2, mg: 6))
 
         #expect(record.entries.map(\.id) == [1, 2, 3], "the entry came back in the wrong place")
-        #expect(record.removeFailure?.contains("try again") == true)
-        #expect(!(record.removeFailure?.contains("URLError") ?? false))
+        #expect(record.removeFailure?.message.contains("try again") == true)
+        #expect(!(record.removeFailure?.message.contains("URLError") ?? false))
+        // Addressed to the entry it was about, so a different row's screen
+        // cannot pick it up and show it as its own.
+        #expect(record.removeFailure?.entryID == 2)
     }
 
     @Test("removing something that is not on the day does nothing")

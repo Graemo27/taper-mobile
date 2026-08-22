@@ -1,6 +1,16 @@
 import Foundation
 import Observation
 
+/// A removal that did not land, and the entry it was about.
+///
+/// A pair rather than a bare string: the screen showing it can be replaced by
+/// another entry's screen while the message is still set, and a message about
+/// the wrong row is worse than none.
+struct RemovalFailure: Equatable, Sendable {
+    let entryID: Int
+    let message: String
+}
+
 /// What the app knows about today's log.
 ///
 /// An empty day is `ready` and empty — that is how every day starts. Being
@@ -61,9 +71,21 @@ final class TodayRecord {
     /// about reading — a day that read fine and a write that failed are
     /// different sentences, and only one of them has a retry.
     private(set) var writeFailure: String?
-    /// Why the last removal did not land. Its own sentence, because a failed
-    /// delete and a failed write send somebody to different buttons.
-    private(set) var removeFailure: String?
+    /// Why the last removal did not land, and which entry it was about.
+    ///
+    /// Its own sentence, because a failed delete and a failed write send
+    /// somebody to different buttons. The id travels with the message because
+    /// the message outlives the screen that caused it: a removal that fails, a
+    /// step back, and a different row opened would otherwise show that row an
+    /// apology for something nobody did to it.
+    private(set) var removeFailure: RemovalFailure?
+    /// Whether a removal is in flight, for the screen that asked for one.
+    ///
+    /// A count rather than a set of ids: only one check-in can be open at a
+    /// time, so "is anything being removed" is the whole question the edit
+    /// screen has.
+    var isRemoving: Bool { !removing.isEmpty }
+
     /// What is chosen on the pad. Held here rather than beside it, because the
     /// tally is the one place the day and the selection have to be read
     /// together, and two owners would make that a join at every call site.
@@ -230,7 +252,10 @@ final class TodayRecord {
             // the server whether or not this screen can still show it, and a
             // failed removal that reports nothing is one somebody assumes
             // worked.
-            removeFailure = "Couldn't remove that. Check your connection and try again."
+            removeFailure = RemovalFailure(
+                entryID: entry.id,
+                message: "Couldn't remove that. Check your connection and try again."
+            )
 
             // Only onto the day it came off. A reload landing after midnight
             // replaces the day entirely, and restoring into that would file

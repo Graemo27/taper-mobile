@@ -18,6 +18,9 @@ struct TodayListView: View {
     /// The day's ceiling, for the line under the title.
     let summary: String
     let onBack: () -> Void
+    /// Opens one entry. The rows were drawn before there was anywhere for them
+    /// to go, which is why this arrives after the list rather than with it.
+    let onSelect: (StoredCheckIn) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -88,30 +91,9 @@ struct TodayListView: View {
         return message
     }
 
-    /// "‹ Home", drawn rather than left to the system bar.
-    ///
-    /// The board puts the destination in the label, not the screen you are on,
-    /// which is the iOS convention and the useful half: it says where the tap
-    /// goes.
     private var back: some View {
-        Button(action: onBack) {
-            HStack(spacing: AppSpacing.s) {
-                // SF Symbol, unlike the nicotine marks. Those are the board's
-                // own drawings at one stroke weight and the system set is not
-                // them; a back chevron is furniture, and the system one comes
-                // with Dynamic Type and the right optical weight for free.
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 13, weight: .semibold))
-                Text("Home")
-                    .font(AppFont.text(AppSize.body))
-                    .foregroundStyle(AppColor.ink)
-            }
-            .contentShape(Rectangle())
-            .frame(height: AppLayout.tap, alignment: .leading)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("today.back")
-        .accessibilityLabel("Back to home")
+        BackControl(destination: "Home", action: onBack)
+            .accessibilityIdentifier("today.back")
     }
 
     private var header: some View {
@@ -131,7 +113,16 @@ struct TodayListView: View {
     private var rows: some View {
         VStack(spacing: 0) {
             ForEach(entries, id: \.id) { entry in
-                CheckInListRow(entry: entry)
+                let row = CheckInListRow(entry: entry)
+                // The accessibility lives on the button, not inside it. A row
+                // that declares itself a leaf and is then wrapped in a button
+                // gives VoiceOver something it can find and cannot activate —
+                // and a tap lands on a container that does nothing. The pad's
+                // keys are built the same way for the same reason.
+                Button { onSelect(entry) } label: { row }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(row.spokenText)
+                    .accessibilityIdentifier("today.row.\(entry.id)")
             }
         }
     }
@@ -205,8 +196,11 @@ struct CheckInListRow: View {
         }
         .padding(.vertical, AppSpacing.mPlus)
         .overlay(alignment: .bottom) { Rectangle().fill(AppColor.line).frame(height: 1) }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spokenText)
+        // The whole row, not the ink on it. A plain button takes hits only
+        // where its content is opaque, and the middle of this one is the gap
+        // between two lines of text — so without this the row reports itself
+        // hittable and swallows the tap.
+        .contentShape(Rectangle())
     }
 
     /// The quantity rides in the label rather than in the figure.
