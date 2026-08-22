@@ -2,18 +2,9 @@ import SwiftUI
 
 /// L7a — one check-in, and the way to take it back.
 ///
-/// Reached by tapping a row on L7. The reason it is a screen rather than a
-/// swipe-to-delete is the sentence at the bottom of it: removing a check-in
-/// gives the milligrams back, and somebody who mis-tapped needs to be told that
-/// plainly rather than left wondering whether they have just erased evidence.
-/// A gesture cannot say anything.
-///
-/// **Two of the board's controls are not here yet.** The quantity stepper needs
-/// an update path `CheckInStore` does not have, and "Log another of these"
-/// needs a pad key this row cannot produce — `check_ins` keeps a snapshot of
-/// the key, not a usable copy of it, so the draft would have to invent a
-/// `pad_key_id` and would point the provenance at the wrong row. Both are
-/// named on screen rather than left as gaps.
+/// A screen rather than a swipe-to-delete because of the sentence at the bottom
+/// of it: somebody who mis-tapped needs telling that the milligrams come back,
+/// and a gesture cannot say anything.
 struct CheckInEditView: View {
     let entry: StoredCheckIn
     /// Why the last removal did not land, straight off the record — including
@@ -154,6 +145,14 @@ struct CheckInEditView: View {
         entry.ledger == .source ? "Counts toward today" : "Doesn't count toward your cap"
     }
 
+    /// The two of the board's controls that are not here, named rather than
+    /// left as gaps.
+    ///
+    /// The quantity stepper needs an update path `CheckInStore` does not have.
+    /// "Log another of these" needs a pad key this row cannot produce:
+    /// `check_ins` keeps a snapshot of the key rather than a usable copy, so
+    /// the draft would have to invent a `pad_key_id` — and that column is real
+    /// provenance, so an invented one would point at the wrong row.
     private var unbuilt: some View {
         Text("""
         Changing how many, and logging another of these, both belong here and aren't built yet.
