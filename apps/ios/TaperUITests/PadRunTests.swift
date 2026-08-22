@@ -147,6 +147,51 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    func testACheckInCanBeTakenBackOffTheDay() throws {
+        // `TodayRecord.remove(_:)` has been written, tested and unreachable
+        // since #106 — no screen called it. This is the first run in which a
+        // person can undo a mis-tap, which is the whole reason the list exists.
+        openTheLog()
+        app.buttons[pouches].tap()
+        app.buttons["Check in · 3 mg"].tap()
+        XCTAssertTrue(
+            app.staticTexts["3 of 18 mg today"].waitForExistence(timeout: 10),
+            "The check-in did not land, so there was nothing to take back"
+        )
+
+        app.buttons["tab.home"].tap()
+        app.buttons["home.seeHistory"].tap()
+        XCTAssertTrue(
+            app.staticTexts["Today so far, 3 of 18 milligrams"].waitForExistence(timeout: 10)
+                || app.staticTexts["Today"].waitForExistence(timeout: 10),
+            "The list never opened"
+        )
+
+        // The row, then the screen it opens, then the removal.
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'today.row.'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "The day's list had no rows to open")
+        // `isHittable` is not the question. A row with no hit shape reports
+        // itself hittable and still swallows the tap, which is how this shipped
+        // broken for exactly one run.
+        XCTAssertTrue(row.isHittable, "the row button exists but cannot be tapped")
+        row.tap()
+
+        let remove = app.buttons["edit.remove"]
+        if !remove.waitForExistence(timeout: 10) {
+            let btns = app.buttons.allElementsBoundByIndex.prefix(12)
+                .map { "\($0.identifier.isEmpty ? $0.label : $0.identifier)/hit=\($0.isHittable)" }
+            XCTFail("Tapping a row did not open the check-in. Buttons: \(btns)")
+            return
+        }
+        remove.tap()
+
+        // Back on the list, with the row gone and the day given its mg back.
+        XCTAssertTrue(
+            app.staticTexts["0 check-ins · 0 of 18 mg"].waitForExistence(timeout: 10),
+            "The check-in was not taken off the day"
+        )
+    }
+
     func testTheCardOpensTheDayAsAList() throws {
         // The card is the only door to this screen — the board's flows note
         // routes nothing else there — so the one path in is the one thing that

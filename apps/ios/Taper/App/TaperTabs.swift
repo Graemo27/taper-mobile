@@ -22,6 +22,8 @@ struct TaperTabs: View {
     /// push, which is the one thing the board is explicit about: L7 keeps the
     /// bar, with home still lit.
     @State private var isShowingToday = false
+    /// The check-in being looked at, one level above the list.
+    @State private var editing: StoredCheckIn?
     @State private var pad: PadRecord
     @State private var today: TodayRecord
 
@@ -36,12 +38,31 @@ struct TaperTabs: View {
         VStack(spacing: 0) {
             switch selection {
             case .home:
-                if isShowingToday {
+                if let editing {
+                    CheckInEditView(
+                        entry: editing,
+                        failure: today.removeFailure,
+                        isRemoving: today.isRemoving,
+                        onRemove: {
+                            Task {
+                                await today.remove(editing)
+                                // Only leave if it landed. A failed delete has
+                                // a sentence to show, and showing it on the
+                                // screen somebody has already left is the same
+                                // as not showing it.
+                                if today.removeFailure == nil { self.editing = nil }
+                            }
+                        },
+                        onBack: { self.editing = nil }
+                    )
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                } else if isShowingToday {
                     TodayListView(
                         status: today.status,
                         entries: today.entries,
                         summary: today.summary(ceilingMg: progress.todaysCapMg),
-                        onBack: { isShowingToday = false }
+                        onBack: { isShowingToday = false },
+                        onSelect: { editing = $0 }
                     )
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                 } else {
