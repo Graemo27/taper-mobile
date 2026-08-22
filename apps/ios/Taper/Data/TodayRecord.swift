@@ -163,9 +163,14 @@ final class TodayRecord {
     ///
     /// Restored to its own place rather than appended, because the day is in
     /// the order it was logged and a corrected entry that reappears at the
-    /// bottom looks like a second one.
+    /// bottom looks like a second one — and only onto the day it came off.
     func remove(_ entry: StoredCheckIn) async {
         guard let store, loadedEntries.contains(entry) else { return }
+
+        // The day this entry belongs to, read before the request rather than
+        // after it. Midnight can pass while a removal is open, and the entry
+        // is only ever restorable onto the day it was removed from.
+        let removedFrom = loadedDay
 
         loadedEntries.removeAll { $0.id == entry.id }
         // Held for as long as the request is, and read by `load()`. A reload
@@ -180,6 +185,23 @@ final class TodayRecord {
         do {
             try await Task { try await store.remove(entry.id) }.value
         } catch {
+            // Said either way, before deciding whether there is anywhere to put
+            // the row back. The delete did not commit, so the entry is still on
+            // the server whether or not this screen can still show it, and a
+            // failed removal that reports nothing is one somebody assumes
+            // worked.
+            removeFailure = "Couldn't remove that. Check your connection and try again."
+
+            // Only onto the day it came off. A reload landing after midnight
+            // replaces the day entirely, and restoring into that would file
+            // yesterday's entry under today and charge today's cap for it —
+            // rollover undone by the one path that writes to the day without
+            // consulting the clock. Yesterday's row is not lost: the delete
+            // failed, so it is still on the server, and yesterday will read it
+            // back.
+            guard let removedFrom, let loadedDay,
+                  calendar.isDate(loadedDay, inSameDayAs: removedFrom) else { return }
+
             // Back into id order rather than at a remembered index. A reload
             // can have replaced the whole day while this was in flight, and an
             // index from before that is a position in an array that no longer
@@ -188,7 +210,6 @@ final class TodayRecord {
             // rebuilt from the entry itself.
             let at = loadedEntries.firstIndex { $0.id > entry.id } ?? loadedEntries.count
             loadedEntries.insert(entry, at: at)
-            removeFailure = "Couldn't remove that. Check your connection and try again."
         }
     }
 

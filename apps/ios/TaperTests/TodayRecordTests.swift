@@ -681,4 +681,31 @@ struct TodayRecordTests {
         #expect(record.entries.map(\.id) == [1, 2], "the entry came back twice, or in the wrong order")
         #expect(record.tally(ceilingMg: 24).loggedMg == 9, "the cap counted a restored row twice")
     }
+
+    @Test("a failed removal is not restored into a day it did not come from")
+    func aFailedRemovalDoesNotCrossMidnight() async {
+        // Midnight during the request, and a reload that lands on the far side
+        // of it. Putting the entry back now would file yesterday's row under
+        // today and charge today's cap for it — the exact thing rollover
+        // exists to prevent, arriving through the one path that writes to the
+        // day without reading the clock.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3), logged(2, mg: 6)]
+        store.removeDelay = .milliseconds(200)
+        store.removeFails = true
+        let clock = Clock(day)
+        let record = record(store, clock: clock)
+        await record.load()
+
+        let removing = Task { await record.remove(self.logged(2, mg: 6)) }
+        await waitUntil { store.removed == [2] }
+        clock.now = day.addingTimeInterval(86_400)
+        store.existing = [logged(7, mg: 4.5)]
+        await record.load()
+        await removing.value
+
+        #expect(record.entries.map(\.id) == [7], "yesterday's entry was restored into today")
+        #expect(record.tally(ceilingMg: 24).loggedMg == 4.5, "today's cap counted yesterday's row")
+        #expect(record.removeFailure != nil, "a removal that failed said nothing")
+    }
 }
