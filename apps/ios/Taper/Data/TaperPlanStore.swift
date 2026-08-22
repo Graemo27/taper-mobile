@@ -89,6 +89,43 @@ struct StoredTaperPlan: Decodable, Equatable, Sendable {
     }
 }
 
+/// One version of the plan on the wire.
+///
+/// The same figures as `TaperPlanRow` under a different date column: the plan
+/// calls it `cap_effective_from` because it is when today's cap was pinned, and
+/// a version calls it `effective_from` because it is when this whole version
+/// took over. Written out by hand for the reason the plan row is — two shapes
+/// agreeing today is not a reason to let one rename rewrite the other.
+private struct TaperPlanVersionRow: Encodable {
+    let userID: UUID
+    let effectiveFrom: String
+    let startingCapMg: Double
+    let currentCapMg: Double
+    let quitDate: String?
+    let firstUseMinutes: Int
+    let sickInBed: Bool
+
+    init(draft: TaperPlanDraft, userID: UUID, timeZone: TimeZone) {
+        self.userID = userID
+        effectiveFrom = PlanDay.wireFormat(draft.capEffectiveFrom, timeZone: timeZone)
+        startingCapMg = draft.startingCapMg
+        currentCapMg = draft.currentCapMg
+        quitDate = draft.quitDate.map { PlanDay.wireFormat($0, timeZone: timeZone) }
+        firstUseMinutes = draft.firstUseMinutes
+        sickInBed = draft.sickInBed
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case effectiveFrom = "effective_from"
+        case startingCapMg = "starting_cap_mg"
+        case currentCapMg = "current_cap_mg"
+        case quitDate = "quit_date"
+        case firstUseMinutes = "first_use_minutes"
+        case sickInBed = "sick_in_bed"
+    }
+}
+
 /// Writing the plan, as a protocol so the screen that calls it can be driven
 /// without a backend.
 protocol TaperPlanWriting: Sendable {
@@ -136,7 +173,28 @@ struct SupabaseTaperPlanStore: TaperPlanWriting, TaperPlanReading {
 
     func save(_ draft: TaperPlanDraft) async throws -> StoredTaperPlan {
         try await session.authenticated { userID in
+            // The version first, then the plan, because that order recovers.
+            //
+            // `taper_plans` is one upserted row: saving replaces what was there
+            // and the previous cap is gone. The version is the copy a past day
+            // is measured against, so writing it second would mean a crash
+            // between the two left a plan whose earlier days have no ceiling to
+            // draw against — unrecoverable, because the number needed to write
+            // the version has just been overwritten.
+            //
+            // The other way round is recoverable: a version with no plan yet is
+            // corrected by the retry, and the unique constraint on
+            // (user_id, effective_from) makes writing it twice a no-op. Same
+            // reasoning as the pad and the plan in `PlanRecord.submit`.
             try await client
+                .from("taper_plan_versions")
+                .upsert(
+                    TaperPlanVersionRow(draft: draft, userID: userID, timeZone: timeZone),
+                    onConflict: "user_id,effective_from"
+                )
+                .execute()
+
+            return try await client
                 .from("taper_plans")
                 .upsert(
                     TaperPlanRow(draft: draft, userID: userID, timeZone: timeZone),
@@ -150,7 +208,52 @@ struct SupabaseTaperPlanStore: TaperPlanWriting, TaperPlanReading {
     }
 }
 
+/// One version as the table holds it, for the tests and for the reader that
+/// will draw past days against it.
+///
+/// **Every input the planner reads, or the version is worthless.** The schedule
+/// is recomputed rather than stored, so a reader missing one of these fields has
+/// to borrow it from the current plan — and a past day recomputed with today's
+/// dependence answers is exactly the restatement this table exists to prevent.
+/// The same fields, for the same reason, as the ones `StoredTaperPlan` keeps.
+struct StoredPlanVersion: Decodable, Equatable, Sendable {
+    let effectiveFrom: String
+    let startingCapMg: Double
+    let currentCapMg: Double
+    let quitDate: String?
+    let firstUseMinutes: Int
+    let sickInBed: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case effectiveFrom = "effective_from"
+        case startingCapMg = "starting_cap_mg"
+        case currentCapMg = "current_cap_mg"
+        case quitDate = "quit_date"
+        case firstUseMinutes = "first_use_minutes"
+        case sickInBed = "sick_in_bed"
+    }
+}
+
 extension SupabaseTaperPlanStore {
+    /// Every version this user has, newest first.
+    ///
+    /// The order the reader wants: a past day's plan is the first version at or
+    /// before it, which is a scan that stops at the first row.
+    func versions() async throws -> [StoredPlanVersion] {
+        try await session.authenticated { userID in
+            try await client
+                .from("taper_plan_versions")
+                .select("""
+                    effective_from,starting_cap_mg,current_cap_mg,quit_date,\
+                    first_use_minutes,sick_in_bed
+                    """)
+                .eq("user_id", value: userID)
+                .order("effective_from", ascending: false)
+                .execute()
+                .value
+        }
+    }
+
     func currentPlan() async throws -> StoredTaperPlan? {
         try await session.authenticated { userID in
             // Filtered by user_id as well as trusting RLS. The policy is the
