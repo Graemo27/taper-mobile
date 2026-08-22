@@ -20,7 +20,7 @@ struct TodaySoFarCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.l) {
             header
-            DayTrack(tally: tally, context: .summary)
+            DayTrack(tally: trackTally, context: .summary)
             if let failureText { note(failureText) }
             checkInButton
         }
@@ -64,6 +64,26 @@ struct TodaySoFarCard: View {
         status == .ready ? tally.loggedMg.clean : "—"
     }
 
+    /// The day the bar draws, which is nothing at all until the day is known.
+    ///
+    /// `TodayRecord` keeps the last day's entries through a reload and through
+    /// a failed read, so the tally handed to this card can describe a real day
+    /// while the status says otherwise. Drawing it would put a filled bar under
+    /// an em dash — the figure saying it does not know and the bar answering
+    /// anyway, which is the two-answers-to-one-question this card was built to
+    /// avoid.
+    ///
+    /// Emptied rather than hidden. The card keeps its height either way, and a
+    /// surface that changes size while a request lands is one that moves the
+    /// button out from under a thumb. The ceiling is kept so the empty track is
+    /// still the right bar for the day it is about.
+    var trackTally: TodaysTally {
+        guard status == .ready else {
+            return TodaysTally(entries: [], pending: nil, ceilingMg: tally.ceilingMg)
+        }
+        return tally
+    }
+
     /// Whether today's figure should be marked as over the cap.
     ///
     /// Only a day that read cleanly can be over one. A dash is not a number,
@@ -76,9 +96,16 @@ struct TodaySoFarCard: View {
         return message
     }
 
+    /// Says the over-cap state as well as the numbers.
+    ///
+    /// The figure turns red and the bar grows a red tail, and neither of those
+    /// reaches somebody using VoiceOver — who would hear "14 of 12 milligrams"
+    /// and be left to do the comparison themselves. The one state this card
+    /// marks in colour has to be said in words too.
     var spokenTotalText: String {
         guard status == .ready else { return "Today so far, not loaded yet" }
-        return "Today so far, \(tally.loggedMg.clean) of \(tally.ceilingMg.clean) milligrams"
+        let total = "Today so far, \(tally.loggedMg.clean) of \(tally.ceilingMg.clean) milligrams"
+        return isOverToday ? "\(total), over today's cap" : total
     }
 
     /// Why the figure is a dash.

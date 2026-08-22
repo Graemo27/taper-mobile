@@ -128,7 +128,7 @@ struct HomeView: View {
                 .foregroundStyle(AppColor.inkMuted)
             TodaySoFarCard(
                 status: today.status,
-                tally: today.tally(ceilingMg: progress.todaysCapMg),
+                tally: today.loggedTally(ceilingMg: progress.todaysCapMg),
                 onCheckIn: onCheckIn
             )
         }

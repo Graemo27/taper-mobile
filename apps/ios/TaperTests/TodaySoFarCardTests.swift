@@ -48,6 +48,26 @@ struct TodaySoFarCardTests {
         #expect(card.spokenTotalText == "Today so far, 7.5 of 12 milligrams")
     }
 
+    @Test("the bar says nothing while the figure says nothing")
+    func aDashIsNotDrawnOverAFullBar() {
+        // `TodayRecord` keeps the last day's entries through a reload and
+        // through a failed read, so the tally handed over here can be a real
+        // day while the status is not ready. Drawing it would put a filled bar
+        // — a red one, past the cap — under an em dash: the figure saying it
+        // does not know and the bar answering anyway.
+        let reloading = card(.loading, tally: tally(logged: 14))
+        let failed = card(.unavailable("Couldn't load today."), tally: tally(logged: 14))
+
+        #expect(reloading.trackTally.loggedMg == 0, "a reload drew the day it had not re-read")
+        #expect(failed.trackTally.loggedMg == 0, "a failed read drew the day it could not see")
+        #expect(!failed.trackTally.isOver, "a failed read drew an overflow segment")
+        // The ceiling stays, so the empty track is still the right width for
+        // the day it is about.
+        #expect(reloading.trackTally.ceilingMg == 12)
+
+        #expect(card(.ready, tally: tally(logged: 14)).trackTally.loggedMg == 14)
+    }
+
     @Test("going over is said in the figure, not only in the bar")
     func goingOverColoursTheFigure() {
         // The bar already shows it. The figure has to as well, because the
@@ -64,5 +84,11 @@ struct TodaySoFarCardTests {
         // without the guard the dash above would be drawn in red — a breach
         // reported out of a request that has not come back.
         #expect(!card(.loading, tally: tally(logged: 14)).isOverToday, "a dash was marked over")
+
+        // And said, not only coloured. Red does not reach VoiceOver, so a
+        // reader who cannot see the figure would hear the two numbers and be
+        // left to compare them.
+        #expect(over.spokenTotalText == "Today so far, 14 of 12 milligrams, over today's cap")
+        #expect(under.spokenTotalText == "Today so far, 7.5 of 12 milligrams")
     }
 }

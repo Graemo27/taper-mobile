@@ -118,6 +118,18 @@ final class TodayRecord {
         TodaysTally(entries: entries, pending: selection.pending, ceilingMg: ceilingMg)
     }
 
+    /// Today as it stands, with nothing pending folded in.
+    ///
+    /// What a screen other than the pad should ask for. The selection is a
+    /// count somebody is still tapping out — it survives a tab switch on
+    /// purpose — and it belongs to the meter that is about to log it. Anywhere
+    /// else it would draw usage nobody has recorded, against a figure that
+    /// counts only what they have, and could report a day over its cap on the
+    /// strength of a tap never taken.
+    func loggedTally(ceilingMg: Double) -> TodaysTally {
+        TodaysTally(entries: entries, pending: nil, ceilingMg: ceilingMg)
+    }
+
     func load() async {
         guard !isLoading else { return }
         isLoading = true

@@ -110,6 +110,32 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    func testAPendingTapOnThePadDoesNotReachHome() throws {
+        // The selection survives a tab switch on purpose — it is a count
+        // somebody is still tapping out. Home's card is a statement about what
+        // has happened, so a tap nobody has committed must not appear in it:
+        // the bar would draw milligrams the figure beside it does not count,
+        // and a big enough selection would turn that figure red for a dose
+        // never taken.
+        // Tapped past the cap on purpose. A single 3 mg tap leaks invisibly —
+        // home's figure counts what is logged either way, so only the bar and
+        // the red would differ and neither is a thing this suite can read. Over
+        // the 18 mg cap the leak has to say itself out loud.
+        openTheLog()
+        for _ in 1...7 { app.buttons[pouches].tap() }
+        XCTAssertTrue(
+            app.buttons["Check in · 21 mg"].waitForExistence(timeout: 5),
+            "The pad did not take seven taps, so there was no pending selection to carry home"
+        )
+
+        app.buttons["tab.home"].tap()
+        XCTAssertTrue(
+            app.staticTexts["Today so far, 0 of 18 milligrams"].waitForExistence(timeout: 10),
+            "An uncommitted tap on the pad reached home's card — the label would read "
+                + "\"over today's cap\" off 21 mg nobody has logged"
+        )
+    }
+
     func testHomeShowsTodayAndItsButtonReachesThePad() throws {
         // Home reads the day now, which it deliberately did not before — every
         // other figure on that screen comes off the plan and is known at
