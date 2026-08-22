@@ -24,7 +24,7 @@ struct TaperTabs: View {
     @State private var isShowingToday = false
     /// The check-in being looked at, one level above the list.
     @State private var editing: StoredCheckIn?
-    @State private var yesterday: YesterdayRecord
+    @State private var pastDays: PastDaysRecord
     @State private var pad: PadRecord
     @State private var today: TodayRecord
 
@@ -33,7 +33,7 @@ struct TaperTabs: View {
         self.stores = stores
         _pad = State(initialValue: PadRecord(store: stores?.pad))
         _today = State(initialValue: TodayRecord(store: stores?.checkIns))
-        _yesterday = State(initialValue: YesterdayRecord(
+        _pastDays = State(initialValue: PastDaysRecord(
             checkIns: stores?.checkIns, plans: stores?.planVersions
         ))
     }
@@ -67,10 +67,10 @@ struct TaperTabs: View {
                         summary: today.summary(ceilingMg: progress.todaysCapMg),
                         onBack: { isShowingToday = false },
                         onSelect: { editing = $0 },
-                        yesterday: yesterday.rollup,
-                        isYesterdayUnavailable: yesterday.isUnavailable
+                        pastDays: pastDays.rollups,
+                        arePastDaysUnavailable: pastDays.isUnavailable
                     )
-                    .task { await yesterday.load() }
+                    .task { await pastDays.load() }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                 } else {
                     HomeView(

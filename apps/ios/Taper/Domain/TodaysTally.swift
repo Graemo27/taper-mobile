@@ -15,6 +15,15 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
     let form: PadForm
     let mg: Double
     let quantity: Int
+    /// The day this belongs to, as the reader's own calendar had it.
+    ///
+    /// The column a day is *counted* by, and not the same question as
+    /// `createdAt`. A check-in at 11:58pm in California is that day's whatever
+    /// UTC thinks, so grouping a week by the server's clock would file the last
+    /// tap of a night under tomorrow — which is the bug `logged_on` exists to
+    /// prevent, arriving one layer up.
+    let loggedOn: String
+
     /// When the row was written, off the server's clock.
     ///
     /// Not the same question as `logged_on`, which is the reader's own date and
@@ -42,6 +51,7 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id, ledger, label, form, mg, quantity
+        case loggedOn = "logged_on"
         case createdAt = "created_at"
     }
 }

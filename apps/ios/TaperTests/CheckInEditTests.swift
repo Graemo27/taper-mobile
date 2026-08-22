@@ -11,7 +11,7 @@ struct CheckInEditTests {
         label: String = "Pouch", mg: Double = 3, quantity: Int = 1
     ) -> StoredCheckIn {
         StoredCheckIn(id: 1, ledger: ledger, label: label, form: form,
-                      mg: mg, quantity: quantity, createdAt: .testMoment)
+                      mg: mg, quantity: quantity, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
     }
 
     private func view(_ entry: StoredCheckIn, failure: RemovalFailure? = nil,

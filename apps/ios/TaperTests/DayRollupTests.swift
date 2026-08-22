@@ -10,7 +10,8 @@ struct DayRollupTests {
     private func entry(_ id: Int, mg: Double, quantity: Int = 1,
                        ledger: PadKey.Ledger = .source) -> StoredCheckIn {
         StoredCheckIn(id: id, ledger: ledger, label: "Pouch", form: .pouch,
-                      mg: mg, quantity: quantity, createdAt: .testMoment)
+                      mg: mg, quantity: quantity,
+                      loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
     }
 
     private func rollup(_ entries: [StoredCheckIn], cap: Double?) -> DayRollup {

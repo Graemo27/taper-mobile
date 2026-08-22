@@ -3,7 +3,7 @@ import Testing
 @testable import Taper
 
 private func logged(_ mg: Double) -> [StoredCheckIn] {
-    [StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: mg, quantity: 1, createdAt: .testMoment)]
+    [StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: mg, quantity: 1, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)]
 }
 
 private func tap(_ mg: Double) -> PendingEntry {

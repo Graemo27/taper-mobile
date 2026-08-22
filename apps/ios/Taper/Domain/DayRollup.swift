@@ -65,6 +65,16 @@ struct DayRollup: Equatable, Sendable {
     }
 
     /// "10 of 12.5 mg", or the total alone when nothing was measuring it.
+    /// The weekday, for a day far enough back to be named by one.
+    var weekdayText: String {
+        day.formatted(.dateTime.weekday(.wide))
+    }
+
+    /// "Aug 19" — the date without the year, which is noise on a week.
+    var dateText: String {
+        day.formatted(.dateTime.month(.abbreviated).day())
+    }
+
     var totalText: String {
         guard let capMg else { return "\(loggedMg.clean) mg" }
         return "\(loggedMg.clean) of \(capMg.clean) mg"
