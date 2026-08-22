@@ -185,6 +185,67 @@ struct LiveBackendTests {
         #expect(stored.quitDate == "2025-12-04", "stored UTC day instead of the chosen one")
     }
 
+    @Test("saving a plan records the version a past day is measured against",
+          .enabled(if: LocalBackend.isAvailable))
+    func aSavedPlanLeavesAVersionBehind() async throws {
+        // The whole reason the table exists: `taper_plans` is one upserted row,
+        // so the cap someone lived under last week is gone the moment they save
+        // again. The log draws every past day's meter against that day's
+        // ceiling, and without a version there is nothing to draw against.
+        //
+        // A live test rather than a fake, because the write is a second
+        // statement against a real table with its own policies and its own
+        // grant — the two things a mock agrees with and a database does not.
+        let store = await store()
+        _ = try await store.save(
+            TaperPlanDraft(startingCapMg: 18, currentCapMg: 18,
+                           capEffectiveFrom: whenTheDaysDisagree, quitDate: nil,
+                           firstUseMinutes: 20, sickInBed: true)
+        )
+
+        let versions = try await store.versions()
+
+        #expect(versions.count == 1, "saving a plan wrote no version")
+        #expect(versions.first?.currentCapMg == 18)
+        #expect(versions.first?.startingCapMg == 18)
+        // Both dependence answers, because the schedule is recomputed rather
+        // than stored: a reader missing either one has to borrow it from the
+        // current plan, and a past day recomputed with today's answers is the
+        // restatement this table exists to prevent.
+        #expect(versions.first?.firstUseMinutes == 20, "the version cannot rebuild its own schedule")
+        #expect(versions.first?.sickInBed == true, "the version cannot rebuild its own schedule")
+        // The local day, not UTC's. The plan was saved at 23:30 in Los Angeles,
+        // which is already tomorrow in London — and a version filed on the
+        // wrong day answers the wrong question for two days running.
+        #expect(
+            versions.first?.effectiveFrom == PlanDay.wireFormat(whenTheDaysDisagree, timeZone: zone),
+            "the version was filed under a day the user did not live"
+        )
+    }
+
+    @Test("saving twice on one day corrects that day rather than adding another",
+          .enabled(if: LocalBackend.isAvailable))
+    func aSecondSaveOnOneDayIsACorrection() async throws {
+        // Somebody fiddling with their answers in an afternoon has one plan
+        // that day, not four. Two versions sharing a start date would make
+        // "which plan was in force" unanswerable on exactly the day they were
+        // changing it.
+        let store = await store()
+        let draft = TaperPlanDraft(startingCapMg: 18, currentCapMg: 18,
+                                   capEffectiveFrom: whenTheDaysDisagree, quitDate: nil,
+                                   firstUseMinutes: 20, sickInBed: true)
+        _ = try await store.save(draft)
+
+        var corrected = draft
+        corrected.currentCapMg = 12
+        _ = try await store.save(corrected)
+
+        let versions = try await store.versions()
+
+        #expect(versions.count == 1, "a correction was recorded as a second version")
+        #expect(versions.first?.currentCapMg == 12, "the correction did not take")
+    }
+
     @Test("a plan written can be read back on the next launch",
           .enabled(if: LocalBackend.isAvailable))
     func aSavedPlanIsFoundAgain() async throws {

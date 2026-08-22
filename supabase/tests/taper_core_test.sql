@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(32);
+select plan(43);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -340,6 +340,115 @@ select throws_ok(
   '42501',
   null,
   'a stranger cannot log on somebody else''s behalf'
+);
+
+-- MARK: plan versions — what a past day is measured against
+
+select has_table('public', 'taper_plan_versions', 'the plan is versioned');
+
+-- The backfill, re-run rather than observed. `db reset` applies the migration
+-- to an empty database, so the historical run had no plans to copy and there is
+-- nothing left behind to assert on. What can be checked is the statement: given
+-- a plan with no version, it makes one — which is the property anyone who
+-- onboarded before today depends on, since otherwise their log has no ceiling
+-- for any day before their next save.
+select lives_ok(
+  $$insert into public.taper_plan_versions (
+      user_id, effective_from, starting_cap_mg, current_cap_mg,
+      quit_date, first_use_minutes, sick_in_bed
+    )
+    select user_id, cap_effective_from, starting_cap_mg, current_cap_mg,
+           quit_date, first_use_minutes, sick_in_bed
+    from public.taper_plans
+    on conflict (user_id, effective_from) do nothing$$,
+  'the backfill runs against the plans that exist'
+);
+
+select is(
+  (select count(*)::int from public.taper_plan_versions v
+    join public.taper_plans p
+      on p.user_id = v.user_id and p.cap_effective_from = v.effective_from),
+  (select count(*)::int from public.taper_plans),
+  'every plan has a version dated from the cap it is living under'
+);
+
+select is(
+  pg_temp.as_user('11111111-1111-1111-1111-111111111111',
+    $q$insert into public.taper_plan_versions
+         (user_id, effective_from, starting_cap_mg, current_cap_mg, quit_date,
+          first_use_minutes, sick_in_bed)
+       values ('11111111-1111-1111-1111-111111111111', current_date - 30, 24, 24,
+               null, 20, true)$q$),
+  1,
+  'a version can be recorded for a day in the past'
+);
+
+-- The whole point of the table: a second version, later, that does not disturb
+-- the first. A day before the change still has the plan it was lived under.
+select is(
+  pg_temp.as_user('11111111-1111-1111-1111-111111111111',
+    $q$insert into public.taper_plan_versions
+         (user_id, effective_from, starting_cap_mg, current_cap_mg, quit_date,
+          first_use_minutes, sick_in_bed)
+       values ('11111111-1111-1111-1111-111111111111', current_date - 10, 24, 18,
+               null, 20, true)$q$),
+  1,
+  'a later version sits beside the earlier one rather than replacing it'
+);
+
+select is(
+  (select current_cap_mg::numeric from public.taper_plan_versions
+    where user_id = '11111111-1111-1111-1111-111111111111'
+      and effective_from <= current_date - 20
+    order by effective_from desc limit 1),
+  24::numeric,
+  'a day twenty days ago still reads the cap it was lived under'
+);
+
+select is(
+  (select current_cap_mg::numeric from public.taper_plan_versions
+    where user_id = '11111111-1111-1111-1111-111111111111'
+      and effective_from <= current_date - 5
+    order by effective_from desc limit 1),
+  18::numeric,
+  'a day five days ago reads the version that started ten days ago'
+);
+
+-- Saving twice in an afternoon is a correction, not a second version.
+select throws_ok(
+  $$select pg_temp.as_user('11111111-1111-1111-1111-111111111111',
+      $q$insert into public.taper_plan_versions
+           (user_id, effective_from, starting_cap_mg, current_cap_mg, first_use_minutes)
+         values ('11111111-1111-1111-1111-111111111111', current_date - 10, 24, 12, 20)$q$)$$,
+  '23505',
+  null,
+  'two versions cannot share a start date'
+);
+
+select is(
+  pg_temp.as_user('11111111-1111-1111-1111-111111111111',
+    $q$update public.taper_plan_versions set current_cap_mg = 12
+       where effective_from = current_date - 10$q$),
+  1,
+  'the day''s version can be corrected in place instead'
+);
+
+-- The two rules no client-side test can reach.
+select is(
+  pg_temp.as_user('22222222-2222-2222-2222-222222222222',
+                  'select * from public.taper_plan_versions'),
+  0,
+  'a stranger reads none of it'
+);
+
+select throws_ok(
+  $$select pg_temp.as_user('22222222-2222-2222-2222-222222222222',
+      $q$insert into public.taper_plan_versions
+           (user_id, effective_from, starting_cap_mg, current_cap_mg, first_use_minutes)
+         values ('11111111-1111-1111-1111-111111111111', current_date - 1, 24, 18, 20)$q$)$$,
+  '42501',
+  null,
+  'a stranger cannot version somebody else''s plan'
 );
 
 select * from finish();
