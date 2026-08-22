@@ -12,7 +12,7 @@ private func tap(_ mg: Double) -> PendingEntry {
 
 /// Covers the one piece of the meter that is arithmetic rather than layout.
 @MainActor
-struct CapMeterTests {
+struct DayTrackTests {
     private let track: CGFloat = 362
 
     @Test("three segments and their gaps fit the track exactly")
@@ -24,9 +24,9 @@ struct CapMeterTests {
         let tally = TodaysTally(entries: logged(10), pending: tap(4), ceilingMg: 12)
         #expect(tally.loggedFraction + tally.pendingFraction + tally.overflowFraction == 1)
 
-        let widths = CapMeter.segmentWidths(in: track, for: tally)
+        let widths = DayTrack.segmentWidths(in: track, for: tally)
         let drawn = widths.logged + widths.pending + widths.overflow
-        let gaps = 2 * CapMeter.gap
+        let gaps = 2 * DayTrack.gap
 
         #expect(drawn + gaps == track, "the segments and their gaps did not fit the track")
     }
@@ -38,20 +38,20 @@ struct CapMeterTests {
         let tally = TodaysTally(entries: logged(7.5), pending: tap(3), ceilingMg: 12)
         #expect(tally.overflowFraction == 0)
 
-        let widths = CapMeter.segmentWidths(in: track, for: tally)
+        let widths = DayTrack.segmentWidths(in: track, for: tally)
 
         #expect(widths.overflow == 0)
         // One gap taken out of the track, and the two segments share what is
         // left in proportion. A fixed allowance of two gaps would leave the bar
         // two points short of where it should reach.
-        #expect(widths.logged + widths.pending == (track - CapMeter.gap) * 0.875)
+        #expect(widths.logged + widths.pending == (track - DayTrack.gap) * 0.875)
     }
 
     @Test("one segment takes the whole track")
     func aRestingDayHasNoGapsToAllowFor() {
         let tally = TodaysTally(entries: logged(6), pending: nil, ceilingMg: 12)
 
-        let widths = CapMeter.segmentWidths(in: track, for: tally)
+        let widths = DayTrack.segmentWidths(in: track, for: tally)
 
         #expect(widths.logged == track * 0.5, "a lone segment was shortened for a gap beside nothing")
         #expect(widths.pending == 0)
@@ -60,7 +60,7 @@ struct CapMeterTests {
 
     @Test("an empty day draws nothing rather than something of zero width")
     func nothingLoggedIsNothingDrawn() {
-        let widths = CapMeter.segmentWidths(in: track, for: TodaysTally(entries: [], pending: nil, ceilingMg: 12))
+        let widths = DayTrack.segmentWidths(in: track, for: TodaysTally(entries: [], pending: nil, ceilingMg: 12))
 
         #expect(widths.logged == 0)
         #expect(widths.pending == 0)
@@ -73,7 +73,7 @@ struct CapMeterTests {
         // negative frame width is a runtime crash rather than a bad drawing.
         let tally = TodaysTally(entries: logged(10), pending: tap(4), ceilingMg: 12)
 
-        let widths = CapMeter.segmentWidths(in: 0, for: tally)
+        let widths = DayTrack.segmentWidths(in: 0, for: tally)
 
         #expect(widths.logged == 0)
         #expect(widths.pending == 0)
