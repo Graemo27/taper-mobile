@@ -61,7 +61,7 @@ struct AppStores {
     let checkIns: any CheckInStoring
 }
 
-/// The real one.
+/// Seeds and reads the pad through Supabase, as the signed-in anonymous user.
 struct SupabasePadKeyStore: PadKeyWriting, PadKeyReading {
     let client: SupabaseClient
     let session: SessionCoordinator

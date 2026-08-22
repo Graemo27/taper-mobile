@@ -61,6 +61,9 @@ final class TodayRecord {
     /// about reading — a day that read fine and a write that failed are
     /// different sentences, and only one of them has a retry.
     private(set) var writeFailure: String?
+    /// Why the last removal did not land. Its own sentence, because a failed
+    /// delete and a failed write send somebody to different buttons.
+    private(set) var removeFailure: String?
     /// What is chosen on the pad. Held here rather than beside it, because the
     /// tally is the one place the day and the selection have to be read
     /// together, and two owners would make that a join at every call site.
@@ -74,6 +77,24 @@ final class TodayRecord {
     private let calendar: Calendar
     private var isLoading = false
     private(set) var isWriting = false
+    /// Entries whose removal is in flight.
+    ///
+    /// A day read back from the server still contains them until the delete
+    /// commits, so a reload landing mid-removal would put a row back on screen
+    /// that somebody has just taken off it.
+    private var removing: Set<Int> = []
+    /// How many removals have settled. Bumped when one finishes, either way.
+    ///
+    /// `removing` answers "what is in flight right now", which is the wrong
+    /// question for a read that started before a delete and lands after it: by
+    /// the time it resumes, the removal has let go of the id and the snapshot
+    /// it is holding predates the delete. This counts what happened *during*
+    /// the read instead, which is the thing that makes the answer stale.
+    ///
+    /// Either way on purpose. A removal that reported failure may still have
+    /// committed — a connection can drop after the delete lands — so a read
+    /// spanning one cannot be trusted to reflect it whichever way it went.
+    private var removals = 0
 
     init(
         store: (any CheckInStoring)?,
@@ -112,7 +133,24 @@ final class TodayRecord {
             // Read once and kept together, so the rows and the day they answer
             // for cannot drift apart.
             let asked = day()
-            loadedEntries = try await store.entries(on: asked)
+            let settled = removals
+            let read = try await store.entries(on: asked)
+
+            // A removal settled while this read was open, so the read is
+            // answering from before it. Dropped rather than applied: what is
+            // already on screen is the last good day minus the row that was
+            // taken off it, and that is nearer the truth than a snapshot from
+            // before the delete. Nothing is lost — a removal can only settle
+            // against a day that loaded, so there is always a day to keep.
+            guard removals == settled else {
+                status = .ready
+                return
+            }
+
+            // Minus anything being removed right now: the server has not
+            // committed those deletes yet, and putting the rows back on screen
+            // would undo a correction in front of the person making it.
+            loadedEntries = read.filter { !removing.contains($0.id) }
             loadedDay = asked
             status = .ready
         } catch {
@@ -124,6 +162,82 @@ final class TodayRecord {
             // as `URLError.cancelled` and only the flag covers both routes.
             guard !Task.isCancelled else { return }
             status = .unavailable("Couldn't load today. Check your connection and try again.")
+        }
+    }
+
+    /// The day read back in a line: how many entries, and where they leave it.
+    ///
+    /// Counts every entry, including treatment — the list shows what happened,
+    /// and a patch taken is something that happened. The milligrams beside it
+    /// are the ones that count against the cap, which is why the two numbers
+    /// can look unrelated and are not.
+    func summary(ceilingMg: Double) -> String {
+        let count = entries.count
+        let noun = count == 1 ? "check-in" : "check-ins"
+        let tally = tally(ceilingMg: ceilingMg)
+        return "\(count) \(noun) · \(tally.loggedMg.clean) of \(ceilingMg.clean) mg"
+    }
+
+    /// Takes an entry back.
+    ///
+    /// Removed from the day before the request, and put back if it fails. The
+    /// alternative — waiting on the server before the row leaves the screen —
+    /// makes correcting a mis-tap feel like it might not have worked, and the
+    /// most common reason somebody deletes is that they just tapped the wrong
+    /// key and want it gone now.
+    ///
+    /// Restored to its own place rather than appended, because the day is in
+    /// the order it was logged and a corrected entry that reappears at the
+    /// bottom looks like a second one — and only onto the day it came off.
+    func remove(_ entry: StoredCheckIn) async {
+        guard let store, loadedEntries.contains(entry) else { return }
+
+        // The day this entry belongs to, read before the request rather than
+        // after it. Midnight can pass while a removal is open, and the entry
+        // is only ever restorable onto the day it was removed from.
+        let removedFrom = loadedDay
+
+        loadedEntries.removeAll { $0.id == entry.id }
+        // Held for as long as the request is, and read by `load()`. A reload
+        // landing mid-removal answers from the server, which still has the row
+        // until the delete commits — so without this the entry comes back on
+        // screen after a delete that worked, or arrives twice after one that
+        // did not.
+        removing.insert(entry.id)
+        removeFailure = nil
+        defer {
+            removing.remove(entry.id)
+            removals += 1
+        }
+
+        do {
+            try await Task { try await store.remove(entry.id) }.value
+        } catch {
+            // Said either way, before deciding whether there is anywhere to put
+            // the row back. The delete did not commit, so the entry is still on
+            // the server whether or not this screen can still show it, and a
+            // failed removal that reports nothing is one somebody assumes
+            // worked.
+            removeFailure = "Couldn't remove that. Check your connection and try again."
+
+            // Only onto the day it came off. A reload landing after midnight
+            // replaces the day entirely, and restoring into that would file
+            // yesterday's entry under today and charge today's cap for it —
+            // rollover undone by the one path that writes to the day without
+            // consulting the clock. Yesterday's row is not lost: the delete
+            // failed, so it is still on the server, and yesterday will read it
+            // back.
+            guard let removedFrom, let loadedDay,
+                  calendar.isDate(loadedDay, inSameDayAs: removedFrom) else { return }
+
+            // Back into id order rather than at a remembered index. A reload
+            // can have replaced the whole day while this was in flight, and an
+            // index from before that is a position in an array that no longer
+            // exists. The day is ordered by id — the read asks for it that way
+            // and a new entry always has the highest — so the order can be
+            // rebuilt from the entry itself.
+            let at = loadedEntries.firstIndex { $0.id > entry.id } ?? loadedEntries.count
+            loadedEntries.insert(entry, at: at)
         }
     }
 
@@ -151,6 +265,7 @@ final class TodayRecord {
     func clear() {
         selection.clear()
         writeFailure = nil
+        removeFailure = nil
     }
 
     /// Logs what is selected.
