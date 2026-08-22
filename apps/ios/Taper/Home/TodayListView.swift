@@ -21,25 +21,35 @@ struct TodayListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            back
-            header.padding(.top, AppSpacing.l)
+            // Pinned. It is the way out, and a day long enough to scroll is
+            // exactly the day you do not want to scroll back up to leave.
+            back.padding(.horizontal, AppLayout.gutter)
 
-            switch status {
-            case .loading:
-                loading.padding(.top, AppSpacing.xxl)
-            case .ready where entries.isEmpty:
-                empty.padding(.top, AppSpacing.l)
-            case .ready:
-                rows.padding(.top, AppSpacing.sm)
-            case let .unavailable(message):
-                note(message).padding(.top, AppSpacing.l)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    header.padding(.top, AppSpacing.l)
+
+                    switch status {
+                    case .loading:
+                        loading.padding(.top, AppSpacing.xxl)
+                    case .ready where entries.isEmpty:
+                        empty.padding(.top, AppSpacing.l)
+                    case .ready:
+                        rows.padding(.top, AppSpacing.sm)
+                    case let .unavailable(message):
+                        note(message).padding(.top, AppSpacing.l)
+                    }
+
+                    unbuilt.padding(.top, AppSpacing.xxl)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AppLayout.gutter)
             }
-
-            unbuilt.padding(.top, AppSpacing.xxl)
-
-            Spacer(minLength: 0)
+            // A heavy day runs past the bottom of the screen — twenty check-ins
+            // is a bad day, not an impossible one, and without this the oldest
+            // of them cannot be reached at all.
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .padding(.horizontal, AppLayout.gutter)
         .padding(.top, AppSpacing.smPlus)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppColor.ground)
@@ -56,6 +66,20 @@ struct TodayListView: View {
     /// could not see is what invites a second dose.
     var isEmptyDay: Bool {
         status == .ready && entries.isEmpty
+    }
+
+    /// The count and total, and only when the day is known.
+    ///
+    /// `TodayRecord` keeps the last day's entries through a reload and through
+    /// a failed read, so this sentence can describe a real day while the body
+    /// below it is a spinner or an apology. Dropped rather than dashed: it is
+    /// a sentence, not a figure, and half of one reads worse than none.
+    ///
+    /// The same rule the card's bar follows, and for the same reason — a
+    /// screen that answers with stale numbers while saying it does not know is
+    /// giving two answers to one question.
+    var summaryText: String? {
+        status == .ready ? summary : nil
     }
 
     /// Why the day is not shown, when there is a reason to give.
@@ -95,9 +119,11 @@ struct TodayListView: View {
             Text("Today")
                 .font(AppFont.display(AppSize.display))
                 .foregroundStyle(AppColor.ink)
-            Text(summary)
-                .font(AppFont.text(AppSize.caption))
-                .foregroundStyle(AppColor.inkMuted)
+            if let summaryText {
+                Text(summaryText)
+                    .font(AppFont.text(AppSize.caption))
+                    .foregroundStyle(AppColor.inkMuted)
+            }
         }
         .accessibilityElement(children: .combine)
     }

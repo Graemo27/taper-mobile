@@ -67,6 +67,25 @@ struct TodayListTests {
         #expect(empty.failureText == nil)
     }
 
+    @Test("the header's numbers are dropped when the day is not known")
+    func aStaleTotalDoesNotOutliveItsDay() {
+        // `TodayRecord` keeps the last day's entries through a reload and
+        // through a failed read, so this sentence can describe a real day
+        // while the body below it is a spinner or an apology — the header
+        // answering confidently while the screen says it does not know.
+        //
+        // The same defect the card's bar had, and the same fix.
+        let real = "3 check-ins · 7.5 of 12 mg"
+
+        #expect(TodayListView(status: .ready, entries: [], summary: real, onBack: {})
+            .summaryText == real)
+        #expect(TodayListView(status: .loading, entries: [], summary: real, onBack: {})
+            .summaryText == nil, "a reload kept the last day's count in the header")
+        #expect(TodayListView(status: .unavailable("Couldn't load today."), entries: [],
+                              summary: real, onBack: {})
+            .summaryText == nil, "a failed read kept the last day's total in the header")
+    }
+
     @Test("a day still loading is neither of those")
     func loadingIsItsOwnState() {
         let loading = TodayListView(status: .loading, entries: [], summary: "", onBack: {})
