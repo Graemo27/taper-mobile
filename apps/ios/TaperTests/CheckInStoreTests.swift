@@ -111,6 +111,44 @@ extension LiveBackendTests {
         #expect(try await checkIns.entries(on: Date()).isEmpty)
     }
 
+    @Test("a span reads back every day in it and nothing either side",
+          .enabled(if: LocalBackend.isAvailable))
+    func aRangeIsInclusiveOfBothEnds() async throws {
+        // `gte`/`lte` on a date column against strings the client formats: a
+        // boundary that is exclusive at one end, or a comparison Postgres does
+        // as text rather than as a date, both read as a week that is quietly
+        // missing a day. No fake can tell me which.
+        let (checkIns, pad) = await checkInBackend()
+        let key = try await seededKey(pad)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        func day(_ offset: Int) -> Date {
+            calendar.date(byAdding: .day, value: offset, to: today)!
+        }
+
+        // One on each end of the span, and one the day before it — each with a
+        // different quantity, because `StoredCheckIn` carries no `logged_on`
+        // and a count alone cannot tell a correct window from one shifted a day
+        // off. Rows come back in id order, which is insertion order.
+        for (offset, quantity) in [(-3, 3), (-2, 2), (-1, 1)] {
+            _ = try await checkIns.log(
+                CheckInDraft(pending: PendingEntry(key: key, quantity: quantity), day: day(offset))
+            )
+        }
+
+        let span = try await checkIns.entries(from: day(-2), to: day(-1))
+        #expect(span.map(\.quantity) == [2, 1], "the span took the wrong two days")
+
+        let outside = try await checkIns.entries(from: day(-3), to: day(-3))
+        #expect(outside.map(\.quantity) == [3], "a single day read as a span lost or borrowed a row")
+
+        // Handed over backwards, which a caller doing date arithmetic will do
+        // eventually. It has to mean the same span rather than an empty one.
+        let reversed = try await checkIns.entries(from: day(-1), to: day(-2))
+        #expect(reversed.map(\.quantity) == span.map(\.quantity), "a backwards span read differently")
+    }
+
     @Test("a day reads back in the order it was logged",
           .enabled(if: LocalBackend.isAvailable))
     func theDayIsInTapOrder() async throws {
