@@ -24,13 +24,29 @@ protocol CheckInWriting: Sendable {
     func log(_ draft: CheckInDraft) async throws -> StoredCheckIn
 }
 
-/// Reading a day back.
+/// Reading days back.
 protocol CheckInReading: Sendable {
-    /// Everything logged on that day, in the order it was logged.
+    /// Everything logged across a span of days, inclusive of both ends, in the
+    /// order it was logged.
     ///
-    /// An empty day is a value, never an error — most days start that way, and
-    /// the tally asks this question before anything is on screen.
-    func entries(on day: Date) async throws -> [StoredCheckIn]
+    /// A range rather than a day because the log draws a run of them and one
+    /// request is cheaper than seven — and because a per-day loop would report
+    /// a week as seven independent successes and failures, which is not how
+    /// anybody reads a week.
+    ///
+    /// An empty span is a value, never an error. Most days start that way, and
+    /// the days before somebody joined are legitimately empty.
+    func entries(from first: Date, to last: Date) async throws -> [StoredCheckIn]
+}
+
+extension CheckInReading {
+    /// One day, which is the span from it to itself.
+    ///
+    /// Kept because most callers want exactly one and `from: day, to: day`
+    /// reads like a mistake at the call site.
+    func entries(on day: Date) async throws -> [StoredCheckIn] {
+        try await entries(from: day, to: day)
+    }
 }
 
 /// Taking an entry back.
@@ -91,8 +107,13 @@ extension SupabaseCheckInStore {
         }
     }
 
-    func entries(on day: Date) async throws -> [StoredCheckIn] {
-        let wire = PlanDay.wireFormat(day, timeZone: timeZone)
+    func entries(from first: Date, to last: Date) async throws -> [StoredCheckIn] {
+        // Ordered by the caller's own dates rather than trusted. A span handed
+        // over backwards would match nothing and read as an empty week, which
+        // is a wrong answer that looks like a right one.
+        let (start, end) = first <= last ? (first, last) : (last, first)
+        let from = PlanDay.wireFormat(start, timeZone: timeZone)
+        let to = PlanDay.wireFormat(end, timeZone: timeZone)
         return try await session.authenticated { userID in
             // Filtered by user_id as well as trusting RLS, for the reason the
             // other reads give: a query that is only safe because of a policy
@@ -101,7 +122,8 @@ extension SupabaseCheckInStore {
                 .from("check_ins")
                 .select()
                 .eq("user_id", value: userID)
-                .eq("logged_on", value: wire)
+                .gte("logged_on", value: from)
+                .lte("logged_on", value: to)
                 // By id, which is insertion order. `created_at` would be the
                 // obvious choice and is worse: two taps inside the same clock
                 // tick would be free to swap, and the day's list is something

@@ -14,11 +14,22 @@ private final class FakeDays: CheckInReading, @unchecked Sendable {
     private let calendar: Calendar
     init(calendar: Calendar) { self.calendar = calendar }
 
-    func entries(on day: Date) async throws -> [StoredCheckIn] {
-        let key = PlanDay.wireFormat(day, timeZone: calendar.timeZone)
-        lock.withLock { _asked.append(key) }
+    func entries(from first: Date, to last: Date) async throws -> [StoredCheckIn] {
+        // Records the span it was handed, so a test can tell one request for a
+        // week from seven requests for a day.
+        let from = PlanDay.wireFormat(first, timeZone: calendar.timeZone)
+        let to = PlanDay.wireFormat(last, timeZone: calendar.timeZone)
+        lock.withLock { _asked.append(from == to ? from : "\(from)…\(to)") }
         if fails { throw URLError(.notConnectedToInternet) }
-        return byDay[key] ?? []
+
+        var days: [String] = []
+        var cursor = calendar.startOfDay(for: min(first, last))
+        let end = calendar.startOfDay(for: max(first, last))
+        while cursor <= end {
+            days.append(PlanDay.wireFormat(cursor, timeZone: calendar.timeZone))
+            cursor = calendar.date(byAdding: .day, value: 1, to: cursor)!
+        }
+        return days.flatMap { byDay[$0] ?? [] }
     }
 }
 

@@ -29,7 +29,7 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
     var writes: [CheckInDraft] { lock.withLock { _writes } }
     var reads: Int { lock.withLock { _reads } }
 
-    func entries(on day: Date) async throws -> [StoredCheckIn] {
+    func entries(from first: Date, to last: Date) async throws -> [StoredCheckIn] {
         lock.withLock { _reads += 1 }
         if let readDelay { try await Task.sleep(for: readDelay) }
         if readHangs { try await Task.sleep(for: .seconds(30)) }
