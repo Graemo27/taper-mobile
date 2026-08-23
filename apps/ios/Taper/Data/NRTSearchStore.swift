@@ -38,13 +38,11 @@ struct NRTResult: Equatable, Sendable, Identifiable {
     }
 }
 
-/// Searching the licensed NRT catalogue.
-///
-/// **Discovery is restricted to licensed nicotine replacement therapy, and that
-/// is enforced on the server rather than here.** `nrt-search` takes no product
-/// type or category parameter, so no client can widen it — this type cannot ask
-/// for a pouch or a vape even by mistake, which is the property that makes the
-/// rule hold rather than a promise the app keeps to itself.
+/// Searching the licensed NRT catalogue, where the restriction to licensed
+/// nicotine replacement therapy is enforced by the `nrt-search` route rather
+/// than here. It exposes no product-type or category parameter, so no client —
+/// this one included — can widen discovery to pouches, vapes or anything else
+/// the app is not licensed to recommend.
 protocol NRTSearching: Sendable {
     /// Products matching a brand name, grouped by brand and form.
     ///
