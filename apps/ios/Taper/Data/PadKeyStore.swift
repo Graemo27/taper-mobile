@@ -62,6 +62,9 @@ struct AppStores {
     let planVersions: any PlanVersionReading
     let pad: any PadKeyStoring
     let checkIns: any CheckInStoring
+    /// The licensed catalogue. Its own protocol because it is the only read in
+    /// the app that goes through an Edge Function rather than a table.
+    let nrt: any NRTSearching
 }
 
 /// Seeds and reads the pad through Supabase, as the signed-in anonymous user.

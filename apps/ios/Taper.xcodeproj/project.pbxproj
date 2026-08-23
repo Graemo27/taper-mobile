@@ -61,6 +61,7 @@
 		79FD6A2D96FDD74756B4F236 /* StrengthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42AA9319A756BB1539B49424 /* StrengthView.swift */; };
 		7B99E8E00A53E7392349786F /* BackControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4010A1E5CDD594D36236422 /* BackControl.swift */; };
 		7BE5341D70A65DC5C4C1DBC3 /* NicotineMarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94FA2858738E07EB7BE1BCC /* NicotineMarkTests.swift */; };
+		7BE93A8BB1BC14A149F7FC80 /* TreatmentSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2749855C497890CA4CF0270A /* TreatmentSearchTests.swift */; };
 		7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */; };
 		7C82B2CC78800410E0BC19C9 /* DayTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C09E98736915DB3594FA5CC /* DayTrack.swift */; };
 		7CF719E37B2E4EE6A68A9849 /* PadRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D1598E57443987CD03A24 /* PadRunTests.swift */; };
@@ -107,6 +108,7 @@
 		F98DCA94C38917A3AB92645B /* TodayRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DE5ABE508EA7257C871ED1A /* TodayRecord.swift */; };
 		F9AE040439B95F79AFDCC07C /* TaperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B9903E0264C634FF6C6E5F /* TaperApp.swift */; };
 		F9DC16D7896F210B92C01CD8 /* DayTrackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ADDAD495331A13B8885B775 /* DayTrackTests.swift */; };
+		FB047FDAC077333F7B74DDC1 /* TreatmentSearchRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27616615CC236DECC6167432 /* TreatmentSearchRecord.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -143,6 +145,8 @@
 		1D5472AAD3EF0D196C12393E /* PadSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadSelection.swift; sourceTree = "<group>"; };
 		1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Medium.otf"; sourceTree = "<group>"; };
 		246BB3108218BB70AFF88CA6 /* TodayListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayListTests.swift; sourceTree = "<group>"; };
+		2749855C497890CA4CF0270A /* TreatmentSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentSearchTests.swift; sourceTree = "<group>"; };
+		27616615CC236DECC6167432 /* TreatmentSearchRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentSearchRecord.swift; sourceTree = "<group>"; };
 		29075C1BFAD49736B729C3DF /* AmountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountView.swift; sourceTree = "<group>"; };
 		29BE0845DD8EEF48524461D6 /* SickInBedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SickInBedView.swift; sourceTree = "<group>"; };
 		29C48EAAEE5BE454A7FFEC78 /* PlanHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanHistory.swift; sourceTree = "<group>"; };
@@ -350,6 +354,7 @@
 				7C04762C046C39BBF49A4545 /* TodayRecordTests.swift */,
 				D5640C541A8FE4D023E5B42B /* TodaySoFarCardTests.swift */,
 				31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */,
+				2749855C497890CA4CF0270A /* TreatmentSearchTests.swift */,
 			);
 			path = TaperTests;
 			sourceTree = "<group>";
@@ -477,6 +482,7 @@
 				FBD1FA4880F90D7EA4A5BA29 /* PadActionBar.swift */,
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
 				2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */,
+				27616615CC236DECC6167432 /* TreatmentSearchRecord.swift */,
 			);
 			path = Pad;
 			sourceTree = "<group>";
@@ -648,6 +654,7 @@
 				7320791C1E1BCD24F1068CB1 /* TodayRecordTests.swift in Sources */,
 				D2B2C97B8CD0DD3096075254 /* TodaySoFarCardTests.swift in Sources */,
 				96B207CB5A6C660744D6DF15 /* TodaysTallyTests.swift in Sources */,
+				7BE93A8BB1BC14A149F7FC80 /* TreatmentSearchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -711,6 +718,7 @@
 				C7BB569FEB8165AB4877C76F /* TodaySoFarCard.swift in Sources */,
 				3BDAAD05A649B6D420DE5F49 /* TodaysTally.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
+				FB047FDAC077333F7B74DDC1 /* TreatmentSearchRecord.swift in Sources */,
 				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
 				2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */,
 				46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */,
