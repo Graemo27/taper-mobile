@@ -87,7 +87,7 @@ struct TaperTabs: View {
             case .log:
                 PadView(status: pad.status, record: today, ceilingMg: progress.todaysCapMg)
             case .plan:
-                UnbuiltPlanView()
+                PlanTabView(progress: progress)
             }
 
             TaperTabBar(selection: $selection)
@@ -113,31 +113,5 @@ struct TaperTabs: View {
                 break
             }
         }
-    }
-}
-
-/// L4, which does not exist yet.
-///
-/// A tab that leads somewhere honest rather than one that appears later. A bar
-/// that grows a tab is one people have to re-learn, and the board draws three.
-struct UnbuiltPlanView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.m) {
-            Text("Your plan")
-                .font(AppFont.display(AppSize.title))
-                .foregroundStyle(AppColor.ink)
-            Text("""
-            The whole taper — every week's cap and the date it reaches zero — belongs here. \
-            It isn't built yet. Today's cap is on the home tab in the meantime.
-            """)
-                .font(AppFont.text(AppSize.caption))
-                .lineSpacing(AppLeading.snug - AppSize.caption)
-                .foregroundStyle(AppColor.inkMuted)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, AppLayout.gutter)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.top, AppSpacing.giant)
-        .background(AppColor.ground)
     }
 }
