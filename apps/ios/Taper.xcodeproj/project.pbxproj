@@ -35,6 +35,7 @@
 		36435BC9FE706B455E4CE02E /* DayRollupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDA697AECD41D8C5B516E50 /* DayRollupTests.swift */; };
 		3BDAAD05A649B6D420DE5F49 /* TodaysTally.swift in Sources */ = {isa = PBXBuildFile; fileRef = 142209CB7BE6DD26367BB3ED /* TodaysTally.swift */; };
 		3CACAE459BB033FFC668B8D1 /* AgeGateRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5130DC0EF5BBB67260B85D27 /* AgeGateRunTests.swift */; };
+		3CD8C7E5CE0165149C48E881 /* PlanTabTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76A198F850C8A0E35AEF60BB /* PlanTabTests.swift */; };
 		3EFA9747A84E105F80435DFD /* Ginger.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7647D93BDDDDB17B5CEDB528 /* Ginger.otf */; };
 		3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931D71CAE19F0707B5BBCDF8 /* HomeView.swift */; };
 		421DF875F124088B9A404247 /* TaperRunCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66C7AC1982D58572E57F1FC /* TaperRunCase.swift */; };
@@ -77,6 +78,7 @@
 		AF7FB431CE8CF726A284EA30 /* PastDaysRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C68EFAF09F241AE6E3DAB77 /* PastDaysRecordTests.swift */; };
 		B47CED8A2E89349A7586059B /* WhatYouUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */; };
 		B495B01DAD58B742106956BB /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE711B9158A40AC1D87F748F /* DesignTokens.swift */; };
+		B67665A40325E6E8A79642B1 /* PlanTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09475EA97F0CE77A27243776 /* PlanTabView.swift */; };
 		B89DF6FFA0FE064713A779F9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63F7D57B4CA77D384577A81C /* Assets.xcassets */; };
 		B8B045739B342AF7403E3D45 /* CheckInStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58348CD50451359D0AB2A154 /* CheckInStore.swift */; };
 		B9AE469C30DB893D9C393712 /* TaperTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A368BD902DA675BEB3D02749 /* TaperTab.swift */; };
@@ -128,6 +130,7 @@
 		081821A6E6E57C36D4D50320 /* CheckInStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInStoreTests.swift; sourceTree = "<group>"; };
 		08785AAB390FD2A3138DB75C /* PriorAttempt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorAttempt.swift; sourceTree = "<group>"; };
 		093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingAnswers.swift; sourceTree = "<group>"; };
+		09475EA97F0CE77A27243776 /* PlanTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTabView.swift; sourceTree = "<group>"; };
 		0CD1316F44498C566B2C429B /* HTTPClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClientTests.swift; sourceTree = "<group>"; };
 		0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStoreTests.swift; sourceTree = "<group>"; };
 		142209CB7BE6DD26367BB3ED /* TodaysTally.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaysTally.swift; sourceTree = "<group>"; };
@@ -172,6 +175,7 @@
 		6DE5ABE508EA7257C871ED1A /* TodayRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayRecord.swift; sourceTree = "<group>"; };
 		6E24D4F5D6154FF40A552901 /* PastDaysRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDaysRecord.swift; sourceTree = "<group>"; };
 		7647D93BDDDDB17B5CEDB528 /* Ginger.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ginger.otf; sourceTree = "<group>"; };
+		76A198F850C8A0E35AEF60BB /* PlanTabTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTabTests.swift; sourceTree = "<group>"; };
 		76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStore.swift; sourceTree = "<group>"; };
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
 		78CFECFF581F116D3F38394B /* PlanHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanHistoryTests.swift; sourceTree = "<group>"; };
@@ -292,6 +296,7 @@
 			children = (
 				696EF921A734BD48DA5A25ED /* CheckInEditView.swift */,
 				931D71CAE19F0707B5BBCDF8 /* HomeView.swift */,
+				09475EA97F0CE77A27243776 /* PlanTabView.swift */,
 				5A17E3EA25F4732A7769248A /* TodayListView.swift */,
 				C6058CD141DA498C70E6BC6C /* TodaySoFarCard.swift */,
 			);
@@ -331,6 +336,7 @@
 				78CFECFF581F116D3F38394B /* PlanHistoryTests.swift */,
 				9DA7E36678357D84CBFF846B /* PlanProgressTests.swift */,
 				FA6C5F209132014C07F9CF88 /* PlanRecordTests.swift */,
+				76A198F850C8A0E35AEF60BB /* PlanTabTests.swift */,
 				7ECEF2DA27BE2E09BE44244D /* SessionCoordinatorTests.swift */,
 				0F2C082972DB49B5C48FE03F /* TaperPlanStoreTests.swift */,
 				C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */,
@@ -627,6 +633,7 @@
 				BACCFFED879492AAFCE48EB8 /* PlanHistoryTests.swift in Sources */,
 				2900CBD113C33E7E6B0753C4 /* PlanProgressTests.swift in Sources */,
 				73E63E6533098B20969D4EF7 /* PlanRecordTests.swift in Sources */,
+				3CD8C7E5CE0165149C48E881 /* PlanTabTests.swift in Sources */,
 				32A0BE9D766122AE40632C9C /* SessionCoordinatorTests.swift in Sources */,
 				0A5C68E2CDE284CBF031B1C3 /* TaperPlanStoreTests.swift in Sources */,
 				8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */,
@@ -675,6 +682,7 @@
 				59CE24C6476EDA822E2ABD29 /* PlanProgress.swift in Sources */,
 				4297BB6C43A7D64AB507AA10 /* PlanRecord.swift in Sources */,
 				11E30672A79775DC15E4EF95 /* PlanShape.swift in Sources */,
+				B67665A40325E6E8A79642B1 /* PlanTabView.swift in Sources */,
 				17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */,
 				A0D9656FB8FBFA282F86E1E1 /* QuitDate.swift in Sources */,
 				27B5638EC436F5F8FC70DA39 /* QuitDateView.swift in Sources */,

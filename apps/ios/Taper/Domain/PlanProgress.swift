@@ -19,6 +19,19 @@ struct PlanProgress: Equatable, Sendable {
     var daysUntilQuitDate: Int?
     /// The next step down, and when it lands. Nil once there are no more.
     var nextStep: NextStep?
+    /// The whole descent, a ceiling per week from the plan's first on.
+    ///
+    /// Already computed here to find today's cap, and exposed rather than
+    /// rebuilt by the plan tab: two models of one plan is what put
+    /// "18 mg — drops to 13.5" on the screen in week two.
+    var weeklyCapsMg: [Double]
+    /// How dependent the answers said they were.
+    ///
+    /// Named on the plan tab, because the descent is shaped by it and a
+    /// schedule with no stated reason reads as arbitrary.
+    var dependence: Dependence
+    /// The day the descent reaches zero, when a date was chosen.
+    var lastMilligramDay: Date?
 
     /// The cap after this one, and how far off it is.
     struct NextStep: Equatable, Sendable {
@@ -82,14 +95,18 @@ struct PlanProgress: Equatable, Sendable {
         // one plan is what put "18 mg — drops to 13.5" on the screen in week
         // two: the row standing where onboarding left it while the derived
         // step walked straight past the 16 mg week between them.
-        let schedule = TaperPlanner.plan(for: TaperInput(
+        let built = TaperPlanner.plan(for: TaperInput(
             startingCapMg: plan.startingCapMg,
             minutesToFirstUse: plan.firstUseMinutes,
             usesWhenIllInBed: plan.sickInBed,
             weeksUntilQuitDate: quitDate.map {
                 QuitDate.weeks(from: start, to: $0, calendar: calendar)
             }
-        )).weeklyCapsMg
+        ))
+        let schedule = built.weeklyCapsMg
+        weeklyCapsMg = schedule
+        dependence = built.dependence
+        lastMilligramDay = quitDate
 
         // The same rule every past day is read by, so home and the log cannot
         // disagree about one day.
