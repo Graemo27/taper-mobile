@@ -19,6 +19,7 @@
 		17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08785AAB390FD2A3138DB75C /* PriorAttempt.swift */; };
 		199779256158861C053608A1 /* StartingLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5218152C4EC89C9B5D06D692 /* StartingLine.swift */; };
 		1C5189212159159084EBDF63 /* CheckInEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 696EF921A734BD48DA5A25ED /* CheckInEditView.swift */; };
+		207352AD42EF8BB362669456 /* NRTSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ADF57D828C4F6D815EEE968 /* NRTSearchTests.swift */; };
 		20ED3ECE29DE0547B9356A53 /* LinearGrotesk-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */; };
 		222A8572E9A13370F23CAF8B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 1756A8AE10A5643796F48366 /* Supabase */; };
 		22893C0087D74E2CBD5D2CD2 /* StartingLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */; };
@@ -64,6 +65,7 @@
 		7C82B2CC78800410E0BC19C9 /* DayTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C09E98736915DB3594FA5CC /* DayTrack.swift */; };
 		7CF719E37B2E4EE6A68A9849 /* PadRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D1598E57443987CD03A24 /* PadRunTests.swift */; };
 		7E3BAFF6DCCF66B5E244D5FC /* PastDaysRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E24D4F5D6154FF40A552901 /* PastDaysRecord.swift */; };
+		8AD4F01573512A6BFDF559EE /* NRTSearchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6998A66E4C83F21037164921 /* NRTSearchStore.swift */; };
 		8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */; };
 		9538768352F4B4C5F5BE0ED2 /* PadKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */; };
 		96B207CB5A6C660744D6DF15 /* TodaysTallyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */; };
@@ -169,6 +171,7 @@
 		63F7D57B4CA77D384577A81C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLineView.swift; sourceTree = "<group>"; };
 		696EF921A734BD48DA5A25ED /* CheckInEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInEditView.swift; sourceTree = "<group>"; };
+		6998A66E4C83F21037164921 /* NRTSearchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NRTSearchStore.swift; sourceTree = "<group>"; };
 		6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationTests.swift; sourceTree = "<group>"; };
 		6D11BCE9F23EB213922A688E /* Trigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trigger.swift; sourceTree = "<group>"; };
 		6DDA697AECD41D8C5B516E50 /* DayRollupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRollupTests.swift; sourceTree = "<group>"; };
@@ -179,6 +182,7 @@
 		76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStore.swift; sourceTree = "<group>"; };
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
 		78CFECFF581F116D3F38394B /* PlanHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanHistoryTests.swift; sourceTree = "<group>"; };
+		7ADF57D828C4F6D815EEE968 /* NRTSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NRTSearchTests.swift; sourceTree = "<group>"; };
 		7C04762C046C39BBF49A4545 /* TodayRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayRecordTests.swift; sourceTree = "<group>"; };
 		7C68EFAF09F241AE6E3DAB77 /* PastDaysRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDaysRecordTests.swift; sourceTree = "<group>"; };
 		7ECEF2DA27BE2E09BE44244D /* SessionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -271,6 +275,7 @@
 			isa = PBXGroup;
 			children = (
 				58348CD50451359D0AB2A154 /* CheckInStore.swift */,
+				6998A66E4C83F21037164921 /* NRTSearchStore.swift */,
 				2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */,
 				BD07116EBF9CF6EE8E122698 /* PadRecord.swift */,
 				6E24D4F5D6154FF40A552901 /* PastDaysRecord.swift */,
@@ -327,6 +332,7 @@
 				B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */,
 				0CD1316F44498C566B2C429B /* HTTPClientTests.swift */,
 				E94FA2858738E07EB7BE1BCC /* NicotineMarkTests.swift */,
+				7ADF57D828C4F6D815EEE968 /* NRTSearchTests.swift */,
 				F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */,
 				97B8A9244E6D32AD7E5A8592 /* PadKeyStoreTests.swift */,
 				91C35928EF74BBD4AF319497 /* PadKeyTests.swift */,
@@ -623,6 +629,7 @@
 				F9DC16D7896F210B92C01CD8 /* DayTrackTests.swift in Sources */,
 				7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */,
 				BA19A94840B0D6EDDE909800 /* HTTPClientTests.swift in Sources */,
+				207352AD42EF8BB362669456 /* NRTSearchTests.swift in Sources */,
 				7BE5341D70A65DC5C4C1DBC3 /* NicotineMarkTests.swift in Sources */,
 				F27B8E52E6909FD0813F0402 /* OnboardingTests.swift in Sources */,
 				2F776532ECCCC2D5C65020EB /* PadKeyStoreTests.swift in Sources */,
@@ -663,6 +670,7 @@
 				F130D3ABB24EFA3BCC9F8307 /* FirstUseView.swift in Sources */,
 				31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */,
 				3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */,
+				8AD4F01573512A6BFDF559EE /* NRTSearchStore.swift in Sources */,
 				DBF354CC66F11455190DF7B0 /* NicotineMark.swift in Sources */,
 				C41C9FD243F5C93219A7B2AE /* OnboardingAnswers.swift in Sources */,
 				0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */,
