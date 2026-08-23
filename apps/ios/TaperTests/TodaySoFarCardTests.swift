@@ -13,7 +13,7 @@ struct TodaySoFarCardTests {
     private func tally(logged: Double, ceiling: Double = 12) -> TodaysTally {
         TodaysTally(
             entries: [StoredCheckIn(id: 1, ledger: .source, label: "Pouches",
-                                    form: .pouch, mg: logged, quantity: 1, createdAt: .testMoment)],
+                                    form: .pouch, mg: logged, quantity: 1, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)],
             pending: nil,
             ceilingMg: ceiling
         )

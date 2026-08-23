@@ -21,13 +21,13 @@ struct TodayListView: View {
     /// Opens one entry. The rows were drawn before there was anywhere for them
     /// to go, which is why this arrives after the list rather than with it.
     let onSelect: (StoredCheckIn) -> Void
-    /// Yesterday, when it has been read. Nil while it is still loading or when
-    /// it could not be — an absent section says less wrongly than an empty one.
-    var yesterday: DayRollup?
-    /// Set when yesterday could not be read. Drawn as a line rather than left
-    /// out, because a section that silently vanishes reads as an app losing
-    /// track of days rather than as a request that failed.
-    var isYesterdayUnavailable = false
+    /// The days before today, newest first. Empty while still loading or when
+    /// there are none to draw.
+    var pastDays: [DayRollup] = []
+    /// Set when they could not be read. Drawn as a line rather than left
+    /// silent, because a run of days that is missing looks identical to a run
+    /// of days with nothing on them.
+    var arePastDaysUnavailable = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -50,10 +50,10 @@ struct TodayListView: View {
                         note(message).padding(.top, AppSpacing.l)
                     }
 
-                    if let yesterday {
-                        yesterdaySection(yesterday).padding(.top, AppSpacing.xxl)
-                    } else if isYesterdayUnavailable {
-                        Text("Couldn't load yesterday.")
+                    if !pastDays.isEmpty {
+                        pastDaysSection.padding(.top, AppSpacing.xxl)
+                    } else if arePastDaysUnavailable {
+                        Text("Couldn't load the days before today.")
                             .font(AppFont.text(AppSize.caption))
                             .foregroundStyle(AppColor.cautionInk)
                             .padding(.top, AppSpacing.xxl)
@@ -180,14 +180,38 @@ struct TodayListView: View {
     /// a day is a fact about the plan in force on it, and measuring last Tuesday
     /// against this Tuesday's ceiling would restate it every time the taper
     /// steps down.
-    private func yesterdaySection(_ day: DayRollup) -> some View {
+    private var pastDaysSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xxl) {
+            ForEach(pastDays, id: \.day) { day in
+                daySection(day)
+            }
+        }
+    }
+
+    /// The heading a past day gets: "Yesterday" for the first one, and the
+    /// weekday for the rest.
+    ///
+    /// The nearest day is named by its relationship to now, because that is how
+    /// somebody thinks of it. Older days are named by their weekday, with the
+    /// date beside the count — "Wednesday · Aug 19 · 5 check-ins" — because
+    /// "four days ago" is arithmetic and a weekday is a memory.
+    func heading(for day: DayRollup) -> String {
+        day.day == pastDays.first?.day ? "Yesterday" : day.weekdayText
+    }
+
+    /// The count line, with the date on any day that is not yesterday.
+    func countLine(for day: DayRollup) -> String {
+        day.day == pastDays.first?.day ? day.countText : "\(day.dateText) · \(day.countText)"
+    }
+
+    private func daySection(_ day: DayRollup) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.smPlus) {
             HStack(alignment: .firstTextBaseline) {
                 HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
-                    Text("Yesterday")
+                    Text(heading(for: day))
                         .font(AppFont.display(AppSize.unit))
                         .foregroundStyle(AppColor.ink)
-                    Text(day.countText)
+                    Text(countLine(for: day))
                         .font(AppFont.text(AppSize.caption))
                         .foregroundStyle(AppColor.inkMuted)
                 }
@@ -205,7 +229,9 @@ struct TodayListView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Yesterday, \(day.countText), \(day.totalText). \(day.summarySentence)")
+        .accessibilityLabel(
+            "\(heading(for: day)), \(countLine(for: day)), \(day.totalText). \(day.summarySentence)"
+        )
     }
 
     /// A 6pt bar, and only ever one segment of it.
@@ -227,7 +253,7 @@ struct TodayListView: View {
 
     private var unbuilt: some View {
         Text("""
-        The days before yesterday belong here too, and aren't built yet.
+        Days before that belong here too, behind a control that isn't built yet.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)

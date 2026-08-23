@@ -57,7 +57,7 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
         return StoredCheckIn(
             id: writes.count, ledger: draft.key.ledger, label: draft.key.label,
             form: draft.key.form, mg: draft.key.mg, quantity: draft.quantity
-        , createdAt: .testMoment)
+        , loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
     }
 }
 
@@ -90,7 +90,7 @@ struct TodayRecordTests {
     func theTallyIsBuiltFromBoth() async {
         let store = FakeCheckIns()
         store.existing = [
-            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 2, createdAt: .testMoment)
+            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 2, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
         ]
         let record = record(store)
 
@@ -176,7 +176,7 @@ struct TodayRecordTests {
         // reports one somebody has already blown before waking up.
         let store = FakeCheckIns()
         store.existing = [
-            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4, createdAt: .testMoment)
+            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
         ]
         let clock = Clock(day)
         let record = record(store, clock: clock)
@@ -234,7 +234,7 @@ struct TodayRecordTests {
     func aReloadPutsTheRecordBackOnToday() async {
         let store = FakeCheckIns()
         store.existing = [
-            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4, createdAt: .testMoment)
+            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
         ]
         let clock = Clock(day)
         let record = record(store, clock: clock)
@@ -242,7 +242,7 @@ struct TodayRecordTests {
         clock.now = day.addingTimeInterval(86_400)
 
         store.existing = [
-            StoredCheckIn(id: 2, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 1, createdAt: .testMoment)
+            StoredCheckIn(id: 2, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 1, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
         ]
         await record.load()
 
@@ -373,7 +373,7 @@ struct TodayRecordTests {
         // day that ended hours ago.
         let store = FakeCheckIns()
         store.existing = [
-            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4, createdAt: .testMoment)
+            StoredCheckIn(id: 1, ledger: .source, label: "Pouches", form: .pouch, mg: 3, quantity: 4, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
         ]
         let clock = Clock(day)
         let record = record(store, clock: clock)
@@ -529,7 +529,7 @@ struct TodayRecordTests {
 
     private func logged(_ id: Int, mg: Double, quantity: Int = 1) -> StoredCheckIn {
         StoredCheckIn(id: id, ledger: .source, label: "Pouches",
-                      form: .pouch, mg: mg, quantity: quantity, createdAt: .testMoment)
+                      form: .pouch, mg: mg, quantity: quantity, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
     }
 
     @Test("removing an entry takes it off the day and off the server")
@@ -612,7 +612,7 @@ struct TodayRecordTests {
             logged(1, mg: 3),
             logged(2, mg: 4.5),
             StoredCheckIn(id: 3, ledger: .treatment, label: "Patch",
-                          form: .patch, mg: 14, quantity: 1, createdAt: .testMoment),
+                          form: .patch, mg: 14, quantity: 1, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment),
         ]
         let record = record(store)
         await record.load()

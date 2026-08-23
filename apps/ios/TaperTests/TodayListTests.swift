@@ -9,7 +9,7 @@ struct TodayListTests {
     private func entry(_ id: Int, mg: Double, quantity: Int = 1,
                        label: String = "Pouch", form: PadForm = .pouch) -> StoredCheckIn {
         StoredCheckIn(id: id, ledger: .source, label: label,
-                      form: form, mg: mg, quantity: quantity, createdAt: .testMoment)
+                      form: form, mg: mg, quantity: quantity, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
     }
 
     @Test("a row shows what the day was charged, not the strength of one")
@@ -42,7 +42,7 @@ struct TodayListTests {
         // you nothing about whether it counts against the cap; "Gum" does.
         let gum = CheckInListRow(entry: StoredCheckIn(
             id: 1, ledger: .treatment, label: "Nicorette ice mint",
-            form: .gum, mg: 2, quantity: 1, createdAt: .testMoment
+            form: .gum, mg: 2, quantity: 1, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment
         ))
 
         #expect(gum.entry.detailText.hasPrefix("Gum · "))
@@ -64,7 +64,7 @@ struct TodayListTests {
         // decides what it means.
         let gum = CheckInListRow(entry: StoredCheckIn(
             id: 1, ledger: .treatment, label: "Nicorette ice mint",
-            form: .gum, mg: 2, quantity: 1, createdAt: .testMoment
+            form: .gum, mg: 2, quantity: 1, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment
         ))
 
         #expect(gum.spokenText.contains("Gum"), "the spoken row dropped the form")
@@ -76,7 +76,7 @@ struct TodayListTests {
         // read as a bug in the app rather than a difference in case.
         let typed = CheckInListRow(entry: StoredCheckIn(
             id: 2, ledger: .source, label: "pouch",
-            form: .pouch, mg: 3, quantity: 1, createdAt: .testMoment
+            form: .pouch, mg: 3, quantity: 1, loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment
         ))
 
         #expect(typed.spokenText.hasPrefix("pouch, 3 milligrams, "), "the form was said twice")
