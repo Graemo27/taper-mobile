@@ -18,6 +18,19 @@ struct PlanHistory {
         self.calendar = calendar
     }
 
+    /// The first day any version covered, or nil when there are none.
+    ///
+    /// The taper's beginning, which is a different question from the current
+    /// plan's `cap_effective_from` once somebody has re-planned: that column
+    /// moves with the latest version, and this does not. It is what tells the
+    /// log there is nothing earlier worth offering to load.
+    var planStart: Date? {
+        versions
+            .compactMap { PlanDay.date(from: $0.effectiveFrom, calendar: calendar) }
+            .map { calendar.startOfDay(for: $0) }
+            .min()
+    }
+
     /// The ceiling in force on a day, or nil when no plan covered it.
     ///
     /// Nil is a real answer and not a zero. A day before the plan began has no

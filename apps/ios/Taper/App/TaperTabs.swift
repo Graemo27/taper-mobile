@@ -68,7 +68,11 @@ struct TaperTabs: View {
                         onBack: { isShowingToday = false },
                         onSelect: { editing = $0 },
                         pastDays: pastDays.rollups,
-                        arePastDaysUnavailable: pastDays.isUnavailable
+                        arePastDaysUnavailable: pastDays.isUnavailable,
+                        today: Date(),
+                        hasEarlier: pastDays.hasEarlier,
+                        onShowEarlier: { Task { await pastDays.showEarlier() } },
+                        isLoadingEarlier: pastDays.isLoadingEarlier
                     )
                     .task { await pastDays.load() }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
