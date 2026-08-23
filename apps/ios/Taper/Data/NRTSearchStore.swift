@@ -1,11 +1,8 @@
 import Foundation
 import Supabase
 
-/// One licensed product a search can offer, as the Edge Function returns it.
-///
-/// A single NDC at a single strength. The screen groups these — a brand sells
-/// one gum in 2 mg and 4 mg, and offering them as two results makes the user
-/// choose a strength before they have chosen a product.
+/// One licensed product as the Edge Function returns it: a single NDC at a
+/// single strength. `grouped(_:)` says why that is not what a row is.
 struct NRTProduct: Decodable, Equatable, Sendable {
     /// The National Drug Code. Carried through to the key that gets made from
     /// it, so a key built from the catalogue can be traced back to the label it
@@ -17,10 +14,8 @@ struct NRTProduct: Decodable, Equatable, Sendable {
     let mg: Double
 }
 
-/// A brand and form, with every strength it comes in.
-///
-/// What a row on the search screen actually is. Ordered by strength so the
-/// chips read low to high, which is the order somebody reads a dose in.
+/// A brand and form with every strength it comes in — one row of the search
+/// screen. Strengths run low to high, which is the order a dose is read in.
 struct NRTResult: Equatable, Sendable, Identifiable {
     let brand: String
     let labeler: String
