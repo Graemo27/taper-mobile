@@ -10,6 +10,7 @@
 
 import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert';
 import { OpenFdaError, searchNrt } from './openfda.ts';
+import type { NrtForm } from './types.ts';
 
 /** Replaces global fetch for one call, always restoring it. Returns the URLs requested. */
 async function withFetch(
@@ -100,6 +101,37 @@ Deno.test('anything that is not unambiguously licensed NRT is dropped', async ()
     await withFetch(
       () => ok({ results: [record(over)] }),
       async () => assertEquals(await searchNrt('anything', 5), []),
+    );
+  }
+});
+
+Deno.test('a form is matched at its base, so a new one upstream fails closed', async () => {
+  // Every dosage form openFDA really carries for nicotine, as of 2026-08-21,
+  // plus the near-misses an unanchored match would wave through. "ORAL SPRAY"
+  // is not the licensed nasal spray and "SOLUTION FOR INHALATION" is not the
+  // inhaler, however much of the allowed word they contain.
+  const forms: [string, NrtForm | null][] = [
+    ['GUM, CHEWING', 'gum'],
+    ['LOZENGE', 'lozenge'],
+    ['PATCH', 'patch'],
+    ['PATCH, EXTENDED RELEASE', 'patch'],
+    ['FILM, EXTENDED RELEASE', 'patch'],
+    ['SPRAY, METERED', 'spray'],
+    ['POWDER', null],
+    ['LIQUID', null],
+    ['PELLET', null],
+    ['LOTION', null],
+    ['ORAL SPRAY', null],
+    ['AEROSOL, SPRAY', null],
+    ['SOLUTION FOR INHALATION', null],
+  ];
+  for (const [dosage_form, expected] of forms) {
+    await withFetch(
+      () => ok({ results: [record({ dosage_form })] }),
+      async () => {
+        const found = await searchNrt('anything', 5);
+        assertEquals(found[0]?.form ?? null, expected, dosage_form);
+      },
     );
   }
 });

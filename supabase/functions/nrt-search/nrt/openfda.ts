@@ -74,10 +74,19 @@ function milligrams(strength: string | undefined): number | null {
   return Number.isFinite(mg) && mg > 0 ? mg : null;
 }
 
-/** Maps an openFDA dosage form onto the allowlist, or null if it is not licensed NRT. */
+/**
+ * Maps an openFDA dosage form onto the allowlist, or null if it is not licensed NRT.
+ *
+ * Anchored at the front, not matched anywhere in the string. openFDA spells a
+ * form as `BASE, QUALIFIER` — "GUM, CHEWING", "PATCH, EXTENDED RELEASE" — so a
+ * prefix admits a new qualifier on a family already allowed while a different
+ * base is refused however it is decorated. An unanchored match would read
+ * "ORAL SPRAY" as the licensed nasal spray, which is the opposite of failing
+ * closed and would contradict what `FORMS` promises.
+ */
 function form(dosageForm: string | undefined) {
-  const upper = (dosageForm ?? '').toUpperCase();
-  return FORMS.find(([keyword]) => upper.includes(keyword))?.[1] ?? null;
+  const upper = (dosageForm ?? '').trim().toUpperCase();
+  return FORMS.find(([base]) => upper.startsWith(base))?.[1] ?? null;
 }
 
 /**
