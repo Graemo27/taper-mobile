@@ -80,6 +80,15 @@ Deno.test('anything that is not unambiguously licensed NRT is dropped', async ()
   const rejected: Record<string, unknown>[] = [
     // A tobacco product, were one ever to reach this code.
     { dosage_form: 'POUCH', brand_name: 'Not NRT' },
+    // The four nicotine dosage forms openFDA really does carry besides the
+    // licensed ones: bulk raw nicotine registered by the kilogram (POWDER,
+    // LIQUID), homeopathic pellets, and one patch mislabelled as a lotion.
+    // None is a cessation product a user may put on a key, and each must stay
+    // dropped whatever the allowlist is matching on.
+    { dosage_form: 'POWDER', brand_name: 'Nicotine', active_ingredients: [{ name: 'NICOTINE', strength: '1 kg/kg' }] },
+    { dosage_form: 'LIQUID', brand_name: 'Tobacco Withdrawal' },
+    { dosage_form: 'PELLET', brand_name: 'Nicotinum' },
+    { dosage_form: 'LOTION', brand_name: 'Nicotine Patches' },
     // A drug that is not nicotine.
     { active_ingredients: [{ name: 'CAFFEINE', strength: '40 mg/1' }] },
     // Nicotine, but no readable dose — dropped rather than guessed at.

@@ -3,24 +3,55 @@ import Testing
 @testable import Taper
 
 /// A catalogue that answers on command, and counts what it was asked.
+///
+/// Every field is behind the lock, not only the tally. `search` is nonisolated
+/// and runs on whatever thread the task lands on, while the test that started
+/// it is still on the main actor setting up the next answer — Thread Sanitizer
+/// reports the unguarded version as a real race, not a theoretical one.
 private final class FakeCatalogue: NRTSearching, @unchecked Sendable {
-    var results: [String: [NRTResult]] = [:]
-    var fails = false
-    var delay: Duration?
+    /// Everything `search` consults, as one value, so a call can take a
+    /// consistent snapshot in a single acquisition rather than reading four
+    /// properties a test may be part-way through changing.
+    private struct Answers {
+        var results: [String: [NRTResult]] = [:]
+        var fails = false
+        var delay: Duration?
+        var ignoresCancellation = false
+        var asked: [String] = []
+    }
+
+    private let lock = NSLock()
+    private var state = Answers()
+
+    var results: [String: [NRTResult]] {
+        get { lock.withLock { state.results } }
+        set { lock.withLock { state.results = newValue } }
+    }
+    var fails: Bool {
+        get { lock.withLock { state.fails } }
+        set { lock.withLock { state.fails = newValue } }
+    }
+    var delay: Duration? {
+        get { lock.withLock { state.delay } }
+        set { lock.withLock { state.delay = newValue } }
+    }
     /// Finishes even after the task is cancelled, which is what a request
     /// already on the wire does: cancellation is cooperative, and a call past
     /// its last suspension point returns a perfectly good answer to a question
     /// nobody is asking any more.
-    var ignoresCancellation = false
-
-    private let lock = NSLock()
-    private var _asked: [String] = []
-    var asked: [String] { lock.withLock { _asked } }
+    var ignoresCancellation: Bool {
+        get { lock.withLock { state.ignoresCancellation } }
+        set { lock.withLock { state.ignoresCancellation = newValue } }
+    }
+    var asked: [String] { lock.withLock { state.asked } }
 
     func search(_ query: String) async throws -> [NRTResult] {
-        lock.withLock { _asked.append(query) }
-        if let delay {
-            if ignoresCancellation {
+        let answers = lock.withLock {
+            state.asked.append(query)
+            return state
+        }
+        if let delay = answers.delay {
+            if answers.ignoresCancellation {
                 // Yielding rather than sleeping, because a cancelled
                 // `Task.sleep` returns at once — which would make the stale
                 // answer arrive *first* and be harmlessly overwritten. The race
@@ -31,8 +62,8 @@ private final class FakeCatalogue: NRTSearching, @unchecked Sendable {
                 try await Task.sleep(for: delay)
             }
         }
-        if fails { throw URLError(.notConnectedToInternet) }
-        return results[query] ?? []
+        if answers.fails { throw URLError(.notConnectedToInternet) }
+        return answers.results[query] ?? []
     }
 }
 
