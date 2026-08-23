@@ -65,3 +65,37 @@ struct PadKeyTile: View {
         key.ledger == .treatment ? AppColor.accentTint : AppColor.sourceTint
     }
 }
+
+/// The way onto the pad: a key-shaped tile that opens the licensed catalogue.
+///
+/// Only ever on the treatment run. What somebody is quitting is typed by hand —
+/// a plain form and a strength — because a catalogue of brands to browse is the
+/// one thing this app must not offer for tobacco, and that rule is about
+/// discovery rather than recording.
+struct AddTreatmentTile: View {
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: AppSpacing.s) {
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(AppColor.inkMuted)
+                Text("Add treatment")
+                    .font(AppFont.text(AppSize.caption, .medium))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(AppColor.inkMuted)
+            }
+            .frame(width: AppLayout.key, height: AppLayout.key)
+            .background(AppColor.ground, in: RoundedRectangle(cornerRadius: AppRadius.large))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.large)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .foregroundStyle(AppColor.lineStrong)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("pad.addTreatment")
+        .accessibilityLabel("Add a treatment from the licensed product list")
+    }
+}

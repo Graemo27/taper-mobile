@@ -296,4 +296,42 @@ final class PadRunTests: TaperRunCase {
             "The selection survived a write that succeeded"
         )
     }
+
+    func testTheCatalogueOpensFromThePadAndGivesItBack() throws {
+        // The pad has had no way onto it since it was drawn: keys arrived from
+        // onboarding and nothing could add one. This is that door, and the way
+        // back out of it — a search you cannot leave would strand somebody on
+        // the one screen with no check-in button.
+        openTheLog()
+        app.buttons["pad.addTreatment"].tap()
+
+        let field = app.textFields["search.field"]
+        XCTAssertTrue(
+            field.waitForExistence(timeout: 5),
+            "Tapping Add treatment did not open the catalogue search"
+        )
+        // The search replaces the keys rather than covering them, so the pad
+        // it came from should be gone while it is up.
+        XCTAssertFalse(
+            app.buttons[pouches].exists,
+            "The keys were still on screen underneath the search"
+        )
+        // What this list is, said where somebody is about to type. The backend
+        // refuses anything but licensed NRT; a person looking for their pouches
+        // should read why rather than conclude the app is broken.
+        XCTAssertTrue(
+            app.staticTexts.element(
+                matching: NSPredicate(format: "label BEGINSWITH %@",
+                                      "Licensed nicotine replacement only")
+            ).exists,
+            "The search did not say it is restricted to licensed nicotine replacement"
+        )
+
+        app.buttons["search.cancel"].tap()
+        XCTAssertTrue(
+            app.buttons[pouches].waitForExistence(timeout: 5),
+            "Cancelling the search did not put the pad back"
+        )
+        XCTAssertFalse(field.exists, "The search field outlived its own cancel button")
+    }
 }

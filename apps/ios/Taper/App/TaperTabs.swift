@@ -25,6 +25,10 @@ struct TaperTabs: View {
     /// The check-in being looked at, one level above the list.
     @State private var editing: StoredCheckIn?
     @State private var pastDays: PastDaysRecord
+    /// The catalogue search, kept for the session so a half-typed brand name
+    /// survives a glance at the plan tab.
+    @State private var search: TreatmentSearchRecord
+    @State private var isSearching = false
     @State private var pad: PadRecord
     @State private var today: TodayRecord
 
@@ -33,6 +37,7 @@ struct TaperTabs: View {
         self.stores = stores
         _pad = State(initialValue: PadRecord(store: stores?.pad))
         _today = State(initialValue: TodayRecord(store: stores?.checkIns))
+        _search = State(initialValue: TreatmentSearchRecord(search: stores?.nrt))
         _pastDays = State(initialValue: PastDaysRecord(
             checkIns: stores?.checkIns, plans: stores?.planVersions
         ))
@@ -85,7 +90,13 @@ struct TaperTabs: View {
                     )
                 }
             case .log:
-                PadView(status: pad.status, record: today, ceilingMg: progress.todaysCapMg)
+                PadView(
+                    status: pad.status,
+                    record: today,
+                    ceilingMg: progress.todaysCapMg,
+                    search: search,
+                    isSearching: $isSearching
+                )
             case .plan:
                 PlanTabView(progress: progress)
             }

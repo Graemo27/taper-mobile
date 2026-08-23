@@ -15,6 +15,10 @@ struct PadView: View {
     /// The cap the day is measured against, off the plan. Passed rather than
     /// held, because the pad draws the plan's number and does not own it.
     let ceilingMg: Double
+    /// The catalogue search, when the pad is showing it instead of its keys.
+    @Bindable var search: TreatmentSearchRecord
+    /// Whether the pad is searching rather than resting.
+    @Binding var isSearching: Bool
 
     private var tally: TodaysTally { record.tally(ceilingMg: ceilingMg) }
 
@@ -22,20 +26,27 @@ struct PadView: View {
         VStack(alignment: .leading, spacing: AppSpacing.lPlus) {
             CapMeter(tally: tally, pending: record.selection.pending)
 
-            switch status {
-            case .loading:
-                loading
-            case let .ready(pad) where pad.isEmpty:
-                empty
-            case let .ready(pad):
-                section("YOUR TREATMENT", note: nil, keys: pad.treatment)
-                section(
-                    "WHAT YOU'RE QUITTING",
-                    note: "counts toward the ceiling",
-                    keys: pad.sources
-                )
-            case let .unavailable(message):
-                unavailable(message)
+            if isSearching {
+                TreatmentSearchView(record: search) {
+                    search.clear()
+                    isSearching = false
+                }
+            } else {
+                switch status {
+                case .loading:
+                    loading
+                case let .ready(pad) where pad.isEmpty:
+                    empty
+                case let .ready(pad):
+                    section("YOUR TREATMENT", note: nil, keys: pad.treatment, canAdd: true)
+                    section(
+                        "WHAT YOU'RE QUITTING",
+                        note: "counts toward the ceiling",
+                        keys: pad.sources
+                    )
+                case let .unavailable(message):
+                    unavailable(message)
+                }
             }
 
             Spacer(minLength: 0)
@@ -69,8 +80,10 @@ struct PadView: View {
     /// declined a treatment has no treatment ledger, and a headed but empty
     /// section would read as something failing to load.
     @ViewBuilder
-    private func section(_ title: String, note: String?, keys: [StoredPadKey]) -> some View {
-        if !keys.isEmpty {
+    private func section(
+        _ title: String, note: String?, keys: [StoredPadKey], canAdd: Bool = false
+    ) -> some View {
+        if !keys.isEmpty || canAdd {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
                     Text(title)
@@ -88,7 +101,7 @@ struct PadView: View {
                 }
                 .accessibilityElement(children: .combine)
 
-                rows(of: keys)
+                rows(of: keys, canAdd: canAdd)
             }
         }
     }
@@ -99,15 +112,22 @@ struct PadView: View {
     /// the content width — so a flexible grid would only be free to disagree
     /// with it. The last row is left-aligned by padding it out, which keeps a
     /// row of one key under the first key above it rather than centred.
-    private func rows(of keys: [StoredPadKey]) -> some View {
-        let chunks = stride(from: 0, to: keys.count, by: 3).map {
-            Array(keys[$0..<min($0 + 3, keys.count)])
+    private func rows(of keys: [StoredPadKey], canAdd: Bool) -> some View {
+        // The add tile rides at the end of the run, so it lands wherever the
+        // last key leaves off rather than claiming a row of its own.
+        let slots = keys.count + (canAdd ? 1 : 0)
+        let chunks = stride(from: 0, to: slots, by: 3).map { start in
+            Array(start..<min(start + 3, slots))
         }
         return VStack(alignment: .leading, spacing: AppLayout.padGap) {
-            ForEach(chunks, id: \.first?.id) { row in
+            ForEach(chunks, id: \.first) { row in
                 HStack(spacing: AppLayout.padGap) {
-                    ForEach(row, id: \.id) { key in
-                        PadKeyTile(key: key) { record.selection.tap(key) }
+                    ForEach(row, id: \.self) { slot in
+                        if slot < keys.count {
+                            PadKeyTile(key: keys[slot]) { record.selection.tap(keys[slot]) }
+                        } else {
+                            AddTreatmentTile { isSearching = true }
+                        }
                     }
                     Spacer(minLength: 0)
                 }
@@ -165,6 +185,7 @@ struct PadView: View {
 }
 
 #Preview {
+    @Previewable @State var isSearching = false
     let record = TodayRecord(store: nil)
     record.selection.tap(StoredPadKey(id: 3, form: .pouch, label: "Pouches",
                                       mg: 3, position: 0, ndc: nil))
@@ -176,6 +197,8 @@ struct PadView: View {
             StoredPadKey(id: 4, form: .vape, label: "Vape", mg: 2, position: 1, ndc: nil),
         ])),
         record: record,
-        ceilingMg: 12
+        ceilingMg: 12,
+        search: TreatmentSearchRecord(search: nil),
+        isSearching: $isSearching
     )
 }

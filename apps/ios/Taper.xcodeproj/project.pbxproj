@@ -45,6 +45,7 @@
 		46709EE23E8233449745DA86 /* PadRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD07116EBF9CF6EE8E122698 /* PadRecord.swift */; };
 		46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D11BCE9F23EB213922A688E /* Trigger.swift */; };
 		484244286E837CD23F7A442B /* PadActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD1FA4880F90D7EA4A5BA29 /* PadActionBar.swift */; };
+		493E6DF41F6DA005359E21F4 /* TreatmentSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82EBA0A15E4E7F5F5376FA05 /* TreatmentSearchView.swift */; };
 		579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */; };
 		59B279A4C5314A6EFCB68F52 /* PadSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D5472AAD3EF0D196C12393E /* PadSelection.swift */; };
 		59CE24C6476EDA822E2ABD29 /* PlanProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72B9A0FEF4622A958D65D39 /* PlanProgress.swift */; };
@@ -77,6 +78,7 @@
 		A26489120B610E40114135DC /* LinearGrotesk-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 58A09EF7EF844EE19A6EA3D2 /* LinearGrotesk-SemiBold.otf */; };
 		A65B4D477181B1DF0C5E40D6 /* OnboardingRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE7ACAD65956EFEBD97F2DC9 /* OnboardingRunTests.swift */; };
 		A9F27E1C4941FEEBD02B53BC /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E22FDA8B9704DCCFE7B3A5C /* AgeGateView.swift */; };
+		AA825BC65678F71CEE40D221 /* TreatmentSearchViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 254228134E2D6BEAB213329A /* TreatmentSearchViewTests.swift */; };
 		AD05E71ABAF750C27AE4956F /* LinearGrotesk-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */; };
 		AF7FB431CE8CF726A284EA30 /* PastDaysRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C68EFAF09F241AE6E3DAB77 /* PastDaysRecordTests.swift */; };
 		B47CED8A2E89349A7586059B /* WhatYouUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */; };
@@ -145,6 +147,7 @@
 		1D5472AAD3EF0D196C12393E /* PadSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadSelection.swift; sourceTree = "<group>"; };
 		1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Medium.otf"; sourceTree = "<group>"; };
 		246BB3108218BB70AFF88CA6 /* TodayListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayListTests.swift; sourceTree = "<group>"; };
+		254228134E2D6BEAB213329A /* TreatmentSearchViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentSearchViewTests.swift; sourceTree = "<group>"; };
 		2749855C497890CA4CF0270A /* TreatmentSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentSearchTests.swift; sourceTree = "<group>"; };
 		27616615CC236DECC6167432 /* TreatmentSearchRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentSearchRecord.swift; sourceTree = "<group>"; };
 		29075C1BFAD49736B729C3DF /* AmountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountView.swift; sourceTree = "<group>"; };
@@ -190,6 +193,7 @@
 		7C04762C046C39BBF49A4545 /* TodayRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayRecordTests.swift; sourceTree = "<group>"; };
 		7C68EFAF09F241AE6E3DAB77 /* PastDaysRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDaysRecordTests.swift; sourceTree = "<group>"; };
 		7ECEF2DA27BE2E09BE44244D /* SessionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinatorTests.swift; sourceTree = "<group>"; };
+		82EBA0A15E4E7F5F5376FA05 /* TreatmentSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentSearchView.swift; sourceTree = "<group>"; };
 		848DE3C0A2B296D372C55B52 /* CleanNumberTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanNumberTests.swift; sourceTree = "<group>"; };
 		878DB78BEC425F63B60C1393 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8ADDAD495331A13B8885B775 /* DayTrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTrackTests.swift; sourceTree = "<group>"; };
@@ -355,6 +359,7 @@
 				D5640C541A8FE4D023E5B42B /* TodaySoFarCardTests.swift */,
 				31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */,
 				2749855C497890CA4CF0270A /* TreatmentSearchTests.swift */,
+				254228134E2D6BEAB213329A /* TreatmentSearchViewTests.swift */,
 			);
 			path = TaperTests;
 			sourceTree = "<group>";
@@ -483,6 +488,7 @@
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
 				2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */,
 				27616615CC236DECC6167432 /* TreatmentSearchRecord.swift */,
+				82EBA0A15E4E7F5F5376FA05 /* TreatmentSearchView.swift */,
 			);
 			path = Pad;
 			sourceTree = "<group>";
@@ -655,6 +661,7 @@
 				D2B2C97B8CD0DD3096075254 /* TodaySoFarCardTests.swift in Sources */,
 				96B207CB5A6C660744D6DF15 /* TodaysTallyTests.swift in Sources */,
 				7BE93A8BB1BC14A149F7FC80 /* TreatmentSearchTests.swift in Sources */,
+				AA825BC65678F71CEE40D221 /* TreatmentSearchViewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -719,6 +726,7 @@
 				3BDAAD05A649B6D420DE5F49 /* TodaysTally.swift in Sources */,
 				04CF5C0C33EAE999907A7395 /* Treatment.swift in Sources */,
 				FB047FDAC077333F7B74DDC1 /* TreatmentSearchRecord.swift in Sources */,
+				493E6DF41F6DA005359E21F4 /* TreatmentSearchView.swift in Sources */,
 				2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */,
 				2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */,
 				46E824E0FC3E313A0C1B9436 /* Trigger.swift in Sources */,
