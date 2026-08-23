@@ -77,16 +77,16 @@ function milligrams(strength: string | undefined): number | null {
 /**
  * Maps an openFDA dosage form onto the allowlist, or null if it is not licensed NRT.
  *
- * Anchored at the front, not matched anywhere in the string. openFDA spells a
- * form as `BASE, QUALIFIER` — "GUM, CHEWING", "PATCH, EXTENDED RELEASE" — so a
- * prefix admits a new qualifier on a family already allowed while a different
- * base is refused however it is decorated. An unanchored match would read
- * "ORAL SPRAY" as the licensed nasal spray, which is the opposite of failing
- * closed and would contradict what `FORMS` promises.
+ * Matched on a whole base, not a character prefix. openFDA's grammar is exactly
+ * `BASE` or `BASE, QUALIFIER` — every form in the directory carrying one of
+ * these words is one of those two shapes — so the comma is the token boundary,
+ * and requiring it is what stops "GUMMY" reading as gum or "AEROSOL, SPRAY" as
+ * the nasal spray. A nicotine gummy is not licensed NRT; without the boundary
+ * this function would hand one to a pad key.
  */
 function form(dosageForm: string | undefined) {
   const upper = (dosageForm ?? '').trim().toUpperCase();
-  return FORMS.find(([base]) => upper.startsWith(base))?.[1] ?? null;
+  return FORMS.find(([base]) => upper === base || upper.startsWith(`${base},`))?.[1] ?? null;
 }
 
 /**

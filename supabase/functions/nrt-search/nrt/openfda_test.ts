@@ -121,9 +121,21 @@ Deno.test('a form is matched at its base, so a new one upstream fails closed', a
     ['LIQUID', null],
     ['PELLET', null],
     ['LOTION', null],
+    ['INHALANT', 'inhaler'],
+    ['TROCHE', 'lozenge'],
+    // Real FDA dosage forms that carry an allowed word without being it, and
+    // the collisions a character prefix would wave through. A nicotine gummy
+    // is not licensed NRT, so "GUMMY" reading as gum is the rule failing.
     ['ORAL SPRAY', null],
     ['AEROSOL, SPRAY', null],
+    ['TABLET, FILM COATED', null],
+    ['FILM', null],
+    ['FILM, SOLUBLE', null],
     ['SOLUTION FOR INHALATION', null],
+    ['GUMMY', null],
+    ['SPRAYABLE', null],
+    ['PATCHWORK', null],
+    ['LOZENGES', null],
   ];
   for (const [dosage_form, expected] of forms) {
     await withFetch(
