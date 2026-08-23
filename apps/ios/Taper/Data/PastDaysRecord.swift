@@ -17,27 +17,65 @@ final class PastDaysRecord {
     /// which is an ordinary thing for a week to be.
     private(set) var isUnavailable = false
 
-    /// How many days are read at once.
+    /// How many days a window starts at, and how many each "show earlier" adds.
     ///
-    /// A week, because that is the span somebody can hold in their head and the
-    /// span the graph on home will eventually draw. Paging further back is its
-    /// own request and its own control; a window that quietly grew every time
-    /// somebody opened the log would make the read cost depend on how long they
-    /// had been tapering.
+    /// A week, because that is the span somebody can hold in their head. The
+    /// window never grows on its own: one that did would make the read cost
+    /// depend on how long somebody had been tapering, so going further back is
+    /// a control they press.
     static let windowLength = 7
+
+    /// How many days are being asked for now.
+    private(set) var length = windowLength
+
+    /// True while a "show earlier" request is open.
+    ///
+    /// Its own flag rather than reusing whatever `load()` does, because this is
+    /// the only read somebody triggers by pressing something — every other one
+    /// happens because a screen appeared, and a spinner for those would flicker
+    /// on every visit.
+    private(set) var isLoadingEarlier = false
+
+    /// Whether there is anything earlier to show.
+    ///
+    /// False once the window reaches the first day of the plan. There is no
+    /// point offering to load days that pre-date somebody's taper — nothing was
+    /// being measured then, so every one of them would draw as a day with no
+    /// ceiling.
+    private(set) var hasEarlier = false
 
     private let checkIns: (any CheckInReading)?
     private let plans: (any PlanVersionReading)?
     private let calendar: Calendar
     private let today: () -> Date
-    /// Which yesterday is in hand, rather than merely whether one is.
+    /// Which window is in hand, rather than merely whether one is.
     ///
     /// A boolean here was a bug: this record outlives midnight, so an app left
     /// open overnight would keep serving the day before last under a heading
     /// that says "Yesterday" — with that day's cap beside it. Keyed on the date
     /// instead, so the answer is refused the moment it stops being about the
     /// day being asked for.
-    private var loadedDay: Date?
+    ///
+    /// A window and not just a day, because "show earlier" asks for the same
+    /// end with a longer reach — and a key that only knew the end would refuse
+    /// that as already loaded. Four separate defects in this type have been the
+    /// same mistake in different clothes: something written after an `await` by
+    /// an operation that is no longer the current one. Naming the whole
+    /// identity once is what stops there being a fifth.
+    private var loaded: Window?
+
+    /// Which run of days is being asked for: where it ends, and how far back it
+    /// reaches.
+    private struct Window: Equatable {
+        let end: Date
+        let length: Int
+    }
+
+    /// The window as it stands now, or nil before there is a yesterday to end
+    /// it at.
+    private var currentWindow: Window? {
+        yesterday.map { Window(end: $0, length: length) }
+    }
 
     init(
         checkIns: (any CheckInReading)?,
@@ -58,8 +96,8 @@ final class PastDaysRecord {
     }
 
     /// The oldest day in the window.
-    private func windowStart(endingAt end: Date) -> Date? {
-        calendar.date(byAdding: .day, value: -(Self.windowLength - 1), to: end)
+    private func windowStart(endingAt end: Date, length: Int) -> Date? {
+        calendar.date(byAdding: .day, value: -(length - 1), to: end)
     }
 
     /// Reads the window, once per yesterday.
@@ -70,11 +108,12 @@ final class PastDaysRecord {
     /// second source of truth about what day it is, which is the same reason
     /// `TodayRecord` leaves it to the screen to re-read.
     func load() async {
-        guard let checkIns, let plans, let yesterday else { return }
-        guard loadedDay != yesterday else { return }
-        loadedDay = yesterday
+        guard let checkIns, let plans, let window = currentWindow else { return }
+        guard loaded != window else { return }
+        loaded = window
 
-        guard let start = windowStart(endingAt: yesterday) else { return }
+        guard let start = windowStart(endingAt: window.end, length: window.length) else { return }
+        let yesterday = window.end
 
         do {
             // Both reads before anything is published, so no day draws a total
@@ -97,7 +136,7 @@ final class PastDaysRecord {
             // above. Mutation testing found the ownership check and the cache
             // clear that went with it were both unreachable, so they are gone
             // rather than sitting untested.
-            guard self.yesterday == yesterday else { return }
+            guard currentWindow == window else { return }
 
             // Grouped by `logged_on`, which is the day the reader was in when
             // they tapped — never by `created_at`, which is the server's clock
@@ -107,6 +146,11 @@ final class PastDaysRecord {
                 let wire = PlanDay.wireFormat(day, timeZone: calendar.timeZone)
                 return DayRollup(day: day, entries: byDay[wire] ?? [], capMg: history.cap(on: day))
             }
+            // Whether there is anything earlier is a fact about the plan, not
+            // about the rows: a week with nothing in it still has days before
+            // it if the taper started before them.
+            hasEarlier = history.planStart.map { calendar.startOfDay(for: start) > $0 } ?? false
+
             // Cleared on the way out, not only set on the way in. A retry that
             // works has to take the apology down with it.
             isUnavailable = false
@@ -120,21 +164,21 @@ final class PastDaysRecord {
             // The worse half of the same check on the success path: there a
             // stale read published old data, here a stale *failure* destroys
             // current data.
-            guard self.yesterday == yesterday else { return }
+            guard currentWindow == window else { return }
 
             // Abandoned, not failed — this is driven by a view's `task`, so it
             // is cancelled exactly when somebody navigates away.
             guard !Task.isCancelled else {
                 // Forgotten, so navigating back re-reads rather than showing a
                 // section that never arrived.
-                loadedDay = nil
+                loaded = nil
                 return
             }
             // Forgotten here too. The cache is there to stop a *finished*
             // day being re-read, not to make a failed one permanent — without
             // this, one dropped connection means the section stays broken for
             // the rest of the day however many times somebody comes back to it.
-            loadedDay = nil
+            loaded = nil
 
             // And the day already in hand goes with it. Reaching the read at
             // all means the guard let this through, which means the held rollup
@@ -145,6 +189,21 @@ final class PastDaysRecord {
             rollups = []
             isUnavailable = true
         }
+    }
+
+    /// Asks for another week further back.
+    ///
+    /// Reloads the whole window rather than fetching only the new days and
+    /// appending. One request that returns a consistent run beats two that can
+    /// disagree at the seam — and the seam is a day boundary, which is where
+    /// every bug in this type has been.
+    func showEarlier() async {
+        guard !isLoadingEarlier, hasEarlier else { return }
+        isLoadingEarlier = true
+        defer { isLoadingEarlier = false }
+
+        length += Self.windowLength
+        await load()
     }
 
     /// Every day in the span, newest first.

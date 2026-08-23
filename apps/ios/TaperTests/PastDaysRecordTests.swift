@@ -211,6 +211,72 @@ struct PastDaysRecordTests {
         #expect(days.asked.count == reads, "the superseded failure forgot a window that was fine")
     }
 
+    @Test("asking for earlier reaches further back without losing what it had")
+    func theWindowGrowsFromTheSameEnd() async {
+        // The extension keeps the same end and reaches further, so a cache keyed
+        // on the end day alone would refuse it as already loaded. That is the
+        // reason the key is the whole window and not just its last day.
+        let days = FakeDays(calendar: calendar)
+        days.byDay[wire(-1)] = [entry(1, mg: 3)]
+        days.byDay[wire(-9)] = [entry(2, mg: 6)]
+        let versions = FakeVersions()
+        versions.versions = [version(from: -60)]
+        let record = record(days, versions, clock: Clock(day(0)))
+
+        await record.load()
+        #expect(record.rollups.count == 7)
+        #expect(record.rollups.contains { $0.loggedMg == 6 } == false, "day -9 is outside the week")
+
+        await record.showEarlier()
+
+        #expect(record.rollups.count == 14, "the window did not grow")
+        #expect(record.rollups.first?.day == day(-1), "the window moved instead of reaching back")
+        #expect(record.rollups.contains { $0.loggedMg == 6 }, "the older day was not picked up")
+        #expect(record.rollups.contains { $0.loggedMg == 3 }, "the days it already had were lost")
+    }
+
+    @Test("there is nothing earlier to offer once the window reaches day one")
+    func theOfferStopsAtTheStartOfTheTaper() async {
+        // Days before the taper began have no ceiling — every one would draw as
+        // a day nobody was measuring. Offering to load them would be the app
+        // volunteering to fill the screen with nothing.
+        let days = FakeDays(calendar: calendar)
+        let versions = FakeVersions()
+        versions.versions = [version(from: -5)]
+        let shallow = record(days, versions, clock: Clock(day(0)))
+
+        await shallow.load()
+
+        #expect(!shallow.hasEarlier, "it offered days from before the plan existed")
+
+        // And a taper that began well before the window still has more to show.
+        let older = FakeVersions()
+        older.versions = [version(from: -60)]
+        let deep = record(FakeDays(calendar: calendar), older, clock: Clock(day(0)))
+        await deep.load()
+        #expect(deep.hasEarlier)
+    }
+
+    @Test("a second press while one is in flight does not stack the window")
+    func showEarlierIsNotPressedTwice() async {
+        // Two presses landing together would add two weeks and fire two reads
+        // for windows that disagree — the same overtaking problem, this time
+        // caused by a finger rather than by midnight.
+        let days = FakeDays(calendar: calendar)
+        days.delay = .milliseconds(200)
+        let versions = FakeVersions()
+        versions.versions = [version(from: -60)]
+        let record = record(days, versions, clock: Clock(day(0)))
+        await record.load()
+
+        let first = Task { await record.showEarlier() }
+        await waitUntil { record.isLoadingEarlier }
+        await record.showEarlier()
+        await first.value
+
+        #expect(record.rollups.count == 14, "a second press stacked another week on")
+    }
+
     @Test("a week is seven days, including the ones with nothing on them")
     func anEmptyDayStillGetsItsPlace() async {
         // Built from the calendar rather than from the rows. A week with two

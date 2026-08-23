@@ -28,6 +28,19 @@ struct TodayListView: View {
     /// silent, because a run of days that is missing looks identical to a run
     /// of days with nothing on them.
     var arePastDaysUnavailable = false
+    /// Today, so a day can be named by its relationship to now.
+    ///
+    /// Passed rather than read from the clock, and rather than inferred from
+    /// the head of the list. Deriving "Yesterday" from list position means the
+    /// heading is only correct while the ordering is — and in this feature the
+    /// ordering has been wrong, or proposed wrong, more than once.
+    var today: Date = Date()
+    /// Whether there is anything earlier to offer.
+    var hasEarlier = false
+    /// Loads another week further back.
+    var onShowEarlier: () -> Void = {}
+    /// True while that load is in flight.
+    var isLoadingEarlier = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -185,7 +198,28 @@ struct TodayListView: View {
             ForEach(pastDays, id: \.day) { day in
                 daySection(day)
             }
+            if hasEarlier { showEarlierButton }
         }
+    }
+
+    /// The way further back, and only when there is a further back to go.
+    ///
+    /// Hidden once the window reaches the first day of the plan. Offering to
+    /// load days before somebody's taper began would fill the screen with days
+    /// that have no ceiling and nothing on them.
+    private var showEarlierButton: some View {
+        Button(action: onShowEarlier) {
+            Text(isLoadingEarlier ? "Loading…" : "Show earlier")
+                .font(AppFont.text(AppSize.body, .medium))
+                .foregroundStyle(AppColor.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: AppLayout.action)
+                .background(AppColor.surface, in: Capsule())
+                .overlay { Capsule().strokeBorder(AppColor.line, lineWidth: 1) }
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoadingEarlier)
+        .accessibilityIdentifier("today.showEarlier")
     }
 
     /// The heading a past day gets: "Yesterday" for the first one, and the
@@ -196,12 +230,27 @@ struct TodayListView: View {
     /// date beside the count — "Wednesday · Aug 19 · 5 check-ins" — because
     /// "four days ago" is arithmetic and a weekday is a memory.
     func heading(for day: DayRollup) -> String {
-        day.day == pastDays.first?.day ? "Yesterday" : day.weekdayText
+        isYesterday(day) ? "Yesterday" : day.weekdayText
     }
 
     /// The count line, with the date on any day that is not yesterday.
     func countLine(for day: DayRollup) -> String {
-        day.day == pastDays.first?.day ? day.countText : "\(day.dateText) · \(day.countText)"
+        isYesterday(day) ? day.countText : "\(day.dateText) · \(day.countText)"
+    }
+
+    /// Asked of the calendar, not of the list.
+    ///
+    /// The day before today is a fact about the date; being first in an array
+    /// is a fact about how the array was built. Tying the heading to the second
+    /// means any change of order silently renames a day — and a week-old day
+    /// labelled "Yesterday", with its own cap beside it, is this feature's
+    /// signature bug.
+    private func isYesterday(_ rollup: DayRollup) -> Bool {
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(
+            byAdding: .day, value: -1, to: calendar.startOfDay(for: today)
+        ) else { return false }
+        return calendar.isDate(rollup.day, inSameDayAs: yesterday)
     }
 
     private func daySection(_ day: DayRollup) -> some View {
@@ -253,7 +302,7 @@ struct TodayListView: View {
 
     private var unbuilt: some View {
         Text("""
-        Days before that belong here too, behind a control that isn't built yet.
+        Editing a check-in from a past day isn't built yet.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)

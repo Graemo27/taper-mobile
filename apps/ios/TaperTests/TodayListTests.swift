@@ -23,6 +23,41 @@ struct TodayListTests {
         #expect(row.labelText == "Pouch × 2", "a repeated tap did not say how many")
     }
 
+    @Test("only the actual day before today is called Yesterday")
+    func theHeadingIsAFactAboutTheDateNotThePosition() {
+        // The head of the list is called Yesterday only if it *is* yesterday.
+        // A window that arrived stale, or a list built in another order, would
+        // otherwise rename whatever happened to be first — and a week-old day
+        // labelled "Yesterday" with its own cap beside it is this feature's
+        // signature bug.
+        let cal = Calendar.current
+        let today = Date()
+        func day(_ o: Int) -> Date {
+            cal.date(byAdding: .day, value: o, to: cal.startOfDay(for: today))!
+        }
+        func rollup(_ o: Int) -> DayRollup {
+            DayRollup(day: day(o), entries: [], capMg: 12)
+        }
+
+        let correct = TodayListView(status: .ready, entries: [], summary: "", onBack: {},
+                                    onSelect: { _ in }, pastDays: [rollup(-1), rollup(-2)],
+                                    today: today)
+        #expect(correct.heading(for: rollup(-1)) == "Yesterday")
+        #expect(correct.heading(for: rollup(-2)) == rollup(-2).weekdayText)
+
+        // The same list with its newest day two days back — what a stale window
+        // looks like. Nothing in it is yesterday, so nothing is called it.
+        let stale = TodayListView(status: .ready, entries: [], summary: "", onBack: {},
+                                  onSelect: { _ in }, pastDays: [rollup(-2), rollup(-3)],
+                                  today: today)
+        #expect(
+            stale.heading(for: rollup(-2)) == rollup(-2).weekdayText,
+            "the head of a stale window was renamed Yesterday"
+        )
+        #expect(stale.countLine(for: rollup(-2)).contains(rollup(-2).dateText),
+                "and it lost the date that would have given it away")
+    }
+
     @Test("a multiple prints as a dose, not as a Double")
     func aRowDoesNotLeakItsBinary() {
         // The row that started #110: 1.2 mg three times drew as
