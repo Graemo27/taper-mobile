@@ -10,6 +10,7 @@
 
 import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert';
 import { OpenFdaError, searchNrt } from './openfda.ts';
+import type { NrtForm } from './types.ts';
 
 /** Replaces global fetch for one call, always restoring it. Returns the URLs requested. */
 async function withFetch(
@@ -80,6 +81,15 @@ Deno.test('anything that is not unambiguously licensed NRT is dropped', async ()
   const rejected: Record<string, unknown>[] = [
     // A tobacco product, were one ever to reach this code.
     { dosage_form: 'POUCH', brand_name: 'Not NRT' },
+    // The four nicotine dosage forms openFDA really does carry besides the
+    // licensed ones: bulk raw nicotine registered by the kilogram (POWDER,
+    // LIQUID), homeopathic pellets, and one patch mislabelled as a lotion.
+    // None is a cessation product a user may put on a key, and each must stay
+    // dropped whatever the allowlist is matching on.
+    { dosage_form: 'POWDER', brand_name: 'Nicotine', active_ingredients: [{ name: 'NICOTINE', strength: '1 kg/kg' }] },
+    { dosage_form: 'LIQUID', brand_name: 'Tobacco Withdrawal' },
+    { dosage_form: 'PELLET', brand_name: 'Nicotinum' },
+    { dosage_form: 'LOTION', brand_name: 'Nicotine Patches' },
     // A drug that is not nicotine.
     { active_ingredients: [{ name: 'CAFFEINE', strength: '40 mg/1' }] },
     // Nicotine, but no readable dose — dropped rather than guessed at.
@@ -91,6 +101,49 @@ Deno.test('anything that is not unambiguously licensed NRT is dropped', async ()
     await withFetch(
       () => ok({ results: [record(over)] }),
       async () => assertEquals(await searchNrt('anything', 5), []),
+    );
+  }
+});
+
+Deno.test('a form is matched at its base, so a new one upstream fails closed', async () => {
+  // Every dosage form openFDA really carries for nicotine, as of 2026-08-21,
+  // plus the near-misses an unanchored match would wave through. "ORAL SPRAY"
+  // is not the licensed nasal spray and "SOLUTION FOR INHALATION" is not the
+  // inhaler, however much of the allowed word they contain.
+  const forms: [string, NrtForm | null][] = [
+    ['GUM, CHEWING', 'gum'],
+    ['LOZENGE', 'lozenge'],
+    ['PATCH', 'patch'],
+    ['PATCH, EXTENDED RELEASE', 'patch'],
+    ['FILM, EXTENDED RELEASE', 'patch'],
+    ['SPRAY, METERED', 'spray'],
+    ['POWDER', null],
+    ['LIQUID', null],
+    ['PELLET', null],
+    ['LOTION', null],
+    ['INHALANT', 'inhaler'],
+    ['TROCHE', 'lozenge'],
+    // Real FDA dosage forms that carry an allowed word without being it, and
+    // the collisions a character prefix would wave through. A nicotine gummy
+    // is not licensed NRT, so "GUMMY" reading as gum is the rule failing.
+    ['ORAL SPRAY', null],
+    ['AEROSOL, SPRAY', null],
+    ['TABLET, FILM COATED', null],
+    ['FILM', null],
+    ['FILM, SOLUBLE', null],
+    ['SOLUTION FOR INHALATION', null],
+    ['GUMMY', null],
+    ['SPRAYABLE', null],
+    ['PATCHWORK', null],
+    ['LOZENGES', null],
+  ];
+  for (const [dosage_form, expected] of forms) {
+    await withFetch(
+      () => ok({ results: [record({ dosage_form })] }),
+      async () => {
+        const found = await searchNrt('anything', 5);
+        assertEquals(found[0]?.form ?? null, expected, dosage_form);
+      },
     );
   }
 });

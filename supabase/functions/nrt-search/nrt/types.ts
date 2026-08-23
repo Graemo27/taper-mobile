@@ -25,8 +25,11 @@ export interface NrtProduct {
 export type NrtForm = 'gum' | 'lozenge' | 'patch' | 'inhaler' | 'spray';
 
 /**
- * Matched by keyword, not equality: openFDA's `dosage_form` is uppercase and
- * comma-qualified — "GUM, CHEWING", "PATCH, EXTENDED RELEASE".
+ * Whole base forms, spelled as openFDA spells them. Its `dosage_form` grammar is
+ * `BASE` or `BASE, QUALIFIER` — "GUM, CHEWING", "PATCH, EXTENDED RELEASE" — so
+ * one entry covers a family's qualifiers and nothing else. Every entry is a
+ * complete base rather than a stem: a stem would match by spelling instead of
+ * by meaning, and "GUM" would take in "GUMMY".
  */
 export const FORMS: ReadonlyArray<readonly [string, NrtForm]> = [
   ['GUM', 'gum'],
@@ -34,6 +37,6 @@ export const FORMS: ReadonlyArray<readonly [string, NrtForm]> = [
   ['TROCHE', 'lozenge'],
   ['PATCH', 'patch'],
   ['FILM, EXTENDED RELEASE', 'patch'],
-  ['INHAL', 'inhaler'],
+  ['INHALANT', 'inhaler'],
   ['SPRAY', 'spray'],
 ];

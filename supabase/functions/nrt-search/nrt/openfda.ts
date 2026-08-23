@@ -74,10 +74,19 @@ function milligrams(strength: string | undefined): number | null {
   return Number.isFinite(mg) && mg > 0 ? mg : null;
 }
 
-/** Maps an openFDA dosage form onto the allowlist, or null if it is not licensed NRT. */
+/**
+ * Maps an openFDA dosage form onto the allowlist, or null if it is not licensed NRT.
+ *
+ * Matched on a whole base, not a character prefix. openFDA's grammar is exactly
+ * `BASE` or `BASE, QUALIFIER` — every form in the directory carrying one of
+ * these words is one of those two shapes — so the comma is the token boundary,
+ * and requiring it is what stops "GUMMY" reading as gum or "AEROSOL, SPRAY" as
+ * the nasal spray. A nicotine gummy is not licensed NRT; without the boundary
+ * this function would hand one to a pad key.
+ */
 function form(dosageForm: string | undefined) {
-  const upper = (dosageForm ?? '').toUpperCase();
-  return FORMS.find(([keyword]) => upper.includes(keyword))?.[1] ?? null;
+  const upper = (dosageForm ?? '').trim().toUpperCase();
+  return FORMS.find(([base]) => upper === base || upper.startsWith(`${base},`))?.[1] ?? null;
 }
 
 /**
