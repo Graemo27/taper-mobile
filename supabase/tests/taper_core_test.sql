@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(43);
+select plan(51);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -450,6 +450,42 @@ select throws_ok(
   null,
   'a stranger cannot version somebody else''s plan'
 );
+
+-- Grants, asserted as an exact set rather than a floor.
+--
+-- The privileges a table holds are not what its migration granted: Supabase's
+-- default privileges hand `arwdDxtm` to both client roles before any migration
+-- runs, and a `grant` cannot take that back. Local and hosted had drifted apart
+-- because of it — hosted granted `authenticated` delete on every table, local
+-- never did — and the suite could not see the difference, because it only ever
+-- ran against local.
+--
+-- So these compare the whole set. `has_table_privilege` would pass on a table
+-- holding every privilege in Postgres; what matters here is what is *absent*,
+-- and truncate above all: RLS does not govern it, so the privilege alone empties
+-- every user's rows at once.
+create or replace function pg_temp.privs(tbl text, role_name text)
+returns text language sql as $$
+  select coalesce(string_agg(privilege_type, ',' order by privilege_type), 'none')
+  from information_schema.role_table_grants
+  where table_schema = 'public' and table_name = tbl and grantee = role_name;
+$$;
+
+select is(pg_temp.privs('taper_plans', 'authenticated'), 'INSERT,SELECT,UPDATE',
+          'a plan is corrected in place, never deleted or truncated');
+select is(pg_temp.privs('taper_plan_versions', 'authenticated'), 'INSERT,SELECT,UPDATE',
+          'a version is what a past day was measured against, so it cannot be removed');
+select is(pg_temp.privs('pad_keys', 'authenticated'), 'DELETE,INSERT,SELECT,UPDATE',
+          'a key can be taken off the pad, but the table cannot be emptied');
+select is(pg_temp.privs('check_ins', 'authenticated'), 'DELETE,INSERT,SELECT,UPDATE',
+          'a check-in can be taken back, but the table cannot be emptied');
+
+-- `anon` is the role before a sign-in. No policy on these tables names it, and
+-- it kept truncate for as long as it kept anything.
+select is(pg_temp.privs('taper_plans', 'anon'), 'none', 'anon holds nothing on plans');
+select is(pg_temp.privs('taper_plan_versions', 'anon'), 'none', 'anon holds nothing on versions');
+select is(pg_temp.privs('pad_keys', 'anon'), 'none', 'anon holds nothing on pad keys');
+select is(pg_temp.privs('check_ins', 'anon'), 'none', 'anon holds nothing on check-ins');
 
 select * from finish();
 rollback;
