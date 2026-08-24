@@ -172,6 +172,43 @@ extension LiveBackendTests {
         #expect(stored.ndc == nil, "whitespace was written as an NDC")
     }
 
+    @Test("two keys sharing a position keep a stable order, not an arbitrary one",
+          .enabled(if: LocalBackend.isAvailable))
+    func tiedPositionsDrawInTheOrderTheyWereMade() async throws {
+        // `position` is not unique, and two `add` calls close enough together
+        // both read the same last one. Postgres promises nothing about tied
+        // rows, so without a third ordering key the pad would shuffle between
+        // reads for somebody who had touched nothing. Creation order is the
+        // tiebreak, because it is the order they should have been given.
+        let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
+        try? await client.auth.signOut(scope: .local)
+        let store = SupabasePadKeyStore(
+            client: client,
+            session: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
+        )
+        let seeded = try await store.seed([
+            PadKey(form: .gum, label: "First", mg: 2, position: 0),
+            PadKey(form: .lozenge, label: "Second", mg: 4, position: 0),
+            PadKey(form: .patch, label: "Third", mg: 21, position: 0),
+        ])
+        #expect(Set(seeded.map(\.position)) == [0], "the fixture must tie every position")
+
+        // Rewriting the first row is what makes this a test rather than a
+        // coincidence. An update moves the tuple to the end of the heap, so a
+        // read with nothing to break the tie returns it last — which is how a
+        // pad reorders itself under somebody who touched nothing. Reading the
+        // rows in insertion order straight after an insert proves only that
+        // Postgres had not yet been given a reason to do otherwise.
+        _ = try await client.from("pad_keys")
+            .update(["mg": 3])
+            .eq("id", value: seeded[0].id)
+            .execute()
+
+        let labels = try await store.currentKeys().map(\.label)
+        #expect(labels == ["First", "Second", "Third"],
+                "a rewritten row moved in the pad, so the tie is not being broken")
+    }
+
     @Test("a new anonymous session has an empty pad, rather than failing",
           .enabled(if: LocalBackend.isAvailable))
     func aNewUserHasNoKeys() async throws {

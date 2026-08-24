@@ -162,8 +162,16 @@ extension SupabasePadKeyStore {
                 // The pad draws two groups, and `position` numbers each from
                 // zero — so ordering by it alone interleaves them. Ledger
                 // first, then position, which is the index this table carries.
+                //
+                // Then `id`, because position is not unique and Postgres makes
+                // no promise about tied rows: two keys sharing a position would
+                // otherwise come back in a different order from one read to the
+                // next, and the pad would shuffle under someone who had touched
+                // nothing. `id` breaks the tie by the order they were created,
+                // which is the order the pad should draw them in anyway.
                 .order("ledger")
                 .order("position")
+                .order("id")
                 .execute()
                 .value as [StoredPadKey]
         }
