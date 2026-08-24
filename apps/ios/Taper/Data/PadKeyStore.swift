@@ -25,7 +25,13 @@ struct StoredPadKey: Decodable, Equatable, Sendable {
     }
 }
 
-/// Writing the pad.
+/// Putting keys on the pad, by the two routes that do it.
+///
+/// They are not variations of one write. `seed` is a bootstrap that refuses a
+/// pad which already has keys; `add` is for a pad that has them and appends to
+/// one ledger. A caller that picked the wrong one would either wipe out the
+/// distinction or silently do nothing, so they are named apart rather than
+/// overloaded.
 protocol PadKeyWriting: Sendable {
     /// Writes the seeded keys, or returns what is already there.
     ///
@@ -79,7 +85,11 @@ struct AppStores {
     let nrt: any NRTSearching
 }
 
-/// Seeds and reads the pad through Supabase, as the signed-in anonymous user.
+/// The pad on the server: the whole of `pad_keys` for the signed-in anonymous
+/// user, written and read.
+///
+/// Every position the pad draws is decided here rather than by a caller, because
+/// each ledger numbers its own keys from zero and no screen sees both.
 struct SupabasePadKeyStore: PadKeyWriting, PadKeyReading {
     let client: SupabaseClient
     let session: SessionCoordinator
