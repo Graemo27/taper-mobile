@@ -81,7 +81,7 @@ function milligrams(strength: string | undefined): number | null {
  * `BASE` or `BASE, QUALIFIER` — every form in the directory carrying one of
  * these words is one of those two shapes — so the comma is the token boundary,
  * and requiring it is what stops "GUMMY" reading as gum or "AEROSOL, SPRAY" as
- * the nasal spray. A nicotine gummy is not licensed NRT; without the boundary
+ * the licensed spray. A nicotine gummy is not licensed NRT; without the boundary
  * this function would hand one to a pad key.
  */
 function form(dosageForm: string | undefined) {
