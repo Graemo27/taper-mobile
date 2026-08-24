@@ -334,4 +334,66 @@ final class PadRunTests: TaperRunCase {
         )
         XCTAssertFalse(field.exists, "The search field outlived its own cancel button")
     }
+
+    func testASearchResultBecomesAKeyOnThePad() throws {
+        // The seam three PRs have built toward and none has crossed: the search
+        // finds a licensed product, the form names it, the store writes it, and
+        // the pad it was opened from shows it. Each half has passed alone.
+        //
+        // It searches the real catalogue through the local Edge Function, which
+        // is the point — a fake would prove the wiring and not that a product
+        // openFDA actually returns can become a key.
+        openTheLog()
+        app.buttons["pad.addTreatment"].tap()
+
+        let field = app.textFields["search.field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "the catalogue did not open")
+        field.tap()
+        // The keyboard is deliberately left up. Typing a brand and tapping a
+        // result without dismissing anything is the ordinary way through this
+        // screen, and it is the arrangement that was broken: the rows were
+        // drawn in plain sight and refused the tap.
+        field.typeText("nicorette")
+
+        // Skipped, not failed, when the catalogue does not answer. The local
+        // Edge Function runs without `OPENFDA_API_KEY`, which puts it on
+        // openFDA's 1,000-a-day-per-IP allowance — shared with every other
+        // thing leaving this machine. A red run that means "somebody else used
+        // the quota" teaches people to ignore red runs, and this suite's worth
+        // is that its failures are real.
+        let result = app.buttons["search.result"].firstMatch
+        guard result.waitForExistence(timeout: 20) else {
+            throw XCTSkip(
+                "openFDA returned nothing for 'nicorette', so the catalogue could not be "
+                    + "reached. The seam this test covers was not exercised."
+            )
+        }
+        result.tap()
+
+        let name = app.textFields["newKey.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5), "picking a result opened no form")
+        XCTAssertFalse(
+            (name.value as? String ?? "").isEmpty,
+            "the form opened without the product's name in it"
+        )
+
+        // The strength the pad will carry, read before saving so the assertion
+        // afterwards is about this key rather than about a number we chose.
+        let mg = app.staticTexts["newKey.mg"].label
+        app.buttons["newKey.save"].tap()
+
+        // Back on the pad, with the key on it — the search closes itself, so the
+        // add tile returning is how we know we are looking at keys again.
+        XCTAssertTrue(
+            app.buttons["pad.addTreatment"].waitForExistence(timeout: 15),
+            "saving left the search open"
+        )
+        let key = app.buttons.containing(
+            NSPredicate(format: "label CONTAINS %@", "\(mg) milligrams")
+        ).firstMatch
+        XCTAssertTrue(
+            key.waitForExistence(timeout: 10),
+            "the key was written but the pad never showed it"
+        )
+    }
 }
