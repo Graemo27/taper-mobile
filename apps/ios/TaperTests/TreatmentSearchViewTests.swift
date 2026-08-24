@@ -67,13 +67,36 @@ struct TreatmentSearchViewTests {
         // The chips are what decides which product a row is. Sighted readers
         // get all of them at once; a listener gets whatever the label says, so
         // a label naming only the brand would hide the choice being made.
-        let row = TreatmentResultRow(result: result("Nicorette", "nicotine polacrilex", .gum, 2, 4))
-        #expect(row.spokenText == "Nicorette, Gum · nicotine polacrilex, available in 2 milligrams and 4 milligrams")
+        let spoken = TreatmentResultRow.spokenText(
+            for: result("Nicorette", "nicotine polacrilex", .gum, 2, 4))
+        #expect(spoken == "Nicorette, Gum · nicotine polacrilex, available in 2 milligrams and 4 milligrams")
     }
 
     @Test("a product with no labeler is not read out with a dangling separator")
     func anUnnamedLabelerLeavesNoGap() {
-        let row = TreatmentResultRow(result: result("Habitrol", "", .lozenge, 4))
-        #expect(row.spokenText == "Habitrol, Lozenge, available in 4 milligrams")
+        let spoken = TreatmentResultRow.spokenText(for: result("Habitrol", "", .lozenge, 4))
+        #expect(spoken == "Habitrol, Lozenge, available in 4 milligrams")
     }
 }
+
+/// Covers the copy on the screen that turns a result into a key.
+@MainActor
+struct NewTreatmentKeyViewTests {
+    @Test("the strength line names the form's own unit")
+    func aPatchIsNotMeasuredPerPiece() {
+        // A patch is worn for a day; a lozenge is taken. "Mg per patch" invites
+        // someone to count them like pieces.
+        #expect(NewTreatmentKeyView.strengthTitle(for: .patch) == "Mg per 24 hours")
+        #expect(NewTreatmentKeyView.strengthTitle(for: .lozenge) == "Mg per lozenge")
+        #expect(NewTreatmentKeyView.strengthTitle(for: .gum) == "Mg per gum")
+    }
+
+    @Test("a single-strength product does not promise a choice")
+    func oneStrengthSaysSo() {
+        // The stepper has nowhere to go on a one-strength label, and a line
+        // reading "1 strengths" would look like a bug in the catalogue.
+        #expect(NewTreatmentKeyView.strengthNote(count: 1) == "The only strength on this label")
+        #expect(NewTreatmentKeyView.strengthNote(count: 3).contains("3 strengths"))
+    }
+}
+

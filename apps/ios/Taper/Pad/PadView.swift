@@ -19,6 +19,15 @@ struct PadView: View {
     @Bindable var search: TreatmentSearchRecord
     /// Whether the pad is searching rather than resting.
     @Binding var isSearching: Bool
+    /// The key being made from a search result, when there is one. Held by the
+    /// tabs rather than here so a half-filled draft survives a glance at the
+    /// plan, the same bargain the search query makes.
+    @Binding var draft: NewKeyDraft?
+    /// Makes a draft for a chosen product. Passed in because the pad has no
+    /// store of its own — it is handed what it draws.
+    let draftFor: (NRTResult) -> NewKeyDraft
+    /// A key that reached the server, so the pad can reload and show it.
+    let onKeyAdded: () -> Void
 
     private var tally: TodaysTally { record.tally(ceilingMg: ceilingMg) }
 
@@ -26,10 +35,24 @@ struct PadView: View {
         VStack(alignment: .leading, spacing: AppSpacing.lPlus) {
             CapMeter(tally: tally, pending: record.selection.pending)
 
-            if isSearching {
+            if let draft {
+                NewTreatmentKeyView(draft: draft) {
+                    // Back to the results, not out of the search: somebody who
+                    // opened the wrong product is one tap from the right one,
+                    // and their query is still in the field.
+                    self.draft = nil
+                } onSaved: { _ in
+                    self.draft = nil
+                    search.clear()
+                    isSearching = false
+                    onKeyAdded()
+                }
+            } else if isSearching {
                 TreatmentSearchView(record: search) {
                     search.clear()
                     isSearching = false
+                } onPick: { product in
+                    draft = draftFor(product)
                 }
             } else {
                 switch status {
@@ -186,19 +209,22 @@ struct PadView: View {
 
 #Preview {
     @Previewable @State var isSearching = false
+    let keys: [StoredPadKey] = [
+        StoredPadKey(id: 1, form: .patch, label: "Patch", mg: 21, position: 0, ndc: nil),
+        StoredPadKey(id: 2, form: .lozenge, label: "Lozenge", mg: 4, position: 1, ndc: nil),
+        StoredPadKey(id: 3, form: .pouch, label: "Pouches", mg: 3, position: 0, ndc: nil),
+        StoredPadKey(id: 4, form: .vape, label: "Vape", mg: 2, position: 1, ndc: nil),
+    ]
     let record = TodayRecord(store: nil)
-    record.selection.tap(StoredPadKey(id: 3, form: .pouch, label: "Pouches",
-                                      mg: 3, position: 0, ndc: nil))
+    record.selection.tap(keys[2])
     return PadView(
-        status: .ready(Pad(keys: [
-            StoredPadKey(id: 1, form: .patch, label: "Patch", mg: 21, position: 0, ndc: nil),
-            StoredPadKey(id: 2, form: .lozenge, label: "Lozenge", mg: 4, position: 1, ndc: nil),
-            StoredPadKey(id: 3, form: .pouch, label: "Pouches", mg: 3, position: 0, ndc: nil),
-            StoredPadKey(id: 4, form: .vape, label: "Vape", mg: 2, position: 1, ndc: nil),
-        ])),
+        status: .ready(Pad(keys: keys)),
         record: record,
         ceilingMg: 12,
         search: TreatmentSearchRecord(search: nil),
-        isSearching: $isSearching
+        isSearching: $isSearching,
+        draft: .constant(nil),
+        draftFor: { NewKeyDraft(product: $0, store: nil) },
+        onKeyAdded: {}
     )
 }

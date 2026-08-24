@@ -68,6 +68,7 @@
 		7CF719E37B2E4EE6A68A9849 /* PadRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D1598E57443987CD03A24 /* PadRunTests.swift */; };
 		7D5853D0EC5928A2417B8C88 /* NewKeyDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C771B074CD11746F968D65 /* NewKeyDraft.swift */; };
 		7E3BAFF6DCCF66B5E244D5FC /* PastDaysRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E24D4F5D6154FF40A552901 /* PastDaysRecord.swift */; };
+		8520DB5858D703C0CB2182D4 /* NewTreatmentKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C851D90813354110CFD9B12 /* NewTreatmentKeyView.swift */; };
 		8AD4F01573512A6BFDF559EE /* NRTSearchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6998A66E4C83F21037164921 /* NRTSearchStore.swift */; };
 		8E340508CF6AD45215AEFFA0 /* TaperPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C388174D171CDC5BE2E93A90 /* TaperPlanTests.swift */; };
 		9538768352F4B4C5F5BE0ED2 /* PadKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */; };
@@ -163,6 +164,7 @@
 		300FADDE21E940AC947261F7 /* TriggersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggersView.swift; sourceTree = "<group>"; };
 		31DE77B83873D88DE62BC684 /* TodaysTallyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaysTallyTests.swift; sourceTree = "<group>"; };
 		33A58AB9858C32889C73D9F7 /* DayRollup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRollup.swift; sourceTree = "<group>"; };
+		3C851D90813354110CFD9B12 /* NewTreatmentKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTreatmentKeyView.swift; sourceTree = "<group>"; };
 		3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionCard.swift; sourceTree = "<group>"; };
 		3E2EF4FCF4203C5882A4B728 /* NewKeyDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewKeyDraftTests.swift; sourceTree = "<group>"; };
 		42AA9319A756BB1539B49424 /* StrengthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthView.swift; sourceTree = "<group>"; };
@@ -490,6 +492,7 @@
 			children = (
 				FA00ED9C801626583C7F0F8F /* CapMeter.swift */,
 				A4C771B074CD11746F968D65 /* NewKeyDraft.swift */,
+				3C851D90813354110CFD9B12 /* NewTreatmentKeyView.swift */,
 				FBD1FA4880F90D7EA4A5BA29 /* PadActionBar.swift */,
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
 				2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */,
@@ -693,6 +696,7 @@
 				3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */,
 				8AD4F01573512A6BFDF559EE /* NRTSearchStore.swift in Sources */,
 				7D5853D0EC5928A2417B8C88 /* NewKeyDraft.swift in Sources */,
+				8520DB5858D703C0CB2182D4 /* NewTreatmentKeyView.swift in Sources */,
 				DBF354CC66F11455190DF7B0 /* NicotineMark.swift in Sources */,
 				C41C9FD243F5C93219A7B2AE /* OnboardingAnswers.swift in Sources */,
 				0B36B57889B1BF115E4996B9 /* OnboardingFlow.swift in Sources */,
