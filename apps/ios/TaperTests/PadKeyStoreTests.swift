@@ -172,14 +172,23 @@ extension LiveBackendTests {
         #expect(stored.ndc == nil, "whitespace was written as an NDC")
     }
 
-    @Test("two keys sharing a position keep a stable order, not an arbitrary one",
+    @Test("a key that leaves a tie and comes back does not lose its place",
           .enabled(if: LocalBackend.isAvailable))
     func tiedPositionsDrawInTheOrderTheyWereMade() async throws {
-        // `position` is not unique, and two `add` calls close enough together
-        // both read the same last one. Postgres promises nothing about tied
-        // rows, so without a third ordering key the pad would shuffle between
-        // reads for somebody who had touched nothing. Creation order is the
-        // tiebreak, because it is the order they should have been given.
+        // `position` is not unique — two `add` calls close enough together both
+        // read the same last one — and Postgres promises nothing about the
+        // order of tied rows.
+        //
+        // It takes a *non-HOT* update to see it, which is why this moves
+        // `position` rather than something cheaper. An ordinary column update
+        // stays on its page and leaves every index entry alone, so an index
+        // scan still yields the original order and the pad looks stable whether
+        // or not anything breaks the tie. Rewriting an indexed column reinserts
+        // the entry at the end of its equal-key group, and the row jumps to the
+        // back of the pad.
+        //
+        // That is not a hypothetical write: it is precisely what reordering the
+        // pad does, which is the feature this ordering has to survive.
         let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
         try? await client.auth.signOut(scope: .local)
         let store = SupabasePadKeyStore(
@@ -193,20 +202,23 @@ extension LiveBackendTests {
         ])
         #expect(Set(seeded.map(\.position)) == [0], "the fixture must tie every position")
 
-        // Rewriting the first row is what makes this a test rather than a
-        // coincidence. An update moves the tuple to the end of the heap, so a
-        // read with nothing to break the tie returns it last — which is how a
-        // pad reorders itself under somebody who touched nothing. Reading the
-        // rows in insertion order straight after an insert proves only that
-        // Postgres had not yet been given a reason to do otherwise.
-        _ = try await client.from("pad_keys")
-            .update(["mg": 3])
-            .eq("id", value: seeded[0].id)
-            .execute()
+        let before = try await store.currentKeys()
+        #expect(before.count == 3, "the fixture did not land")
+        let moved = try #require(before.first)
 
-        let labels = try await store.currentKeys().map(\.label)
-        #expect(labels == ["First", "Second", "Third"],
-                "a rewritten row moved in the pad, so the tie is not being broken")
+        for position in [1, 0] {
+            let rewritten: [StoredPadKey] = try await client.from("pad_keys")
+                .update(["position": position])
+                .eq("id", value: moved.id)
+                .select()
+                .execute()
+                .value
+            #expect(rewritten.map(\.id) == [moved.id],
+                    "the update did not rewrite exactly the key it was given")
+        }
+
+        #expect(try await store.currentKeys().map(\.id) == before.map(\.id),
+                "a key that left the tie came back at the end of the pad")
     }
 
     @Test("a new anonymous session has an empty pad, rather than failing",
