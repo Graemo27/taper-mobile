@@ -108,6 +108,15 @@ private final class FakePad: PadKeyStoring, @unchecked Sendable {
     }
 
     func currentKeys() async throws -> [StoredPadKey] { [] }
+
+    /// Onboarding never adds a single key, so this exists to satisfy the
+    /// protocol and records nothing. A test that reached it would be testing
+    /// something this fake does not model.
+    func add(_ key: PadKey, ndc: String?) async throws -> StoredPadKey {
+        Issue.record("onboarding added a single key, which it has no path to do")
+        return StoredPadKey(id: 0, form: key.form, label: key.label,
+                            mg: key.mg, position: key.position, ndc: ndc)
+    }
 }
 
 /// Which writes happened, in the order they happened.

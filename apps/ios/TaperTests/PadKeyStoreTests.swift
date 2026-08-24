@@ -115,6 +115,63 @@ extension LiveBackendTests {
         #expect(ledgers == [.source, .source, .treatment, .treatment])
     }
 
+    @Test("a key added from the catalogue keeps the NDC it came from",
+          .enabled(if: LocalBackend.isAvailable))
+    func aCatalogueKeyCarriesItsLabelBack() async throws {
+        // The seam nothing has ever crossed: `ndc` has a column and a check
+        // constraint, and until now no write path filled it — onboarding never
+        // consults a catalogue, so every key on the server has been null.
+        let store = await padStore()
+
+        let stored = try await store.add(
+            PadKey(form: .lozenge, label: "Nicorette lozenge, mint", mg: 4, position: 0),
+            ndc: "0135-0546"
+        )
+
+        #expect(stored.ndc == "0135-0546", "the key lost the label it was built from")
+        #expect(stored.form == .lozenge)
+        #expect(stored.mg == 4)
+        #expect(try await store.currentKeys().count == 1)
+    }
+
+    @Test("an added key lands at the end of its own ledger, not the pad",
+          .enabled(if: LocalBackend.isAvailable))
+    func anAddedKeyCountsOnlyItsOwnLedger() async throws {
+        // Both ledgers number from zero. Taking the highest position on the
+        // whole pad would put a first treatment key at 2 behind two sources,
+        // and the pad draws position order within a group.
+        let store = await padStore()
+        _ = try await store.seed([
+            PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0),
+            PadKey(form: .cigarette, label: "Cigarettes", mg: 1.5, position: 1),
+        ])
+
+        let first = try await store.add(
+            PadKey(form: .gum, label: "Nicorette gum", mg: 2, position: 0), ndc: nil
+        )
+        let second = try await store.add(
+            PadKey(form: .patch, label: "NicoDerm", mg: 21, position: 0), ndc: nil
+        )
+
+        #expect(first.position == 0, "the first treatment key was pushed behind the sources")
+        #expect(second.position == 1, "the second key did not follow the first")
+    }
+
+    @Test("a key typed by hand carries no NDC rather than an empty one",
+          .enabled(if: LocalBackend.isAvailable))
+    func ablankNdcIsNullNotEmpty() async throws {
+        // The column's check refuses a blank string, so sending one would fail
+        // the whole insert — where null is already the way to say the key came
+        // from nowhere.
+        let store = await padStore()
+
+        let stored = try await store.add(
+            PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0), ndc: "   "
+        )
+
+        #expect(stored.ndc == nil, "whitespace was written as an NDC")
+    }
+
     @Test("a new anonymous session has an empty pad, rather than failing",
           .enabled(if: LocalBackend.isAvailable))
     func aNewUserHasNoKeys() async throws {
