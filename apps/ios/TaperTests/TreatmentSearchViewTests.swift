@@ -67,13 +67,14 @@ struct TreatmentSearchViewTests {
         // The chips are what decides which product a row is. Sighted readers
         // get all of them at once; a listener gets whatever the label says, so
         // a label naming only the brand would hide the choice being made.
-        let row = TreatmentResultRow(result: result("Nicorette", "nicotine polacrilex", .gum, 2, 4))
-        #expect(row.spokenText == "Nicorette, Gum · nicotine polacrilex, available in 2 milligrams and 4 milligrams")
+        let spoken = TreatmentResultRow.spokenText(
+            for: result("Nicorette", "nicotine polacrilex", .gum, 2, 4))
+        #expect(spoken == "Nicorette, Gum · nicotine polacrilex, available in 2 milligrams and 4 milligrams")
     }
 
     @Test("a product with no labeler is not read out with a dangling separator")
     func anUnnamedLabelerLeavesNoGap() {
-        let row = TreatmentResultRow(result: result("Habitrol", "", .lozenge, 4))
-        #expect(row.spokenText == "Habitrol, Lozenge, available in 4 milligrams")
+        let spoken = TreatmentResultRow.spokenText(for: result("Habitrol", "", .lozenge, 4))
+        #expect(spoken == "Habitrol, Lozenge, available in 4 milligrams")
     }
 }

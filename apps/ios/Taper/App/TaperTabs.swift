@@ -29,6 +29,8 @@ struct TaperTabs: View {
     /// survives a glance at the plan tab.
     @State private var search: TreatmentSearchRecord
     @State private var isSearching = false
+    /// The key being made, if the search led to one.
+    @State private var draft: NewKeyDraft?
     @State private var pad: PadRecord
     @State private var today: TodayRecord
 
@@ -95,7 +97,10 @@ struct TaperTabs: View {
                     record: today,
                     ceilingMg: progress.todaysCapMg,
                     search: search,
-                    isSearching: $isSearching
+                    isSearching: $isSearching,
+                    draft: $draft,
+                    draftFor: { NewKeyDraft(product: $0, store: stores?.pad) },
+                    onKeyAdded: { Task { await pad.load() } }
                 )
             case .plan:
                 PlanTabView(progress: progress)

@@ -9,6 +9,9 @@ import SwiftUI
 struct TreatmentSearchView: View {
     @Bindable var record: TreatmentSearchRecord
     let onCancel: () -> Void
+    /// A product the user chose. The search does not make the key itself —
+    /// naming it and choosing a strength is a screen of its own.
+    let onPick: (NRTResult) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.m) {
@@ -23,11 +26,27 @@ struct TreatmentSearchView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            // The results scroll and the field does not. With a keyboard up the
+            // pad has roughly a third of its height, and a column that simply
+            // grew taller than that spilled off the *top* — field, query and
+            // all — leaving somebody typing at something they could not see.
+            //
+            // `maxHeight: .infinity` is what makes that true. A `ScrollView`
+            // inside a `VStack` takes its *content* height by default, so the
+            // column went on overflowing and the rows' hit regions stopped
+            // agreeing with where they were drawn: a result sitting in plain
+            // sight above the keyboard refused the tap. Bounded, it takes the
+            // room that is left and scrolls inside it.
             if case let .results(results) = record.status {
-                rows(results)
+                ScrollView {
+                    rows(results)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
+                .frame(maxHeight: .infinity)
+            } else {
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 0)
         }
     }
 
@@ -97,7 +116,22 @@ struct TreatmentSearchView: View {
     private func rows(_ results: [NRTResult]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(results) { result in
-                TreatmentResultRow(result: result)
+                Button { onPick(result) } label: {
+                    TreatmentResultRow(result: result)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                // The row's label lives here rather than on the row. A button
+                // whose content is already an accessibility element has two,
+                // and the inner one takes hit testing with it — a row that
+                // reads correctly and cannot be tapped.
+                //
+                // Set without `accessibilityElement(children: .ignore)`, which
+                // would replace the button with a plain element and take the
+                // button trait with it: the row would then be neither tappable
+                // nor findable as a button.
+                .accessibilityLabel(TreatmentResultRow.spokenText(for: result))
+                .accessibilityIdentifier("search.result")
             }
         }
     }
@@ -106,8 +140,8 @@ struct TreatmentSearchView: View {
 /// One product a search found: what it is called, what kind it is, and every
 /// strength it comes in.
 ///
-/// Not selectable yet. The screen that turns a result into a key is next, and a
-/// row that led nowhere would be worse than one that plainly does not move.
+/// Selectable: tapping one opens `NewTreatmentKeyView` with its brand, form and
+/// licensed strengths already filled in.
 struct TreatmentResultRow: View {
     let result: NRTResult
 
@@ -138,13 +172,16 @@ struct TreatmentResultRow: View {
         .overlay(alignment: .bottom) {
             Rectangle().fill(AppColor.line).frame(height: 1)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spokenText)
     }
 
     /// Every strength said out loud, because the chips are the part that
     /// decides which product this is and a listener gets them or nothing.
-    var spokenText: String {
+    ///
+    /// A static taking the product, because whatever *presents* the row has to
+    /// apply it: inside a button, a row carrying its own accessibility element
+    /// makes two, and the inner one takes hit testing with it — leaving a row
+    /// that reads correctly and cannot be tapped.
+    static func spokenText(for result: NRTResult) -> String {
         let doses = result.strengths.map { "\($0.mg.clean) milligrams" }
             .formatted(.list(type: .and))
         return "\(result.brand), \(result.detailText), available in \(doses)"
