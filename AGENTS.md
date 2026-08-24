@@ -65,10 +65,18 @@ could not start were compatible states.
 - **Product search returns licensed NRT only — never a tobacco product.** Any surface that
   lets a user *discover* a nicotine product — search, autocomplete, suggestions, a browsable
   catalogue, "did you mean" — is restricted to FDA-regulated nicotine replacement therapy:
-  gum, lozenge, patch, inhaler, nasal spray. Pouches, vapes, cigarettes and dip must never
+  gum, lozenge, patch, inhaler, spray. Pouches, vapes, cigarettes and dip must never
   appear in a result set, be suggested, or be completed from a brand list, and no backend
   route may be capable of returning them. The app must not help anyone shop for nicotine it
   is not licensed to recommend.
+  **Spray, not *nasal* spray** — the qualifier was dropped deliberately. It described the
+  only US product that existed when this was written, Nicotrol NS, rather than drawing a
+  boundary. Where a spray goes is not in openFDA's `dosage_form` at all — the form is
+  `SPRAY, METERED` and only `route` says `NASAL`, which is null on one of the two spray
+  records in the catalogue. So enforcing the word would mean filtering on a field that is
+  half empty, to refuse a mouth spray that is licensed NRT in the UK and EU. The line this
+  rule draws is tobacco versus licensed replacement, and a nicotine mouth spray is on the
+  same side of it as the gum.
   This is a rule about *discovery*, not about *recording*. The user still declares what they
   are quitting during onboarding and can add to it later, because a source they cannot log
   is a cap that silently lies — but that path is a plain type-and-mg entry the user types

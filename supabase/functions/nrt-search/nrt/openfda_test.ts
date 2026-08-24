@@ -108,8 +108,10 @@ Deno.test('anything that is not unambiguously licensed NRT is dropped', async ()
 Deno.test('a form is matched at its base, so a new one upstream fails closed', async () => {
   // Every dosage form openFDA really carries for nicotine, as of 2026-08-21,
   // plus the near-misses an unanchored match would wave through. "ORAL SPRAY"
-  // is not the licensed nasal spray and "SOLUTION FOR INHALATION" is not the
-  // inhaler, however much of the allowed word they contain.
+  // and "SOLUTION FOR INHALATION" are not forms openFDA carries, and neither is
+  // a base on the allowlist, however much of an allowed word it contains. Note
+  // this is about form grammar, not about route: a mouth spray would arrive as
+  // "SPRAY, METERED" like the nasal one, and is admitted.
   const forms: [string, NrtForm | null][] = [
     ['GUM, CHEWING', 'gum'],
     ['LOZENGE', 'lozenge'],
