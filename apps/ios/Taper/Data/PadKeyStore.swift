@@ -25,7 +25,13 @@ struct StoredPadKey: Decodable, Equatable, Sendable {
     }
 }
 
-/// Writing the pad.
+/// Putting keys on the pad, by the two routes that do it.
+///
+/// They are not variations of one write. `seed` is a bootstrap that refuses a
+/// pad which already has keys; `add` is for a pad that has them and appends to
+/// one ledger. A caller that picked the wrong one would either wipe out the
+/// distinction or silently do nothing, so they are named apart rather than
+/// overloaded.
 protocol PadKeyWriting: Sendable {
     /// Writes the seeded keys, or returns what is already there.
     ///
@@ -34,6 +40,18 @@ protocol PadKeyWriting: Sendable {
     /// with what the questions imply would throw that away — so a pad that
     /// already has keys is left exactly as it is.
     func seed(_ keys: [PadKey]) async throws -> [StoredPadKey]
+
+    /// Adds one key to the end of its own ledger, and returns it as stored.
+    ///
+    /// Separate from `seed` rather than a one-key call to it, because seeding
+    /// deliberately refuses a pad that already has keys — which is every pad
+    /// this is used on.
+    ///
+    /// `ndc` is the catalogue's own identifier for the exact product, carried
+    /// so a key built from a search result can be traced back to the label it
+    /// came from. Nil for a key somebody typed themselves, which is what the
+    /// source ledger always is.
+    func add(_ key: PadKey, ndc: String?) async throws -> StoredPadKey
 }
 
 /// Reading the pad already on file.
@@ -67,7 +85,11 @@ struct AppStores {
     let nrt: any NRTSearching
 }
 
-/// Seeds and reads the pad through Supabase, as the signed-in anonymous user.
+/// The pad on the server: the whole of `pad_keys` for the signed-in anonymous
+/// user, written and read.
+///
+/// Every position the pad draws is decided here rather than by a caller, because
+/// each ledger numbers its own keys from zero and no screen sees both.
 struct SupabasePadKeyStore: PadKeyWriting, PadKeyReading {
     let client: SupabaseClient
     let session: SessionCoordinator
@@ -102,6 +124,42 @@ struct SupabasePadKeyStore: PadKeyWriting, PadKeyReading {
 }
 
 extension SupabasePadKeyStore {
+    func add(_ key: PadKey, ndc: String?) async throws -> StoredPadKey {
+        // The position is read rather than sent by the caller: the pad draws
+        // each ledger numbered from zero, and a screen that has not looked at
+        // the other ledger cannot know where its own ends.
+        //
+        // Check-then-act, like `seed`, and the same race with the same bound:
+        // two adds close enough together both read the same last position and
+        // both take it. Postgres has no unique index on it — two keys may
+        // legitimately share a position while a pad is being reordered — so
+        // the cost is a pair drawn in an arbitrary order, not a failed write
+        // or a lost key. The durable fix is a generated position, which is a
+        // migration rather than a client change.
+        let existing = try await currentKeys().filter { $0.form.ledger == key.ledger }
+        let placed = PadKey(
+            form: key.form, label: key.label, mg: key.mg,
+            position: (existing.map(\.position).max() ?? -1) + 1
+        )
+
+        let rows: [StoredPadKey] = try await session.authenticated { userID in
+            try await client
+                .from("pad_keys")
+                .insert([PadKeyRow(key: placed, userID: userID, ndc: ndc)])
+                .select()
+                .execute()
+                .value
+        }
+
+        // `insert().select()` returns what Postgres actually wrote, so an empty
+        // array means the write did not happen — reporting success on it would
+        // put a key on the pad that no reload will bring back.
+        guard let stored = rows.first else {
+            throw PadKeyWriteFailure.keyWasNotWritten
+        }
+        return stored
+    }
+
     func currentKeys() async throws -> [StoredPadKey] {
         try await session.authenticated { userID in
             // Filtered by user_id as well as trusting RLS, for the reason the
@@ -114,12 +172,28 @@ extension SupabasePadKeyStore {
                 // The pad draws two groups, and `position` numbers each from
                 // zero — so ordering by it alone interleaves them. Ledger
                 // first, then position, which is the index this table carries.
+                //
+                // Then `id`, because position is not unique and Postgres makes
+                // no promise about tied rows: two keys sharing a position would
+                // otherwise come back in a different order from one read to the
+                // next, and the pad would shuffle under someone who had touched
+                // nothing. `id` breaks the tie by the order they were created,
+                // which is the order the pad should draw them in anyway.
                 .order("ledger")
                 .order("position")
+                .order("id")
                 .execute()
                 .value as [StoredPadKey]
         }
     }
+}
+
+/// What can go wrong writing a key, beyond what the client already throws.
+enum PadKeyWriteFailure: Error, Equatable {
+    /// The insert returned no row. RLS refusing a write reports it this way
+    /// rather than as an error, so this is the difference between a key that
+    /// exists and one the caller was told about.
+    case keyWasNotWritten
 }
 
 /// The row on the wire.
@@ -134,8 +208,9 @@ private struct PadKeyRow: Encodable {
     let form: String
     let mg: Double
     let position: Int
+    let ndc: String?
 
-    init(key: PadKey, userID: UUID) {
+    init(key: PadKey, userID: UUID, ndc: String? = nil) {
         self.userID = userID
         // Both halves off the same value, so the pair the table checks cannot
         // be written in disagreement.
@@ -144,10 +219,15 @@ private struct PadKeyRow: Encodable {
         label = key.label
         mg = key.mg
         position = key.position
+        // Trimmed to nil rather than sent empty: the column's check refuses a
+        // blank string, so an empty one would fail the whole insert where
+        // "this key came from nowhere" is exactly what null already says.
+        let trimmed = ndc?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.ndc = (trimmed?.isEmpty ?? true) ? nil : trimmed
     }
 
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
-        case ledger, label, form, mg, position
+        case ledger, label, form, mg, position, ndc
     }
 }
