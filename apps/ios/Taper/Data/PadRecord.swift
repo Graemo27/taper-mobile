@@ -69,6 +69,31 @@ final class PadRecord {
 
     init(store: (any PadKeyReading)?) { self.store = store }
 
+    /// Puts a key the server has just confirmed onto the pad, without re-reading.
+    ///
+    /// The row comes back from the insert carrying the id and position Postgres
+    /// assigned, so this is not a guess about what was written — and `Pad` sorts
+    /// by `(position, id)`, so it lands where the next read would have put it.
+    ///
+    /// A read here would be a second question with a worse answer. `load()`
+    /// drops a request that arrives while one is already running, on purpose:
+    /// without that guard a retry re-renders, whose `task` starts another read,
+    /// and a stale failure lands on top of a fresh success. But it means two
+    /// saves close enough together share one read — and if that read was issued
+    /// before the second write, the newer key is missing from the pad until
+    /// something else reloads it. A key that will not appear after a save that
+    /// said it worked is indistinguishable from a save that did not.
+    ///
+    /// Returns false when there is no pad to add to — mid-load, or after a
+    /// failed read — because appending to a state that is not `ready` would
+    /// invent one. The caller reloads instead.
+    @discardableResult
+    func insert(_ key: StoredPadKey) -> Bool {
+        guard case let .ready(pad) = status else { return false }
+        status = .ready(Pad(keys: pad.treatment + pad.sources + [key]))
+        return true
+    }
+
     func load() async {
         guard !isLoading else { return }
         isLoading = true

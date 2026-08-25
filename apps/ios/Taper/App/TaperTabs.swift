@@ -100,7 +100,11 @@ struct TaperTabs: View {
                     isSearching: $isSearching,
                     draft: $draft,
                     draftFor: { NewKeyDraft(product: $0, store: stores?.pad) },
-                    onKeyAdded: { Task { await pad.load() } }
+                    onKeyAdded: { stored in
+                        // Reloaded only when there is no pad to add to — mid
+                        // load, or after a read that failed.
+                        if !pad.insert(stored) { Task { await pad.load() } }
+                    }
                 )
             case .plan:
                 PlanTabView(progress: progress)

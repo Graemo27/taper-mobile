@@ -242,3 +242,82 @@ struct PadRecordTests {
         await first.value
     }
 }
+
+/// Covers a key arriving from a save rather than from a read.
+@MainActor
+struct PadInsertTests {
+    private func key(_ id: Int, _ form: PadForm, _ label: String, position: Int) -> StoredPadKey {
+        StoredPadKey(id: id, form: form, label: label, mg: 2, position: position, ndc: nil)
+    }
+
+    private func loaded(_ keys: [StoredPadKey]) async -> PadRecord {
+        let reader = FakeReader()
+        reader.keys = keys
+        let record = PadRecord(store: reader)
+        await record.load()
+        return record
+    }
+
+    @Test("two saves close together both reach the pad")
+    func neitherKeyIsDropped() async {
+        // `load()` drops a read that arrives while one is running, on purpose.
+        // So two saves close enough together shared one read, and if it went
+        // out before the second write, that key was missing until something
+        // else reloaded — indistinguishable from a save that did not work.
+        let record = await loaded([key(1, .pouch, "Pouches", position: 0)])
+
+        #expect(record.insert(key(2, .vape, "Vape", position: 1)))
+        #expect(record.insert(key(3, .gum, "Gum", position: 0)))
+
+        guard case let .ready(pad) = record.status else {
+            Issue.record("the pad stopped being ready")
+            return
+        }
+        #expect(pad.sources.map(\.id) == [1, 2], "a source key was dropped")
+        #expect(pad.treatment.map(\.id) == [3], "the treatment key was dropped")
+    }
+
+    @Test("an inserted key lands where the next read would have put it")
+    func itDoesNotJustGoOnTheEnd() async {
+        // The row carries the position Postgres assigned, and `Pad` sorts by
+        // `(position, id)` — so a key that belongs in the middle goes there
+        // rather than wherever it happened to arrive.
+        let record = await loaded([
+            key(1, .pouch, "First", position: 0),
+            key(3, .pouch, "Third", position: 2),
+        ])
+
+        record.insert(key(2, .pouch, "Second", position: 1))
+
+        guard case let .ready(pad) = record.status else {
+            Issue.record("the pad stopped being ready")
+            return
+        }
+        #expect(pad.sources.map(\.label) == ["First", "Second", "Third"])
+    }
+
+    @Test("a pad that is not ready refuses the key rather than inventing one")
+    func thereIsNothingToAddTo() async {
+        // Appending to a state that is not `ready` would draw a pad of one key
+        // over a read that failed, or over one still running. The caller reads
+        // instead, which is what the returned flag is for.
+        let stillLoading = PadRecord(store: FakeReader())
+        #expect(stillLoading.status == .loading, "the fixture did not start loading")
+        #expect(stillLoading.insert(key(1, .pouch, "Pouches", position: 0)) == false,
+                "a pad still loading accepted a key it had nowhere to put")
+        #expect(stillLoading.status == .loading, "the status changed anyway")
+
+        let failed = PadRecord(store: nil)
+        await failed.load()
+        guard case .unavailable = failed.status else {
+            Issue.record("the fixture did not reach unavailable")
+            return
+        }
+        #expect(failed.insert(key(1, .pouch, "Pouches", position: 0)) == false,
+                "a failed read accepted a key")
+        guard case .unavailable = failed.status else {
+            Issue.record("a refused insert changed the status")
+            return
+        }
+    }
+}
