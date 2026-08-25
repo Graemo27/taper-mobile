@@ -52,6 +52,19 @@ protocol PadKeyWriting: Sendable {
     /// came from. Nil for a key somebody typed themselves, which is what the
     /// source ledger always is.
     func add(_ key: PadKey, ndc: String?) async throws -> StoredPadKey
+
+    /// Takes one key off the pad.
+    ///
+    /// The row goes rather than being flagged. A key is a button, not a record
+    /// of anything — every check-in it produced kept its own snapshot of the
+    /// label and the milligrams, so removing the key cannot rewrite a single
+    /// day that has already happened. That is what makes this safe to do
+    /// outright where a check-in could not be.
+    ///
+    /// Positions are left alone. They only need to *order* a ledger, not
+    /// enumerate it, so a gap where a key was is not a state to repair — and
+    /// repairing it would mean rewriting every row after it for nothing.
+    func remove(_ id: Int) async throws
 }
 
 /// Reading the pad already on file.
@@ -160,6 +173,29 @@ extension SupabasePadKeyStore {
         return stored
     }
 
+    func remove(_ id: Int) async throws {
+        let removed: [StoredPadKey] = try await session.authenticated { userID in
+            try await client
+                .from("pad_keys")
+                // Filtered by user as well as by id, for the reason the reads
+                // give: a delete that is only safe because of a policy breaks
+                // silently the day the policy is loosened, and this one cannot
+                // be undone.
+                .delete()
+                .eq("id", value: id)
+                .eq("user_id", value: userID)
+                .select()
+                .execute()
+                .value
+        }
+
+        // Nothing deleted is a failure, not a quiet success. RLS refusing the
+        // delete reports it as zero rows, and telling somebody a key is gone
+        // when the next read brings it back is worse than saying it did not
+        // work.
+        guard !removed.isEmpty else { throw PadKeyWriteFailure.keyWasNotRemoved }
+    }
+
     func currentKeys() async throws -> [StoredPadKey] {
         try await session.authenticated { userID in
             // Filtered by user_id as well as trusting RLS, for the reason the
@@ -194,6 +230,9 @@ enum PadKeyWriteFailure: Error, Equatable {
     /// rather than as an error, so this is the difference between a key that
     /// exists and one the caller was told about.
     case keyWasNotWritten
+    /// The delete matched no row. Someone else's key, or one already gone —
+    /// either way the pad should not claim to have removed it.
+    case keyWasNotRemoved
 }
 
 /// The row on the wire.

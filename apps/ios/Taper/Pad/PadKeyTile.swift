@@ -11,6 +11,13 @@ import SwiftUI
 struct PadKeyTile: View {
     let key: StoredPadKey
     let onTap: () -> Void
+    /// How to take this key off the pad, when the pad is being edited. Nil
+    /// while it is not, so a key that cannot be removed carries no badge and
+    /// no promise of one.
+    var onRemove: (() -> Void)?
+    /// True while its delete is in flight, so it reads as going rather than
+    /// gone — the row is still there until the server says otherwise.
+    var isRemoving = false
 
     var body: some View {
         Button(action: onTap) { face }
@@ -18,6 +25,31 @@ struct PadKeyTile: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(key.label), \(key.mg.clean) milligrams")
             .accessibilityAddTraits(.isButton)
+            .opacity(isRemoving ? 0.4 : 1)
+            .disabled(isRemoving)
+            .overlay(alignment: .topTrailing) {
+                if let onRemove { removeBadge(onRemove) }
+            }
+    }
+
+    /// The × the board puts on the corner of every removable key.
+    ///
+    /// Overhanging the tile rather than inside it, as drawn: a 110pt key is
+    /// mostly its mark and its label, and a badge placed within would take a
+    /// bite out of whichever one it landed on.
+    private func removeBadge(_ onRemove: @escaping () -> Void) -> some View {
+        Button(action: onRemove) {
+            Image(systemName: "xmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppColor.inkInverse)
+                .frame(width: 28, height: 28)
+                .background(AppColor.ink, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isRemoving)
+        .offset(x: 10, y: -10)
+        .accessibilityIdentifier("pad.remove.\(key.id)")
+        .accessibilityLabel("Remove \(key.label), \(key.mg.clean) milligrams")
     }
 
     /// The key itself.

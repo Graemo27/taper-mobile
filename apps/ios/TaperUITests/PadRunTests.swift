@@ -493,4 +493,67 @@ final class PadRunTests: TaperRunCase {
         }
         XCTAssertTrue(end.isHittable, "the end of the pad could not be scrolled to")
     }
+
+    func testAKeyCanBeTakenOffThePad() throws {
+        // Until now every key was permanent. A mis-tapped "Add" stayed on the
+        // pad for good, which is the thing that made this app not worth putting
+        // on a phone.
+        openTheLog()
+
+        let pouches = app.buttons[self.pouches]
+        XCTAssertTrue(pouches.waitForExistence(timeout: 10), "the seeded key is missing")
+        pouches.press(forDuration: 1.0)
+
+        XCTAssertTrue(
+            app.buttons["pad.doneEditing"].waitForExistence(timeout: 5),
+            "a long press did not open edit mode"
+        )
+        // The meter is a statement about a day being logged, and nothing here
+        // logs anything.
+        XCTAssertFalse(
+            app.buttons["Check in"].exists,
+            "the check-in button stayed up while the pad was being edited"
+        )
+
+        let badge = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "pad.remove.")
+        ).firstMatch
+        XCTAssertTrue(badge.waitForExistence(timeout: 5), "no key offered a way off the pad")
+        // The badge says "Remove <key label>", so the key it is for is the
+        // rest of the sentence.
+        let removed = badge.label.replacingOccurrences(of: "Remove ", with: "")
+        let key = app.buttons.matching(NSPredicate(format: "label == %@", removed)).firstMatch
+        XCTAssertTrue(key.exists, "the badge named a key that is not on the pad")
+        badge.tap()
+
+        // Waited for, because Done refuses to close over a delete in flight —
+        // a pad put back with a key on it that is about to vanish reads as the
+        // tap having done nothing.
+        let gone = expectation(for: NSPredicate(format: "exists == false"),
+                               evaluatedWith: key)
+        wait(for: [gone], timeout: 15)
+
+        // Gone from the server rather than just from the screen: leaving edit
+        // mode re-reads nothing, so a key still here after Done was never
+        // really deleted.
+        app.buttons["pad.doneEditing"].tap()
+        XCTAssertTrue(
+            app.buttons["Check in"].waitForExistence(timeout: 10),
+            "Done did not put the pad back"
+        )
+        // "Check in" and not "Check in · 3 mg": a long press to edit must not
+        // also queue a tap. The gesture is simultaneous with the button's, so
+        // without the guard the press that opened the mode also selected the
+        // key it was pressed on, and Done handed back a pad with a check-in
+        // waiting on it that nobody asked for.
+        XCTAssertFalse(
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Check in ·"))
+                .firstMatch.exists,
+            "the long press that opened editing also queued a check-in"
+        )
+        XCTAssertFalse(
+            app.buttons.matching(NSPredicate(format: "label == %@", removed)).firstMatch.exists,
+            "the key came back after it was removed"
+        )
+    }
 }
