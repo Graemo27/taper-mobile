@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(54);
+select plan(55);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -455,8 +455,32 @@ select throws_ok(
 -- rule that it is *yours* to remove is worth stating here rather than trusting
 -- to a client filter. The app filters by user id as well, but a query that is
 -- only safe because of a policy breaks silently the day the policy is loosened.
-insert into public.pad_keys (user_id, ledger, label, form, mg)
-values ('11111111-1111-1111-1111-111111111111', 'source', 'Not yours', 'pouch', 6);
+--
+-- The probe below is deliberately unqualified, and the assertion before it is
+-- what makes that safe. Naming the row instead is the obvious move and it
+-- costs the test its point: a `delete ... where id = N` has to *read* the row,
+-- so the select policy hides it and the delete answers 0 whatever the delete
+-- policy says. Driven both ways — with the delete policy loosened to
+-- `using (true)`, the unqualified probe fails and the id-scoped one passes.
+--
+-- What the unqualified form risks is answering 0 because user 2 simply owns
+-- nothing, which would be a silent pass for the wrong reason the day this file
+-- gives user 2 a pad. So that precondition is asserted rather than assumed: if
+-- it stops holding, this fails loudly and names why.
+select is(
+  (select count(*)::int from public.pad_keys
+    where user_id = '22222222-2222-2222-2222-222222222222'),
+  0,
+  'the stranger owns no keys, so a refused delete is the only way to answer none'
+);
+
+create temporary table doomed_key as
+with inserted as (
+  insert into public.pad_keys (user_id, ledger, label, form, mg)
+  values ('11111111-1111-1111-1111-111111111111', 'source', 'Not yours', 'pouch', 6)
+  returning id
+)
+select id from inserted;
 
 select is(
   pg_temp.as_user('22222222-2222-2222-2222-222222222222',
@@ -466,15 +490,16 @@ select is(
 );
 
 select is(
-  (select count(*)::int from public.pad_keys
-    where user_id = '11111111-1111-1111-1111-111111111111' and label = 'Not yours'),
+  (select count(*)::int from public.pad_keys where id = (select id from doomed_key)),
   1,
   'the key a stranger tried to remove is still there'
 );
 
 select is(
-  pg_temp.as_user('11111111-1111-1111-1111-111111111111',
-                  $$delete from public.pad_keys where label = 'Not yours'$$),
+  pg_temp.as_user(
+    '11111111-1111-1111-1111-111111111111',
+    format('delete from public.pad_keys where id = %s', (select id from doomed_key))
+  ),
   1,
   'its owner can remove it'
 );
