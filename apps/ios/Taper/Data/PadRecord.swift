@@ -67,6 +67,15 @@ final class PadRecord {
     /// in front of somebody whose pad had just arrived.
     private var isLoading = false
 
+    /// A read asked for while one was already running.
+    ///
+    /// Remembered rather than dropped. The guard above keeps reads *serial*,
+    /// which is all it was ever for — but returning early also threw the
+    /// request away, and the request is sometimes the only thing that would
+    /// have shown a key that had just been written. A read already in flight
+    /// was issued before that write and cannot see it.
+    private var wantsAnotherRead = false
+
     init(store: (any PadKeyReading)?) { self.store = store }
 
     /// Puts a key the server has just confirmed onto the pad, without re-reading.
@@ -95,10 +104,22 @@ final class PadRecord {
     }
 
     func load() async {
-        guard !isLoading else { return }
+        guard !isLoading else {
+            wantsAnotherRead = true
+            return
+        }
         isLoading = true
         defer { isLoading = false }
 
+        repeat {
+            wantsAnotherRead = false
+            await read()
+            // Cancellation ends the loop as well as the read: whatever asked
+            // for this went away, and a queued repeat would outlive it.
+        } while wantsAnotherRead && !Task.isCancelled
+    }
+
+    private func read() async {
         guard let store else {
             status = .unavailable(Self.noBackend)
             return

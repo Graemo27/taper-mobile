@@ -9,6 +9,10 @@ private final class FakeReader: PadKeyReading, @unchecked Sendable {
     /// Holds a read open, so a second can be attempted while the first is in
     /// flight.
     var hangs = false
+    /// Holds a read open until it is let go, unlike `hangs` — a sleep cannot be
+    /// shortened, and a test that needs the first read to *finish* after a
+    /// second was queued has to be able to release it.
+    var holds = false
     /// Waits for cancellation and then throws the way a cancelled URL request
     /// does — `URLError.cancelled`, not `CancellationError`. The two arrive by
     /// different routes and only one of them is a `catch` pattern.
@@ -24,6 +28,7 @@ private final class FakeReader: PadKeyReading, @unchecked Sendable {
             while !Task.isCancelled { await Task.yield() }
             throw URLError(.cancelled)
         }
+        while holds { await Task.yield() }
         if hangs { try await Task.sleep(for: .seconds(30)) }
         if fails { throw URLError(.notConnectedToInternet) }
         return keys
@@ -321,3 +326,48 @@ struct PadInsertTests {
         }
     }
 }
+
+/// Covers a read that was already running when a key was written.
+@MainActor
+struct PadReloadCoalescingTests {
+    private func key(_ id: Int, position: Int) -> StoredPadKey {
+        StoredPadKey(id: id, form: .pouch, label: "Key \(id)", mg: 2,
+                     position: position, ndc: nil)
+    }
+
+    @Test("a key written during a read is not lost when the read predates it")
+    func theQueuedReadStillHappens() async {
+        // `insert` refuses a pad that is not `ready`, so a save landing
+        // mid-load falls back to a read. That read used to be dropped by the
+        // one already running — and the running one was issued *before* the
+        // write, so its answer cannot contain the key. The pad then showed a
+        // key as missing after a save that said it worked.
+        let reader = FakeReader()
+        reader.keys = [key(1, position: 0)]
+        reader.holds = true
+        let record = PadRecord(store: reader)
+
+        let loading = Task { await record.load() }
+        while reader.reads == 0 { await Task.yield() }
+
+        // The save lands. There is no pad to put it on yet, so the caller reads.
+        #expect(record.insert(key(2, position: 1)) == false,
+                "the fixture was not mid-load")
+        let queued = Task { await record.load() }
+
+        // Now the write is visible to a *new* read, but not to the one running.
+        reader.keys = [key(1, position: 0), key(2, position: 1)]
+        reader.holds = false
+        await loading.value
+        await queued.value
+
+        guard case let .ready(pad) = record.status else {
+            Issue.record("the pad never became ready")
+            return
+        }
+        #expect(pad.sources.map(\.id) == [1, 2],
+                "the key written during the read never arrived")
+        #expect(reader.reads == 2, "the second read was dropped rather than queued")
+    }
+}
+
