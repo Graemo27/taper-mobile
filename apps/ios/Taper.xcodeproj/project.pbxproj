@@ -23,6 +23,7 @@
 		20ED3ECE29DE0547B9356A53 /* LinearGrotesk-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */; };
 		222A8572E9A13370F23CAF8B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 1756A8AE10A5643796F48366 /* Supabase */; };
 		22893C0087D74E2CBD5D2CD2 /* StartingLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */; };
+		232437F0E8A845367D958CD5 /* NewSourceKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CC6A558C00EF7958DE8349 /* NewSourceKeyView.swift */; };
 		27B5638EC436F5F8FC70DA39 /* QuitDateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E45457AC76C6CF565C978F6 /* QuitDateView.swift */; };
 		2900CBD113C33E7E6B0753C4 /* PlanProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA7E36678357D84CBFF846B /* PlanProgressTests.swift */; };
 		2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */; };
@@ -218,6 +219,7 @@
 		A4C771B074CD11746F968D65 /* NewKeyDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewKeyDraft.swift; sourceTree = "<group>"; };
 		A66C7AC1982D58572E57F1FC /* TaperRunCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperRunCase.swift; sourceTree = "<group>"; };
 		A69F8D2D5922193467A92830 /* QuitDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuitDate.swift; sourceTree = "<group>"; };
+		A6CC6A558C00EF7958DE8349 /* NewSourceKeyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSourceKeyView.swift; sourceTree = "<group>"; };
 		A9993FAC0EAE736353D232BB /* NewSourceDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSourceDraftTests.swift; sourceTree = "<group>"; };
 		A9B9903E0264C634FF6C6E5F /* TaperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperApp.swift; sourceTree = "<group>"; };
 		ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentView.swift; sourceTree = "<group>"; };
@@ -498,6 +500,7 @@
 				FA00ED9C801626583C7F0F8F /* CapMeter.swift */,
 				A4C771B074CD11746F968D65 /* NewKeyDraft.swift */,
 				72042201DBC4BBD2DA05704B /* NewSourceDraft.swift */,
+				A6CC6A558C00EF7958DE8349 /* NewSourceKeyView.swift */,
 				3C851D90813354110CFD9B12 /* NewTreatmentKeyView.swift */,
 				FBD1FA4880F90D7EA4A5BA29 /* PadActionBar.swift */,
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
@@ -704,6 +707,7 @@
 				8AD4F01573512A6BFDF559EE /* NRTSearchStore.swift in Sources */,
 				7D5853D0EC5928A2417B8C88 /* NewKeyDraft.swift in Sources */,
 				D6B7F8850240124386BDCE36 /* NewSourceDraft.swift in Sources */,
+				232437F0E8A845367D958CD5 /* NewSourceKeyView.swift in Sources */,
 				8520DB5858D703C0CB2182D4 /* NewTreatmentKeyView.swift in Sources */,
 				DBF354CC66F11455190DF7B0 /* NicotineMark.swift in Sources */,
 				C41C9FD243F5C93219A7B2AE /* OnboardingAnswers.swift in Sources */,

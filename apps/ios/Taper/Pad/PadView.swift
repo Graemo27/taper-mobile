@@ -26,6 +26,12 @@ struct PadView: View {
     /// Makes a draft for a chosen product. Passed in because the pad has no
     /// store of its own — it is handed what it draws.
     let draftFor: (NRTResult) -> NewKeyDraft
+    /// The source key being typed, when there is one. Held by the tabs rather
+    /// than here so a half-answered form survives a glance at the plan, the
+    /// same bargain the search query makes.
+    @Binding var sourceDraft: NewSourceDraft?
+    /// Makes a blank source draft. The pad has no store of its own.
+    let newSourceDraft: () -> NewSourceDraft
     /// A key the server confirmed. Handed over rather than reloaded for: the
     /// row is authoritative, and a read would be dropped if another were
     /// already running.
@@ -37,7 +43,16 @@ struct PadView: View {
         VStack(alignment: .leading, spacing: AppSpacing.lPlus) {
             CapMeter(tally: tally, pending: record.selection.pending)
 
-            if let draft {
+            if let sourceDraft {
+                NewSourceKeyView(draft: sourceDraft) {
+                    self.sourceDraft = nil
+                } onSaved: { stored in
+                    // The same ownership check the treatment form needs: a save
+                    // is not cancelled with the view that started it.
+                    if self.sourceDraft === sourceDraft { self.sourceDraft = nil }
+                    onKeyAdded(stored)
+                }
+            } else if let draft {
                 NewTreatmentKeyView(draft: draft) {
                     // Back to the results, not out of the search: somebody who
                     // opened the wrong product is one tap from the right one,
@@ -68,14 +83,17 @@ struct PadView: View {
                 switch status {
                 case .loading:
                     loading
-                case let .ready(pad) where pad.isEmpty:
-                    empty
                 case let .ready(pad):
-                    section("YOUR TREATMENT", note: nil, keys: pad.treatment, canAdd: true)
+                    // The sections draw either way. An empty pad is the one
+                    // state that most needs the tiles that fill it, and hiding
+                    // them left the only way out of it unreachable.
+                    if pad.isEmpty { Text(Self.emptyNote).modifier(EmptyNoteStyle()) }
+                    section("YOUR TREATMENT", note: nil, keys: pad.treatment, canAdd: .treatment)
                     section(
                         "WHAT YOU'RE QUITTING",
                         note: "counts toward the ceiling",
-                        keys: pad.sources
+                        keys: pad.sources,
+                        canAdd: .source
                     )
                 case let .unavailable(message):
                     unavailable(message)
@@ -114,9 +132,9 @@ struct PadView: View {
     /// section would read as something failing to load.
     @ViewBuilder
     private func section(
-        _ title: String, note: String?, keys: [StoredPadKey], canAdd: Bool = false
+        _ title: String, note: String?, keys: [StoredPadKey], canAdd: PadKey.Ledger? = nil
     ) -> some View {
-        if !keys.isEmpty || canAdd {
+        if !keys.isEmpty || canAdd != nil {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
                     Text(title)
@@ -145,10 +163,10 @@ struct PadView: View {
     /// the content width — so a flexible grid would only be free to disagree
     /// with it. The last row is left-aligned by padding it out, which keeps a
     /// row of one key under the first key above it rather than centred.
-    private func rows(of keys: [StoredPadKey], canAdd: Bool) -> some View {
+    private func rows(of keys: [StoredPadKey], canAdd: PadKey.Ledger?) -> some View {
         // The add tile rides at the end of the run, so it lands wherever the
         // last key leaves off rather than claiming a row of its own.
-        let slots = keys.count + (canAdd ? 1 : 0)
+        let slots = keys.count + (canAdd == nil ? 0 : 1)
         let chunks = stride(from: 0, to: slots, by: 3).map { start in
             Array(start..<min(start + 3, slots))
         }
@@ -158,8 +176,10 @@ struct PadView: View {
                     ForEach(row, id: \.self) { slot in
                         if slot < keys.count {
                             PadKeyTile(key: keys[slot]) { record.selection.tap(keys[slot]) }
+                        } else if canAdd == .treatment {
+                            AddKeyTile.treatment { isSearching = true }
                         } else {
-                            AddTreatmentTile { isSearching = true }
+                            AddKeyTile.source { sourceDraft = newSourceDraft() }
                         }
                     }
                     Spacer(minLength: 0)
@@ -192,15 +212,27 @@ struct PadView: View {
     /// Reachable by anyone whose plan was saved before the pad was seeded, and
     /// by anyone whose seed failed. It says what is missing rather than showing
     /// a blank area, because a screen that is silently empty reads as broken.
-    private var empty: some View {
-        Text("""
-        There's nothing on your pad yet. Keys are set up from what you told us during onboarding, \
-        and adding them by hand isn't built yet.
-        """)
-            .font(AppFont.text(AppSize.caption))
-            .lineSpacing(AppLeading.snug - AppSize.caption)
-            .foregroundStyle(AppColor.inkMuted)
-            .fixedSize(horizontal: false, vertical: true)
+    /// What an empty pad says.
+    ///
+    /// It used to end "and adding them by hand isn't built yet", which stopped
+    /// being true the moment both add tiles existed — and it was saying so on
+    /// the one screen where somebody needed to hear the opposite. A note about
+    /// what is missing is worth less than nothing once it is quietly wrong.
+    static let emptyNote = """
+        There's nothing on your pad yet. Onboarding usually sets these up from \
+        what you told us — add what you're quitting, and what you're treating \
+        with, below.
+        """
+
+    /// The note's own styling, kept apart so the copy can be read without it.
+    private struct EmptyNoteStyle: ViewModifier {
+        func body(content: Content) -> some View {
+            content
+                .font(AppFont.text(AppSize.caption))
+                .lineSpacing(AppLeading.snug - AppSize.caption)
+                .foregroundStyle(AppColor.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     /// Never the same as empty. Drawing "nothing here yet" over a read that
@@ -235,6 +267,8 @@ struct PadView: View {
         isSearching: $isSearching,
         draft: .constant(nil),
         draftFor: { NewKeyDraft(product: $0, store: nil) },
+        sourceDraft: .constant(nil),
+        newSourceDraft: { NewSourceDraft(store: nil) },
         onKeyAdded: { _ in }
     )
 }
