@@ -109,6 +109,11 @@ private final class FakePad: PadKeyStoring, @unchecked Sendable {
 
     func currentKeys() async throws -> [StoredPadKey] { [] }
 
+    /// Onboarding never removes a key either.
+    func remove(_ id: Int) async throws {
+        Issue.record("onboarding removed a key, which it has no path to do")
+    }
+
     /// Onboarding never adds a single key, so this exists to satisfy the
     /// protocol and records nothing. A test that reached it would be testing
     /// something this fake does not model.

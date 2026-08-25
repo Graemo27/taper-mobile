@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(51);
+select plan(54);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -449,6 +449,34 @@ select throws_ok(
   '42501',
   null,
   'a stranger cannot version somebody else''s plan'
+);
+
+-- Removing a key is the one write in this app that cannot be undone, so the
+-- rule that it is *yours* to remove is worth stating here rather than trusting
+-- to a client filter. The app filters by user id as well, but a query that is
+-- only safe because of a policy breaks silently the day the policy is loosened.
+insert into public.pad_keys (user_id, ledger, label, form, mg)
+values ('11111111-1111-1111-1111-111111111111', 'source', 'Not yours', 'pouch', 6);
+
+select is(
+  pg_temp.as_user('22222222-2222-2222-2222-222222222222',
+                  $$delete from public.pad_keys$$),
+  0,
+  'a stranger removes none of somebody else''s keys'
+);
+
+select is(
+  (select count(*)::int from public.pad_keys
+    where user_id = '11111111-1111-1111-1111-111111111111' and label = 'Not yours'),
+  1,
+  'the key a stranger tried to remove is still there'
+);
+
+select is(
+  pg_temp.as_user('11111111-1111-1111-1111-111111111111',
+                  $$delete from public.pad_keys where label = 'Not yours'$$),
+  1,
+  'its owner can remove it'
 );
 
 -- Grants, asserted as an exact set rather than a floor.

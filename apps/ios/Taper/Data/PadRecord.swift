@@ -103,6 +103,20 @@ final class PadRecord {
         return true
     }
 
+    /// Takes a key the server has just deleted off the pad.
+    ///
+    /// The mirror of `insert`, and for the same reason: a read would be a
+    /// second question with a worse answer, and `load()` coalesces rather than
+    /// runs immediately. Returns false when there is no pad to take it from.
+    @discardableResult
+    func drop(_ id: Int) -> Bool {
+        guard case let .ready(pad) = status else { return false }
+        let kept = (pad.treatment + pad.sources).filter { $0.id != id }
+        guard kept.count < pad.treatment.count + pad.sources.count else { return false }
+        status = .ready(Pad(keys: kept))
+        return true
+    }
+
     func load() async {
         guard !isLoading else {
             wantsAnotherRead = true

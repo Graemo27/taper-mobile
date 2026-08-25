@@ -221,6 +221,65 @@ extension LiveBackendTests {
                 "a key that left the tie came back at the end of the pad")
     }
 
+    @Test("a key can be taken off the pad, and stays off",
+          .enabled(if: LocalBackend.isAvailable))
+    func aRemovedKeyIsGone() async throws {
+        // The one write in this app that cannot be undone. Safe because a key
+        // is a button rather than a record: every check-in it produced kept its
+        // own snapshot of the label and the milligrams, so removing it cannot
+        // rewrite a day that has already happened.
+        let store = await padStore()
+        let seeded = try await store.seed([
+            PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0),
+            PadKey(form: .vape, label: "Vape", mg: 2, position: 1),
+        ])
+        let going = try #require(seeded.first { $0.label == "Vape" })
+
+        try await store.remove(going.id)
+
+        let left = try await store.currentKeys()
+        #expect(left.map(\.label) == ["Pouches"], "the wrong key went, or none did")
+    }
+
+    @Test("removing a key that is not there is a failure, not a quiet success",
+          .enabled(if: LocalBackend.isAvailable))
+    func nothingDeletedIsNotSuccess() async throws {
+        // RLS refuses a delete by returning no rows rather than an error, so
+        // somebody else's key and an already-gone key arrive the same way.
+        // Reporting either as done would show a pad the next read contradicts.
+        let store = await padStore()
+        _ = try await store.seed([PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0)])
+
+        await #expect(throws: PadKeyWriteFailure.keyWasNotRemoved) {
+            try await store.remove(999_999)
+        }
+        #expect(try await store.currentKeys().count == 1, "the pad lost a key anyway")
+    }
+
+    @Test("a delete that matches nobody's key is refused rather than reported done",
+          .enabled(if: LocalBackend.isAvailable))
+    func theDeleteIsScopedToItsOwner() async throws {
+        // What the *client* does with a refusal. `remove` filters by user as
+        // well as by id and RLS refuses it besides, so a stranger's delete
+        // matches no row — and the store must call that a failure rather than
+        // a success with nothing in it.
+        let first = await padStore()
+        let seeded = try await first.seed([
+            PadKey(form: .pouch, label: "Mine", mg: 6, position: 0),
+        ])
+        let mine = try #require(seeded.first)
+
+        // Whether the row survives is asserted in pgTAP, not here: `padStore()`
+        // signs out to get a genuinely new anonymous person, and the client
+        // persists one session — so reading as `first` again after this line
+        // reads as a third user with an empty pad. Two users at once is a
+        // thing the database can express and this suite cannot.
+        let stranger = await padStore()
+        await #expect(throws: PadKeyWriteFailure.keyWasNotRemoved) {
+            try await stranger.remove(mine.id)
+        }
+    }
+
     @Test("a new anonymous session has an empty pad, rather than failing",
           .enabled(if: LocalBackend.isAvailable))
     func aNewUserHasNoKeys() async throws {
