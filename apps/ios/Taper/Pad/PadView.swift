@@ -80,27 +80,49 @@ struct PadView: View {
                     draft = draftFor(product)
                 }
             } else {
-                switch status {
-                case .loading:
-                    loading
-                case let .ready(pad):
-                    // The sections draw either way. An empty pad is the one
-                    // state that most needs the tiles that fill it, and hiding
-                    // them left the only way out of it unreachable.
-                    if pad.isEmpty { Text(Self.emptyNote).modifier(EmptyNoteStyle()) }
-                    section("YOUR TREATMENT", note: nil, keys: pad.treatment, canAdd: .treatment)
-                    section(
-                        "WHAT YOU'RE QUITTING",
-                        note: "counts toward the ceiling",
-                        keys: pad.sources,
-                        canAdd: .source
-                    )
-                case let .unavailable(message):
-                    unavailable(message)
+                // The keys scroll and the meter and the actions do not, which
+                // is how the board draws L3g. The pad only ever held what
+                // onboarding seeded until the two add tiles landed — since then
+                // it can grow past the screen, and with no scrolling the keys
+                // and the button the whole screen exists for went off the
+                // bottom with no way to reach them.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.lPlus) {
+                        switch status {
+                        case .loading:
+                            loading
+                        case let .ready(pad):
+                            // The sections draw either way. An empty pad is the
+                            // one state that most needs the tiles that fill it,
+                            // and hiding them left the only way out of it
+                            // unreachable.
+                            if pad.isEmpty { Text(Self.emptyNote).modifier(EmptyNoteStyle()) }
+                            section("YOUR TREATMENT", note: nil,
+                                    keys: pad.treatment, canAdd: .treatment)
+                            section(
+                                "WHAT YOU'RE QUITTING",
+                                note: "counts toward the ceiling",
+                                keys: pad.sources,
+                                canAdd: .source
+                            )
+                            if let end = Self.endOfPad(pad) {
+                                Text(end)
+                                    .font(AppFont.text(AppSize.caption))
+                                    .foregroundStyle(AppColor.inkFaint)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                            }
+                        case let .unavailable(message):
+                            unavailable(message)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                // Bounded, or a `ScrollView` in a `VStack` takes its content
+                // height and nothing is constrained at all — the lesson the
+                // search results cost.
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(maxHeight: .infinity)
             }
-
-            Spacer(minLength: 0)
 
             // The question comes before the button it is about, and the failure
             // after the button that caused it. Both sit directly above the
@@ -212,6 +234,20 @@ struct PadView: View {
     /// Reachable by anyone whose plan was saved before the pad was seeded, and
     /// by anyone whose seed failed. It says what is missing rather than showing
     /// a blank area, because a screen that is silently empty reads as broken.
+    /// Says the list ended, and how much of it there was.
+    ///
+    /// The pad scrolls now, and a run of keys that simply stops looks the same
+    /// as one still loading more. Counting them is the cheap part; saying
+    /// *that is all of it* is the point.
+    ///
+    /// Nil for an empty pad, which has its own note and does not need telling
+    /// that nothing is all of it.
+    static func endOfPad(_ pad: Pad) -> String? {
+        let count = pad.treatment.count + pad.sources.count
+        guard count > 0 else { return nil }
+        return "That's the whole pad · \(count) \(count == 1 ? "key" : "keys")"
+    }
+
     /// What an empty pad says.
     ///
     /// It used to end "and adding them by hand isn't built yet", which stopped
