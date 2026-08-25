@@ -432,4 +432,65 @@ final class PadRunTests: TaperRunCase {
             "the key was written but the pad never showed it"
         )
     }
+
+    func testAPadTallerThanTheScreenCanStillBeCheckedInOn() throws {
+        // The pad only ever held what onboarding seeded until the add tiles
+        // landed. Since then it can grow past the screen — and with nothing
+        // scrolling, the keys and the button the whole screen exists for went
+        // off the bottom with no way back to them.
+        openTheLog()
+
+        // Enough to overrun the screen: three keys to a row, and roughly three
+        // rows fit above the actions.
+        for _ in 0..<11 {
+            app.buttons["pad.addSource"].tap()
+            let save = app.buttons["newSource.save"]
+            XCTAssertTrue(save.waitForExistence(timeout: 5), "the source form did not open")
+            save.tap()
+            XCTAssertTrue(
+                app.buttons["pad.addSource"].waitForExistence(timeout: 15),
+                "saving left the form open"
+            )
+        }
+
+        // Pinned, not scrolled to: the actions sit below the keys and stay
+        // there, which is how the board draws a pad scrolled to its end.
+        let checkIn = app.buttons["Check in"]
+        XCTAssertTrue(checkIn.waitForExistence(timeout: 5), "the check-in button is gone")
+        XCTAssertTrue(
+            checkIn.isHittable,
+            "a pad taller than the screen pushed the check-in button out of reach"
+        )
+
+        // It overran at both ends, which is why this checks both. At eleven
+        // added keys the unscrolled pad put the meter at y = -9 and the button
+        // at y = 874 on an 874-point screen: the day's own readout above the
+        // top of the display, and the way to log anything below the bottom.
+        let meter = app.staticTexts.element(
+            matching: NSPredicate(format: "label CONTAINS %@", "mg today")
+        )
+        XCTAssertTrue(meter.exists, "the cap readout is gone")
+        XCTAssertTrue(
+            meter.frame.minY > 0,
+            "a pad taller than the screen pushed the day's readout off the top"
+        )
+
+        // And the end of the run is reachable by scrolling rather than lost.
+        let end = app.staticTexts.element(
+            matching: NSPredicate(format: "label BEGINSWITH %@", "That's the whole pad")
+        )
+        XCTAssertTrue(end.waitForExistence(timeout: 5), "the pad never said where it ended")
+
+        // Scrolled *to*, not merely present. `waitForExistence` asks the
+        // hierarchy, and a `ScrollView` keeps its off-screen content in there —
+        // so the marker exists whether or not anything can reach it, and an
+        // assertion on existence alone would pass on a pad that does not
+        // scroll at all.
+        var swipes = 0
+        while !end.isHittable, swipes < 5 {
+            app.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(end.isHittable, "the end of the pad could not be scrolled to")
+    }
 }

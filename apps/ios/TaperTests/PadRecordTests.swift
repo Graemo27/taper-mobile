@@ -429,3 +429,34 @@ struct PadReloadCoalescingTests {
     }
 }
 
+
+/// Covers what the pad says where its keys stop.
+@MainActor
+struct EndOfPadTests {
+    private func padKey(_ id: Int, _ form: PadForm) -> StoredPadKey {
+        StoredPadKey(id: id, form: form, label: "Key", mg: 2, position: 0, ndc: nil)
+    }
+
+    @Test("the end of the pad says it is the end, and counts both ledgers")
+    func aRunOfKeysThatStopsIsNotARunStillLoading() {
+        // The pad scrolls now, so a run of keys that simply stops looks the
+        // same as one still fetching more. Counting them is the cheap part;
+        // saying *that is all of it* is the point.
+        let both = Pad(keys: [padKey(1, .pouch), padKey(2, .gum), padKey(3, .vape)])
+
+        #expect(PadView.endOfPad(both) == "That's the whole pad · 3 keys",
+                "the count skipped a ledger")
+    }
+
+    @Test("one key is not one keys")
+    func theCountAgreesWithItsNoun() {
+        #expect(PadView.endOfPad(Pad(keys: [padKey(1, .pouch)])) == "That's the whole pad · 1 key")
+    }
+
+    @Test("an empty pad is not told that nothing is all of it")
+    func itHasItsOwnNoteAlready() {
+        // The empty note already says what to do next. "That's the whole pad ·
+        // 0 keys" underneath it would be true and useless.
+        #expect(PadView.endOfPad(Pad(keys: [])) == nil)
+    }
+}
