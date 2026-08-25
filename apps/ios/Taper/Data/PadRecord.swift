@@ -67,13 +67,59 @@ final class PadRecord {
     /// in front of somebody whose pad had just arrived.
     private var isLoading = false
 
+    /// A read asked for while one was already running.
+    ///
+    /// Remembered rather than dropped. The guard above keeps reads *serial*,
+    /// which is all it was ever for — but returning early also threw the
+    /// request away, and the request is sometimes the only thing that would
+    /// have shown a key that had just been written. A read already in flight
+    /// was issued before that write and cannot see it.
+    private var wantsAnotherRead = false
+
     init(store: (any PadKeyReading)?) { self.store = store }
 
+    /// Puts a key the server has just confirmed onto the pad, without re-reading.
+    ///
+    /// The row comes back from the insert carrying the id and position Postgres
+    /// assigned, so this is not a guess about what was written — and `Pad` sorts
+    /// by `(position, id)`, so it lands where the next read would have put it.
+    ///
+    /// A read here would be a second question with a worse answer. `load()`
+    /// drops a request that arrives while one is already running, on purpose:
+    /// without that guard a retry re-renders, whose `task` starts another read,
+    /// and a stale failure lands on top of a fresh success. But it means two
+    /// saves close enough together share one read — and if that read was issued
+    /// before the second write, the newer key is missing from the pad until
+    /// something else reloads it. A key that will not appear after a save that
+    /// said it worked is indistinguishable from a save that did not.
+    ///
+    /// Returns false when there is no pad to add to — mid-load, or after a
+    /// failed read — because appending to a state that is not `ready` would
+    /// invent one. The caller reloads instead.
+    @discardableResult
+    func insert(_ key: StoredPadKey) -> Bool {
+        guard case let .ready(pad) = status else { return false }
+        status = .ready(Pad(keys: pad.treatment + pad.sources + [key]))
+        return true
+    }
+
     func load() async {
-        guard !isLoading else { return }
+        guard !isLoading else {
+            wantsAnotherRead = true
+            return
+        }
         isLoading = true
         defer { isLoading = false }
 
+        repeat {
+            wantsAnotherRead = false
+            await read()
+            // Cancellation ends the loop as well as the read: whatever asked
+            // for this went away, and a queued repeat would outlive it.
+        } while wantsAnotherRead && !Task.isCancelled
+    }
+
+    private func read() async {
         guard let store else {
             status = .unavailable(Self.noBackend)
             return

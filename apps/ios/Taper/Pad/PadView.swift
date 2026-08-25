@@ -26,8 +26,10 @@ struct PadView: View {
     /// Makes a draft for a chosen product. Passed in because the pad has no
     /// store of its own — it is handed what it draws.
     let draftFor: (NRTResult) -> NewKeyDraft
-    /// A key that reached the server, so the pad can reload and show it.
-    let onKeyAdded: () -> Void
+    /// A key the server confirmed. Handed over rather than reloaded for: the
+    /// row is authoritative, and a read would be dropped if another were
+    /// already running.
+    let onKeyAdded: (StoredPadKey) -> Void
 
     private var tally: TodaysTally { record.tally(ceilingMg: ceilingMg) }
 
@@ -41,11 +43,19 @@ struct PadView: View {
                     // opened the wrong product is one tap from the right one,
                     // and their query is still in the field.
                     self.draft = nil
-                } onSaved: { _ in
-                    self.draft = nil
-                    search.clear()
-                    isSearching = false
-                    onKeyAdded()
+                } onSaved: { stored in
+                    // Only if this is still the draft on screen. A save is not
+                    // cancelled with the view that started it, so cancelling
+                    // mid-flight and opening another leaves the first write to
+                    // land and reset a search that had moved on.
+                    if self.draft === draft {
+                        self.draft = nil
+                        search.clear()
+                        isSearching = false
+                    }
+                    // Shown either way, because the key was written whoever is
+                    // looking at what now.
+                    onKeyAdded(stored)
                 }
             } else if isSearching {
                 TreatmentSearchView(record: search) {
@@ -225,6 +235,6 @@ struct PadView: View {
         isSearching: $isSearching,
         draft: .constant(nil),
         draftFor: { NewKeyDraft(product: $0, store: nil) },
-        onKeyAdded: {}
+        onKeyAdded: { _ in }
     )
 }
