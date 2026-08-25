@@ -81,6 +81,7 @@
 		A65B4D477181B1DF0C5E40D6 /* OnboardingRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE7ACAD65956EFEBD97F2DC9 /* OnboardingRunTests.swift */; };
 		A9F27E1C4941FEEBD02B53BC /* AgeGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E22FDA8B9704DCCFE7B3A5C /* AgeGateView.swift */; };
 		AA825BC65678F71CEE40D221 /* TreatmentSearchViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 254228134E2D6BEAB213329A /* TreatmentSearchViewTests.swift */; };
+		AC3071CBF7BEEA7E474FE58C /* NewSourceDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9993FAC0EAE736353D232BB /* NewSourceDraftTests.swift */; };
 		AD05E71ABAF750C27AE4956F /* LinearGrotesk-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE62009096443C1C6F3B1FA /* LinearGrotesk-Medium.otf */; };
 		AF7FB431CE8CF726A284EA30 /* PastDaysRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C68EFAF09F241AE6E3DAB77 /* PastDaysRecordTests.swift */; };
 		B47CED8A2E89349A7586059B /* WhatYouUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */; };
@@ -101,6 +102,7 @@
 		D2B2C97B8CD0DD3096075254 /* TodaySoFarCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5640C541A8FE4D023E5B42B /* TodaySoFarCardTests.swift */; };
 		D5E11560EF09DAD985F07964 /* PadSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9761AFFAA18FB8818B892201 /* PadSelectionTests.swift */; };
 		D5E697E08027199CFA2FFAFA /* NewKeyDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E2EF4FCF4203C5882A4B728 /* NewKeyDraftTests.swift */; };
+		D6B7F8850240124386BDCE36 /* NewSourceDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72042201DBC4BBD2DA05704B /* NewSourceDraft.swift */; };
 		DA0866AAF96102FAE82CA16E /* AgeGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455904243A3D920555A6529C /* AgeGate.swift */; };
 		DBF354CC66F11455190DF7B0 /* NicotineMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = A03487C1456CABB3DC9055A1 /* NicotineMark.swift */; };
 		DC85DF3A980C421F0613913E /* PadRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B60B9E2BC8CE60893633421 /* PadRecordTests.swift */; };
@@ -189,6 +191,7 @@
 		6DDA697AECD41D8C5B516E50 /* DayRollupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRollupTests.swift; sourceTree = "<group>"; };
 		6DE5ABE508EA7257C871ED1A /* TodayRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayRecord.swift; sourceTree = "<group>"; };
 		6E24D4F5D6154FF40A552901 /* PastDaysRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDaysRecord.swift; sourceTree = "<group>"; };
+		72042201DBC4BBD2DA05704B /* NewSourceDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSourceDraft.swift; sourceTree = "<group>"; };
 		7647D93BDDDDB17B5CEDB528 /* Ginger.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ginger.otf; sourceTree = "<group>"; };
 		76A198F850C8A0E35AEF60BB /* PlanTabTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTabTests.swift; sourceTree = "<group>"; };
 		76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStore.swift; sourceTree = "<group>"; };
@@ -215,6 +218,7 @@
 		A4C771B074CD11746F968D65 /* NewKeyDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewKeyDraft.swift; sourceTree = "<group>"; };
 		A66C7AC1982D58572E57F1FC /* TaperRunCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperRunCase.swift; sourceTree = "<group>"; };
 		A69F8D2D5922193467A92830 /* QuitDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuitDate.swift; sourceTree = "<group>"; };
+		A9993FAC0EAE736353D232BB /* NewSourceDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSourceDraftTests.swift; sourceTree = "<group>"; };
 		A9B9903E0264C634FF6C6E5F /* TaperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperApp.swift; sourceTree = "<group>"; };
 		ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentView.swift; sourceTree = "<group>"; };
 		B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokenTests.swift; sourceTree = "<group>"; };
@@ -346,6 +350,7 @@
 				B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */,
 				0CD1316F44498C566B2C429B /* HTTPClientTests.swift */,
 				3E2EF4FCF4203C5882A4B728 /* NewKeyDraftTests.swift */,
+				A9993FAC0EAE736353D232BB /* NewSourceDraftTests.swift */,
 				E94FA2858738E07EB7BE1BCC /* NicotineMarkTests.swift */,
 				7ADF57D828C4F6D815EEE968 /* NRTSearchTests.swift */,
 				F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */,
@@ -492,6 +497,7 @@
 			children = (
 				FA00ED9C801626583C7F0F8F /* CapMeter.swift */,
 				A4C771B074CD11746F968D65 /* NewKeyDraft.swift */,
+				72042201DBC4BBD2DA05704B /* NewSourceDraft.swift */,
 				3C851D90813354110CFD9B12 /* NewTreatmentKeyView.swift */,
 				FBD1FA4880F90D7EA4A5BA29 /* PadActionBar.swift */,
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
@@ -652,6 +658,7 @@
 				BA19A94840B0D6EDDE909800 /* HTTPClientTests.swift in Sources */,
 				207352AD42EF8BB362669456 /* NRTSearchTests.swift in Sources */,
 				D5E697E08027199CFA2FFAFA /* NewKeyDraftTests.swift in Sources */,
+				AC3071CBF7BEEA7E474FE58C /* NewSourceDraftTests.swift in Sources */,
 				7BE5341D70A65DC5C4C1DBC3 /* NicotineMarkTests.swift in Sources */,
 				F27B8E52E6909FD0813F0402 /* OnboardingTests.swift in Sources */,
 				2F776532ECCCC2D5C65020EB /* PadKeyStoreTests.swift in Sources */,
@@ -696,6 +703,7 @@
 				3F684FE5B56FA5DD28E3ACAF /* HomeView.swift in Sources */,
 				8AD4F01573512A6BFDF559EE /* NRTSearchStore.swift in Sources */,
 				7D5853D0EC5928A2417B8C88 /* NewKeyDraft.swift in Sources */,
+				D6B7F8850240124386BDCE36 /* NewSourceDraft.swift in Sources */,
 				8520DB5858D703C0CB2182D4 /* NewTreatmentKeyView.swift in Sources */,
 				DBF354CC66F11455190DF7B0 /* NicotineMark.swift in Sources */,
 				C41C9FD243F5C93219A7B2AE /* OnboardingAnswers.swift in Sources */,
