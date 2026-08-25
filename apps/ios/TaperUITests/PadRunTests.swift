@@ -396,4 +396,40 @@ final class PadRunTests: TaperRunCase {
             "the key was written but the pad never showed it"
         )
     }
+
+    func testSomethingElseBeingQuitCanBeAddedByHand() throws {
+        // The gap this closes: the pad could only ever hold what onboarding
+        // seeded, so anybody who picked up a second thing had nowhere to log
+        // it — and a source that cannot be logged is a cap that silently lies.
+        //
+        // No catalogue is involved, which is why this run needs no network
+        // beyond the database: what somebody is quitting is typed, never looked
+        // up.
+        openTheLog()
+        app.buttons["pad.addSource"].tap()
+
+        let cigarette = app.buttons["newSource.form.cigarettes"]
+        XCTAssertTrue(cigarette.waitForExistence(timeout: 5), "the add tile opened nothing")
+        XCTAssertFalse(
+            app.textFields["search.field"].exists,
+            "the hand-typed path offered a catalogue search"
+        )
+        cigarette.tap()
+
+        // The ladder moves with the form, so the number is read after choosing.
+        let mg = app.staticTexts["newSource.mg"].label
+        app.buttons["newSource.save"].tap()
+
+        XCTAssertTrue(
+            app.buttons["pad.addSource"].waitForExistence(timeout: 15),
+            "saving left the form open"
+        )
+        let key = app.buttons.containing(
+            NSPredicate(format: "label CONTAINS %@", "\(mg) milligrams")
+        ).firstMatch
+        XCTAssertTrue(
+            key.waitForExistence(timeout: 10),
+            "the key was written but the pad never showed it"
+        )
+    }
 }

@@ -66,13 +66,20 @@ struct PadKeyTile: View {
     }
 }
 
-/// The way onto the pad: a key-shaped tile that opens the licensed catalogue.
+/// The way onto the pad: a key-shaped tile that opens the screen for adding one.
 ///
-/// Only ever on the treatment run. What somebody is quitting is typed by hand —
-/// a plain form and a strength — because a catalogue of brands to browse is the
-/// one thing this app must not offer for tobacco, and that rule is about
-/// discovery rather than recording.
-struct AddTreatmentTile: View {
+/// One per ledger, and they lead to different places on purpose. A treatment is
+/// *found* in the licensed catalogue; what somebody is quitting is *typed* — a
+/// plain form and a strength — because a catalogue of brands to browse is the
+/// one thing this app must not offer for tobacco. That rule is about discovery
+/// rather than recording, which is why the pad still has a way to record one.
+struct AddKeyTile: View {
+    /// Two words at most: the tile is a key, not a button with room for a
+    /// sentence. The section heading above it carries the rest of the meaning.
+    let title: String
+    /// What a listener gets, where there is room to say which ledger this is.
+    let spokenLabel: String
+    let identifier: String
     let onTap: () -> Void
 
     var body: some View {
@@ -81,7 +88,7 @@ struct AddTreatmentTile: View {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(AppColor.inkMuted)
-                Text("Add treatment")
+                Text(title)
                     .font(AppFont.text(AppSize.caption, .medium))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(AppColor.inkMuted)
@@ -95,7 +102,32 @@ struct AddTreatmentTile: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("pad.addTreatment")
-        .accessibilityLabel("Add a treatment from the licensed product list")
+        .accessibilityIdentifier(identifier)
+        .accessibilityLabel(spokenLabel)
+    }
+}
+
+extension AddKeyTile {
+    /// Opens the licensed catalogue.
+    static func treatment(onTap: @escaping () -> Void) -> AddKeyTile {
+        AddKeyTile(
+            title: "Add treatment",
+            spokenLabel: "Add a treatment from the licensed product list",
+            identifier: "pad.addTreatment",
+            onTap: onTap
+        )
+    }
+
+    /// Opens the hand-typed form.
+    ///
+    /// Just "Add", because the heading above already says what is being added
+    /// and "source" is the app's word for it rather than anybody else's.
+    static func source(onTap: @escaping () -> Void) -> AddKeyTile {
+        AddKeyTile(
+            title: "Add",
+            spokenLabel: "Add something you are quitting",
+            identifier: "pad.addSource",
+            onTap: onTap
+        )
     }
 }

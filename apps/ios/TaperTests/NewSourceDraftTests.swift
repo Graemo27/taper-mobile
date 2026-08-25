@@ -232,3 +232,54 @@ struct NewSourceDraftTests {
         #expect(draft.status == .failed(NewSourceDraft.noBackend))
     }
 }
+
+/// Covers the copy on the screen for adding what somebody is quitting.
+@MainActor
+struct NewSourceKeyViewTests {
+    @Test("the screen says there is no catalogue, before anybody looks for one")
+    func theAbsentSearchIsExplained() {
+        // The treatment screen offers a search and this one cannot. Somebody
+        // who has just used the other will notice, and saying why turns an
+        // apparent gap into a stated boundary.
+        #expect(NewSourceKeyView.subtitle.contains("not a brand"))
+        #expect(NewSourceKeyView.subtitle.contains("doesn't keep a catalogue"))
+    }
+
+    @Test("the strength note gives permission to be approximate")
+    func precisionIsAPromiseTheDataCannotKeep() {
+        // Measured extraction from commercial pouches ran 38%, 24% and 52%, so
+        // the figure on the tin is not what reaches anybody. Logging the same
+        // way each day is what makes the trend true.
+        #expect(NewSourceKeyView.strengthNote.contains("rough number is fine"))
+        #expect(NewSourceKeyView.strengthNote.contains("same way every time"))
+    }
+
+    @Test("a chip names one of a thing, not a plural")
+    func theChipsReadAsSingularForms() {
+        // The key says "Pouches" because it stands for all of them; a chip is
+        // picking what kind one is.
+        let chips = NewSourceDraft.sources.map(NewSourceKeyView.chipLabel(for:))
+
+        #expect(chips == ["Pouch", "Vape", "Cigarette", "Dip", "Other"])
+        #expect(NewSourceDraft(source: .pouches, store: nil).label == "Pouches",
+                "the key lost the label the pad shows")
+    }
+}
+
+/// Covers what an empty pad says about itself.
+@MainActor
+struct EmptyPadNoteTests {
+    @Test("an empty pad does not claim the way out of it is unbuilt")
+    func theNoteDoesNotOutliveItsOwnTruth() {
+        // It used to end "adding them by hand isn't built yet", and went on
+        // saying so on the one screen where somebody needed to hear the
+        // opposite. This is the assertion that would have caught it: the copy
+        // is checked against the thing it describes, not read once and trusted.
+        let note = PadView.emptyNote
+
+        #expect(!note.contains("isn't built"), "the empty pad still refuses a screen that exists")
+        #expect(!note.contains("not built"))
+        #expect(note.contains("quitting"), "it did not name the ledger it can now fill")
+        #expect(note.contains("treating"), "it did not name the other one")
+    }
+}

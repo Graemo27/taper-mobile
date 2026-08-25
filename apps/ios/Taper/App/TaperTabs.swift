@@ -31,6 +31,8 @@ struct TaperTabs: View {
     @State private var isSearching = false
     /// The key being made, if the search led to one.
     @State private var draft: NewKeyDraft?
+    /// The source key being typed, if the pad's other run was tapped.
+    @State private var sourceDraft: NewSourceDraft?
     @State private var pad: PadRecord
     @State private var today: TodayRecord
 
@@ -100,6 +102,8 @@ struct TaperTabs: View {
                     isSearching: $isSearching,
                     draft: $draft,
                     draftFor: { NewKeyDraft(product: $0, store: stores?.pad) },
+                    sourceDraft: $sourceDraft,
+                    newSourceDraft: { NewSourceDraft(store: stores?.pad) },
                     onKeyAdded: { stored in
                         // Reloaded only when there is no pad to add to — mid
                         // load, or after a read that failed.
