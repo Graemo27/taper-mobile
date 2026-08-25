@@ -3,35 +3,75 @@ import Testing
 @testable import Taper
 
 /// A pad reader that returns what the test wants, or refuses.
+///
+/// Every field is behind the lock. `currentKeys` is nonisolated and runs on
+/// whatever thread the task lands on, while the test setting up the next answer
+/// is on the main actor — the same race Thread Sanitizer caught in
+/// `TreatmentSearchTests`' catalogue, which was also a plain `var` on an
+/// `@unchecked Sendable` fake.
 private final class FakeReader: PadKeyReading, @unchecked Sendable {
-    var keys: [StoredPadKey] = []
-    var fails = false
+    /// Everything a read consults, as one value.
+    private struct Answers {
+        var keys: [StoredPadKey] = []
+        var fails = false
+        var hangs = false
+        var holds = false
+        var throwsCancelledRequest = false
+        var reads = 0
+    }
+
+    private let lock = NSLock()
+    private var state = Answers()
+
+    var keys: [StoredPadKey] {
+        get { lock.withLock { state.keys } }
+        set { lock.withLock { state.keys = newValue } }
+    }
+    var fails: Bool {
+        get { lock.withLock { state.fails } }
+        set { lock.withLock { state.fails = newValue } }
+    }
     /// Holds a read open, so a second can be attempted while the first is in
     /// flight.
-    var hangs = false
+    var hangs: Bool {
+        get { lock.withLock { state.hangs } }
+        set { lock.withLock { state.hangs = newValue } }
+    }
     /// Holds a read open until it is let go, unlike `hangs` — a sleep cannot be
     /// shortened, and a test that needs the first read to *finish* after a
     /// second was queued has to be able to release it.
-    var holds = false
+    var holds: Bool {
+        get { lock.withLock { state.holds } }
+        set { lock.withLock { state.holds = newValue } }
+    }
     /// Waits for cancellation and then throws the way a cancelled URL request
     /// does — `URLError.cancelled`, not `CancellationError`. The two arrive by
     /// different routes and only one of them is a `catch` pattern.
-    var throwsCancelledRequest = false
-
-    private let lock = NSLock()
-    private var _reads = 0
-    var reads: Int { lock.withLock { _reads } }
+    var throwsCancelledRequest: Bool {
+        get { lock.withLock { state.throwsCancelledRequest } }
+        set { lock.withLock { state.throwsCancelledRequest = newValue } }
+    }
+    var reads: Int { lock.withLock { state.reads } }
 
     func currentKeys() async throws -> [StoredPadKey] {
-        lock.withLock { _reads += 1 }
-        if throwsCancelledRequest {
+        // Snapshotted on entry, before any waiting. A read answers with what
+        // the pad held when it was *issued* — which is the whole point of the
+        // coalescing test, where a write lands while a read is in flight.
+        // Returning `keys` after the hold released meant the first read could
+        // see the new key, and the assertion that the queued read fetched it
+        // passed without the queued read mattering.
+        let answers = lock.withLock {
+            state.reads += 1
+            return state
+        }
+        if answers.throwsCancelledRequest {
             while !Task.isCancelled { await Task.yield() }
             throw URLError(.cancelled)
         }
         while holds { await Task.yield() }
-        if hangs { try await Task.sleep(for: .seconds(30)) }
-        if fails { throw URLError(.notConnectedToInternet) }
-        return keys
+        if answers.hangs { try await Task.sleep(for: .seconds(30)) }
+        if answers.fails { throw URLError(.notConnectedToInternet) }
+        return answers.keys
     }
 }
 
@@ -366,13 +406,18 @@ struct PadReloadCoalescingTests {
         // The save lands. There is no pad to put it on yet, so the caller reads.
         #expect(record.insert(key(2, position: 1)) == false,
                 "the fixture was not mid-load")
-        let queued = Task { await record.load() }
 
-        // Now the write is visible to a *new* read, but not to the one running.
+        // Awaited here rather than started in a `Task`, which would only *hope*
+        // to enter while the first read was held. `load()` returns as soon as
+        // it sees one running, so this is the interleaving the test is about
+        // rather than a race it is trying to win.
+        await record.load()
+
+        // Visible to a read issued from now on. The one still running
+        // snapshotted the pad before this line.
         reader.keys = [key(1, position: 0), key(2, position: 1)]
         reader.holds = false
         await loading.value
-        await queued.value
 
         guard case let .ready(pad) = record.status else {
             Issue.record("the pad never became ready")
