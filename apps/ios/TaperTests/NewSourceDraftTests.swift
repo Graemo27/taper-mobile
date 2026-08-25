@@ -156,7 +156,13 @@ struct NewSourceDraftTests {
         let draft = NewSourceDraft(source: .pouches, store: store)
 
         async let first = draft.save()
-        while store.added.isEmpty { await Task.yield() }
+        // Bounded. An unbounded wait does not fail when the write never
+        // starts, it hangs — and the suite then reports a timeout somewhere
+        // else rather than the assertion that would have named the fault.
+        // This test already hung once, on its own broken-code run.
+        let deadline = Date().addingTimeInterval(3)
+        while store.added.isEmpty, Date() < deadline { await Task.yield() }
+        #expect(store.added.count == 1, "the first write never started")
 
         draft.select(.vape)
         draft.raise()

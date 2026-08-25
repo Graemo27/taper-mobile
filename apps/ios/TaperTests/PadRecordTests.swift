@@ -335,6 +335,19 @@ struct PadReloadCoalescingTests {
                      position: position, ndc: nil)
     }
 
+    /// Waits with a deadline, and says so when it runs out.
+    ///
+    /// The same shape `TreatmentSearchTests` uses, for the reason this file
+    /// learned the hard way: an unbounded `while !condition { await
+    /// Task.yield() }` does not fail when the thing never happens, it hangs —
+    /// and a suite that hangs reports a timeout somewhere else entirely rather
+    /// than the assertion that would have named the fault.
+    private func waitUntil(_ what: String, _ condition: () -> Bool) async {
+        let deadline = Date().addingTimeInterval(3)
+        while !condition(), Date() < deadline { await Task.yield() }
+        #expect(condition(), "\(what) never happened")
+    }
+
     @Test("a key written during a read is not lost when the read predates it")
     func theQueuedReadStillHappens() async {
         // `insert` refuses a pad that is not `ready`, so a save landing
@@ -348,7 +361,7 @@ struct PadReloadCoalescingTests {
         let record = PadRecord(store: reader)
 
         let loading = Task { await record.load() }
-        while reader.reads == 0 { await Task.yield() }
+        await waitUntil("the first read") { reader.reads == 1 }
 
         // The save lands. There is no pad to put it on yet, so the caller reads.
         #expect(record.insert(key(2, position: 1)) == false,
