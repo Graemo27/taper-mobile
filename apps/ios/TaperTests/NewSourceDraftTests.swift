@@ -10,6 +10,14 @@ private final class FakeAdder: PadKeyWriting, @unchecked Sendable {
     private struct Written {
         var added: [(key: PadKey, ndc: String?)] = []
         var fails = false
+        var holds = false
+    }
+
+    /// Keeps a write suspended so a second one can be attempted while the
+    /// first is still in flight.
+    var holds: Bool {
+        get { lock.withLock { state.holds } }
+        set { lock.withLock { state.holds = newValue } }
     }
 
     var fails: Bool {
@@ -26,6 +34,7 @@ private final class FakeAdder: PadKeyWriting, @unchecked Sendable {
             return state.fails
         }
         if shouldFail { throw URLError(.notConnectedToInternet) }
+        while holds { await Task.yield() }
         return StoredPadKey(id: 1, form: key.form, label: key.label,
                             mg: key.mg, position: key.position, ndc: ndc)
     }
@@ -119,6 +128,51 @@ struct NewSourceDraftTests {
         #expect(NewSourceDraft(source: .pouches, store: nil).mg == 6, "the board opens on 6 mg")
     }
 
+    @Test("a thing that is not being quit cannot be made into a source key")
+    func nrtHasNoWayIn() async {
+        // `.nrt` maps to `.other`, which *is* a source form — so nothing
+        // downstream refuses it. Excluding it from the offered list was a
+        // claim in a docstring; this makes it a property of the type.
+        let store = FakeAdder()
+        let draft = NewSourceDraft(source: .nrt, store: store)
+        #expect(draft.source == .pouches, "a draft was built for something not being quit")
+
+        draft.select(.nrt)
+        #expect(draft.source == .pouches, "NRT was selected through the source path")
+
+        _ = await draft.save()
+        #expect(store.added.first?.key.label == "Pouches")
+        #expect(store.added.allSatisfy { $0.key.label != NicotineSource.nrt.label },
+                "licensed gum was filed on the quitting ledger")
+    }
+
+    @Test("editing during a save does not let it be submitted twice")
+    func oneSubmitWritesOneKey() async {
+        // `canSave` is the only thing stopping a second submit, and it reads
+        // `status`. Resetting that on every edit re-armed the button, so
+        // changing the source mid-flight wrote the key twice.
+        let store = FakeAdder()
+        store.holds = true
+        let draft = NewSourceDraft(source: .pouches, store: store)
+
+        async let first = draft.save()
+        while store.added.isEmpty { await Task.yield() }
+
+        draft.select(.vape)
+        draft.raise()
+        #expect(draft.canSave == false, "a save in flight left the button armed")
+
+        // Attempted without waiting on it. Awaiting here would hang rather than
+        // fail when the guard is missing — the second save reaches the held
+        // write and sits there, and a test that hangs teaches nothing.
+        let second = Task { await draft.save() }
+        store.holds = false
+        _ = await first
+        _ = await second.value
+
+        #expect(store.added.count == 1, "one submit wrote \(store.added.count) keys")
+    }
+
     @Test("changing the source moves the ladder under it")
     func aVapeDoesNotInheritAPouchStrength() {
         // Keeping the rung would carry 6 mg across to a vape, which is forty
@@ -126,7 +180,7 @@ struct NewSourceDraftTests {
         let draft = NewSourceDraft(source: .pouches, store: nil)
         #expect(draft.mg == 6)
 
-        draft.source = .vape
+        draft.select(.vape)
 
         #expect(draft.mg == 0.15, "the vape kept a pouch's strength")
         #expect(draft.label == "Vape")

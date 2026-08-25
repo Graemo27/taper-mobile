@@ -26,15 +26,14 @@ final class NewSourceDraft {
 
     private(set) var status: Status = .editing
 
-    /// What they are quitting. Changing it moves the whole strength ladder,
-    /// because a pouch and a puff are not measured on the same scale.
-    var source: NicotineSource {
-        didSet {
-            guard source != oldValue else { return }
-            strengthIndex = Self.defaultIndex(for: source)
-            status = .editing
-        }
-    }
+    /// What they are quitting.
+    ///
+    /// Settable only through `select(_:)`, so the eligible list is a property of
+    /// the type rather than a claim in a docstring. `.nrt` maps to `.other`,
+    /// which *is* a source form — nothing downstream would have refused it, so
+    /// a draft built with it would have quietly filed licensed gum on the
+    /// quitting ledger through the one path that must never look one up.
+    private(set) var source: NicotineSource
 
     private(set) var strengthIndex: Int
     private let store: (any PadKeyWriting)?
@@ -45,9 +44,23 @@ final class NewSourceDraft {
     static let sources: [NicotineSource] = [.pouches, .vape, .cigarettes, .dip, .other]
 
     init(source: NicotineSource = .pouches, store: (any PadKeyWriting)?) {
-        self.source = source
+        let chosen = Self.sources.contains(source) ? source : .pouches
+        self.source = chosen
         self.store = store
-        self.strengthIndex = Self.defaultIndex(for: source)
+        self.strengthIndex = Self.defaultIndex(for: chosen)
+    }
+
+    /// Changes what is being quit, which moves the whole strength ladder under
+    /// it — a pouch and a puff are not measured on the same scale.
+    ///
+    /// Anything not on the offered list is refused rather than coerced: a
+    /// caller asking for something this screen does not sell should get no
+    /// change, not a different answer it did not ask for.
+    func select(_ source: NicotineSource) {
+        guard Self.sources.contains(source), source != self.source else { return }
+        self.source = source
+        strengthIndex = Self.defaultIndex(for: source)
+        clearFailure()
     }
 
     /// The strengths offered for a source, low to high.
@@ -106,13 +119,23 @@ final class NewSourceDraft {
     func lower() {
         guard canLower else { return }
         strengthIndex -= 1
-        status = .editing
+        clearFailure()
     }
 
     func raise() {
         guard canRaise else { return }
         strengthIndex += 1
-        status = .editing
+        clearFailure()
+    }
+
+    /// Puts a stale error away when the draft changes, and does nothing else.
+    ///
+    /// Deliberately not `status = .editing`. That cleared `.saving` too, and
+    /// `canSave` is the only thing stopping a second submit — so changing the
+    /// source while a save was in flight re-armed the button and wrote the key
+    /// twice. Edits are allowed during a save; unblocking it is not.
+    private func clearFailure() {
+        if case .failed = status { status = .editing }
     }
 
     var canSave: Bool { status != .saving && mg > 0 }
