@@ -101,6 +101,7 @@
 		BB130F9CEEB993188D46CB19 /* PlanPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4442F6D8FC00924EFF766298 /* PlanPreviewView.swift */; };
 		C41C9FD243F5C93219A7B2AE /* OnboardingAnswers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093BB4C87BB287DEEF4C82D4 /* OnboardingAnswers.swift */; };
 		C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */; };
+		C4D9601C5E217293592EBFCE /* CravingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D6C5DE45B13AB46F0884978 /* CravingView.swift */; };
 		C7BB569FEB8165AB4877C76F /* TodaySoFarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6058CD141DA498C70E6BC6C /* TodaySoFarCard.swift */; };
 		CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */; };
 		D199EC3608A3A376198FE69B /* DayRollup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A58AB9858C32889C73D9F7 /* DayRollup.swift */; };
@@ -165,6 +166,7 @@
 		29C48EAAEE5BE454A7FFEC78 /* PlanHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanHistory.swift; sourceTree = "<group>"; };
 		2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadView.swift; sourceTree = "<group>"; };
 		2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadKeyStore.swift; sourceTree = "<group>"; };
+		2D6C5DE45B13AB46F0884978 /* CravingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CravingView.swift; sourceTree = "<group>"; };
 		2E22FDA8B9704DCCFE7B3A5C /* AgeGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateView.swift; sourceTree = "<group>"; };
 		2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstUseView.swift; sourceTree = "<group>"; };
 		2E45457AC76C6CF565C978F6 /* QuitDateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuitDateView.swift; sourceTree = "<group>"; };
@@ -329,6 +331,7 @@
 			children = (
 				696EF921A734BD48DA5A25ED /* CheckInEditView.swift */,
 				8EDBE197D6148B9FFC8337A5 /* CravingRecord.swift */,
+				2D6C5DE45B13AB46F0884978 /* CravingView.swift */,
 				931D71CAE19F0707B5BBCDF8 /* HomeView.swift */,
 				09475EA97F0CE77A27243776 /* PlanTabView.swift */,
 				5A17E3EA25F4732A7769248A /* TodayListView.swift */,
@@ -713,6 +716,7 @@
 				B8B045739B342AF7403E3D45 /* CheckInStore.swift in Sources */,
 				DF19A8B86E15E68CEDD4948C /* Controls.swift in Sources */,
 				AB3F06BE636179F83E9D0DEE /* CravingRecord.swift in Sources */,
+				C4D9601C5E217293592EBFCE /* CravingView.swift in Sources */,
 				D199EC3608A3A376198FE69B /* DayRollup.swift in Sources */,
 				7C82B2CC78800410E0BC19C9 /* DayTrack.swift in Sources */,
 				B495B01DAD58B742106956BB /* DesignTokens.swift in Sources */,
