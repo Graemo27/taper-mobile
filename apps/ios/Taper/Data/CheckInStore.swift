@@ -7,16 +7,69 @@ import Supabase
 /// snapshot is taken in one place — the row builder — instead of at every call
 /// site that might take a slightly different copy.
 struct CheckInDraft: Equatable, Sendable {
-    let key: StoredPadKey
+    /// The key that was tapped, or nil when nothing was.
+    ///
+    /// Nil is what an urge is: the craving screen records getting through one,
+    /// and there was no key on the pad to press. Provenance only either way —
+    /// every other field here is the snapshot the log actually renders.
+    let padKeyID: Int?
+    let ledger: PadKey.Ledger
+    let label: String
+    let form: PadForm
+    let mg: Double
     let quantity: Int
     /// The day it belongs to, as the user reckons days.
     let day: Date
 
     init(pending: PendingEntry, day: Date) {
-        key = pending.key
+        padKeyID = pending.key.id
+        ledger = pending.key.ledger
+        label = pending.key.label
+        form = pending.key.form
+        mg = pending.key.mg
         quantity = pending.quantity
         self.day = day
     }
+
+    private init(
+        padKeyID: Int?, ledger: PadKey.Ledger, label: String,
+        form: PadForm, mg: Double, quantity: Int, day: Date
+    ) {
+        self.padKeyID = padKeyID
+        self.ledger = ledger
+        self.label = label
+        self.form = form
+        self.mg = mg
+        self.quantity = quantity
+        self.day = day
+    }
+
+    /// A craving somebody got through, recorded as costing nothing.
+    ///
+    /// Zero milligrams and no key, which is the shape `check_ins` now requires
+    /// of anything at zero — a nought-milligram *product* is still refused.
+    ///
+    /// Filed on the treatment ledger because that is where the board draws it,
+    /// and because the other ledger counts against the day's ceiling: an urge
+    /// that passed must not read as something used. `.other` for the form
+    /// rather than a new case, since `form` is a snapshot the log prints and
+    /// `label` is what carries the meaning.
+    static func urgePassed(on day: Date) -> CheckInDraft {
+        CheckInDraft(
+            padKeyID: nil, ledger: .treatment, label: Self.urgeLabel,
+            form: .other, mg: 0, quantity: 1, day: day
+        )
+    }
+
+    /// What an urge is called wherever it is read back.
+    ///
+    /// One constant rather than a literal in each place, because the log, the
+    /// day's count and the craving screen all have to agree about which rows
+    /// are urges — and they have only the label to go on.
+    static let urgeLabel = "Urge passed"
+
+    /// Whether this row is an urge rather than something taken.
+    var isUrge: Bool { padKeyID == nil && mg == 0 }
 }
 
 /// Writing an entry.
@@ -143,7 +196,9 @@ extension SupabaseCheckInStore {
 /// recorded last Tuesday, and `pad_key_id` is provenance only.
 private struct CheckInRow: Encodable {
     let userID: UUID
-    let padKeyID: Int
+    /// Optional, because an urge tapped no key. PostgREST omits nothing — a nil
+    /// here is sent as JSON null, which is what the column wants.
+    let padKeyID: Int?
     let loggedOn: String
     let ledger: String
     let label: String
@@ -153,16 +208,16 @@ private struct CheckInRow: Encodable {
 
     init(draft: CheckInDraft, userID: UUID, timeZone: TimeZone) {
         self.userID = userID
-        padKeyID = draft.key.id
+        padKeyID = draft.padKeyID
         // The same function the plan's dates go through. A second way of
         // turning an instant into a day is a second chance to store the wrong
         // one — and a check-in at 9pm in California landing on tomorrow is a
         // day whose total is quietly wrong at both ends.
         loggedOn = PlanDay.wireFormat(draft.day, timeZone: timeZone)
-        ledger = draft.key.ledger.rawValue
-        label = draft.key.label
-        form = draft.key.form.rawValue
-        mg = draft.key.mg
+        ledger = draft.ledger.rawValue
+        label = draft.label
+        form = draft.form.rawValue
+        mg = draft.mg
         quantity = draft.quantity
     }
 

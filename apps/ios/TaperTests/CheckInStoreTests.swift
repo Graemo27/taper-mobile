@@ -74,6 +74,27 @@ extension LiveBackendTests {
         #expect(stored == logged, "the entry read back was not the entry written")
     }
 
+    @Test("a craving that passed is written with no key and no dose",
+          .enabled(if: LocalBackend.isAvailable))
+    func anUrgeReachesPostgres() async throws {
+        // Two things no row in this table has ever had: a null `pad_key_id` and
+        // a zero `mg`. The column accepted neither until this week, and the
+        // encoder sent neither — `CheckInRow.padKeyID` was a plain `Int`, so
+        // the shape the migration allows was still unreachable from the app.
+        let (checkIns, _) = await checkInBackend()
+
+        let logged = try await checkIns.log(.urgePassed(on: Date()))
+
+        #expect(logged.mg == 0, "an urge was written as a dose")
+        #expect(logged.label == CheckInDraft.urgeLabel)
+        #expect(logged.ledger == .treatment)
+        // Read back rather than trusted from the insert's own echo: a null
+        // foreign key is exactly the sort of thing a round trip settles.
+        let day = try await checkIns.entries(from: Date(), to: Date())
+        #expect(day.contains { $0.label == CheckInDraft.urgeLabel },
+                "the urge did not come back with the day")
+    }
+
     @Test("the day an entry lands on is the user's day, not UTC's",
           .enabled(if: LocalBackend.isAvailable))
     func aLateEveningEntryStaysOnItsOwnDay() async throws {

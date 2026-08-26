@@ -49,6 +49,18 @@ enum PadForm: String, CaseIterable, Decodable, Sendable {
         }
     }
 
+    /// Whether this form is worn rather than taken when a craving lands.
+    ///
+    /// `TreatmentForm.isPatch` says the same thing about onboarding's smaller
+    /// enum; this is it for the forms a key can actually hold. A patch holds a
+    /// floor and a fast-acting form answers a moment, which is why the craving
+    /// screen can only offer one of them: suggesting a patch to somebody
+    /// mid-craving is advice that does not work on the timescale they are in.
+    ///
+    /// Sources answer false because the question does not apply to them — they
+    /// are what somebody is quitting, not something to reach for.
+    var isWornRatherThanTaken: Bool { self == .patch }
+
     /// What to call this form when it appears beside a label the user chose.
     ///
     /// Sentence case, and never a substitute for the label. The log's rows read
