@@ -14,7 +14,12 @@ struct CravingView: View {
     @Bindable var record: CravingRecord
     /// The fast-acting key to reach for, if the pad has one.
     let suggestion: StoredPadKey?
+    /// Named off the user's own sources, because "the tin" is only one of them.
+    let putAwayTitle: String
     let onClose: () -> Void
+    /// Hands up the row a passed craving wrote, so the presenter can close:
+    /// one craving is one screen.
+    let onCounted: (StoredCheckIn) -> Void
     /// Logs the suggested key, the way the pad would.
     let onTake: (StoredPadKey) -> Void
     /// Opens the pad, for somebody who used something else.
@@ -123,7 +128,7 @@ struct CravingView: View {
 
     private var putItAway: some View {
         card(
-            title: "Put the tin away",
+            title: putAwayTitle,
             detail: "Having it on you is the strongest predictor there is."
         )
         .accessibilityIdentifier("craving.putItAway")
@@ -153,9 +158,11 @@ struct CravingView: View {
     /// feel like a failure.
     private var passedButton: some View {
         Button {
-            Task { _ = await record.itPassed() }
+            Task {
+                if let counted = await record.itPassed() { onCounted(counted) }
+            }
         } label: {
-            Text(record.status == .counting ? "Counting…" : "It passed — count it")
+            Text(passedLabel)
                 .font(AppFont.text(AppSize.bodyLarge, .medium))
                 .foregroundStyle(AppColor.ink)
                 .frame(maxWidth: .infinity)
@@ -163,7 +170,7 @@ struct CravingView: View {
                 .background(AppColor.sunken, in: Capsule())
         }
         .buttonStyle(.plain)
-        .disabled(record.status == .counting)
+        .disabled(record.status == .counting || record.status == .counted)
         .accessibilityIdentifier("craving.itPassed")
     }
 
@@ -188,6 +195,16 @@ struct CravingView: View {
         It will crest and fall on its own, usually inside a few minutes. You \
         don't have to win this — you just have to get through it.
         """
+
+    /// Says "Counted" rather than coming back: the dismissal it triggers is
+    /// animated, and a second tap would otherwise land on a screen still there.
+    var passedLabel: String {
+        switch record.status {
+        case .counting: return "Counting…"
+        case .counted: return "Counted"
+        case .resting, .failed: return "It passed — count it"
+        }
+    }
 
     /// Only a failed count is shown, and it does not ask for a retry.
     var failureText: String? {
