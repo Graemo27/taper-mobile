@@ -16,8 +16,9 @@ screen.
 Still unbuilt, against the M1 board:
 
 - **L3e** reordering the pad, the half of edit-pad that was deferred
-- **L8** "Ride it out" is inert — the board draws a chevron toward a timer screen that was
-  never designed
+- **L8a** the ride-it-out state behind L8's second card — designed, not drawn: the design
+  record keeps the ring and the NOTICE/NAME/RIDE sequence intact as L8a, but no artboard
+  exists yet, so the card ships inert. Build to the record, don't redesign
 
 Also open: a `request_id` idempotency migration — the one thing that would close the duplicate
 no client can, an insert that commits and loses its response — the non-atomic position

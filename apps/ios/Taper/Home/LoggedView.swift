@@ -45,9 +45,15 @@ struct LoggedView: View {
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule().fill(AppColor.trackOnTile)
-                    Capsule()
-                        .fill(fillColor)
-                        .frame(width: max(16, proxy.size.width * fillFraction))
+                    // Nothing at zero: `max(16, …)` alone put a visible fill
+                    // under "0 of 18 mg", which is the ordinary first-use
+                    // path after logging a treatment. The floor only applies
+                    // once there is something to draw.
+                    if fillFraction > 0 {
+                        Capsule()
+                            .fill(fillColor)
+                            .frame(width: max(16, proxy.size.width * fillFraction))
+                    }
                 }
             }
             .frame(height: 16)

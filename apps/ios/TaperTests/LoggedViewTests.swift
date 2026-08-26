@@ -36,6 +36,14 @@ struct LoggedViewTests {
         #expect(over.fillFraction == 1, "a past-tense meter overflowed instead of reporting")
     }
 
+    @Test("a day at zero draws an empty bar, not a sliver")
+    func zeroIsNothing() {
+        // The ordinary first-use path: log a treatment from the catalogue and
+        // the confirmation says 0 of 18 mg. A minimum-width fill under that
+        // figure is the meter contradicting its own words.
+        #expect(view(logged: 0, ceiling: 18).fillFraction == 0)
+    }
+
     @Test("the quit week's cap of zero does not divide by it")
     func theFloorIsSafe() {
         #expect(view(logged: 0, ceiling: 0).fillFraction == 0)
