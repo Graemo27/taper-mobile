@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// How far back the graph looks.
+/// How far back the graph looks, today included.
 enum TrendSpan: Int, CaseIterable, Sendable {
     case week = 7
     case month = 30
@@ -14,38 +14,50 @@ enum TrendSpan: Int, CaseIterable, Sendable {
     }
 }
 
-/// Reads the run of days the graph draws: the last week or month, today
-/// included.
+/// Reads the finished days the graph draws — the last week or month up to
+/// yesterday — and builds the trend around today handed in fresh.
+///
+/// Today is an *input*, not a fetch. The first draft cached (day, span) with
+/// today inside the window, which meant a check-in made after the read never
+/// reached the graph until midnight or a toggle: the one bar somebody watches
+/// respond to their own taps was the one bar that could not. Finished days do
+/// not change and are cached; today changes all day and is passed in from the
+/// same record home's cards already read, so the graph and the figure above
+/// it can never disagree.
 ///
 /// Its own record rather than a reach into `PastDaysRecord`, whose window is
-/// the list's pagination — "show earlier" grows it seven days at a press, and
-/// a graph toggling that length under the list would move a control somebody
-/// else is holding. The two share nothing but the stores they read.
+/// the list's pagination. The two share nothing but the stores they read.
 @Observable
 @MainActor
 final class TrendRecord {
-    private(set) var trend: Trend?
-    /// Separate from an empty trend: a week with nothing logged is an ordinary
-    /// week, a week that could not be read is an apology.
+    /// Separate from an empty trend: a week with nothing logged is an
+    /// ordinary week, a week that could not be read is an apology.
     private(set) var isUnavailable = false
     private(set) var span: TrendSpan = .week
 
-    private let checkIns: (any CheckInReading)?
-    private let plans: (any PlanVersionReading)?
-    private let calendar: Calendar
-    private let today: () -> Date
+    /// The finished days in hand, oldest first, and the window they answer
+    /// for. Kept together: data that has outlived its window is refused
+    /// rather than drawn under the wrong day or the wrong toggle.
+    private var pastDays: [DayRollup]?
+    private var history: PlanHistory?
+    private var pastWindow: Window?
 
-    /// Which run is in hand — the day it ends and the reach — so midnight and
-    /// a span toggle each invalidate it and nothing else does. The same shape
-    /// `PastDaysRecord` keys its cache on, for the same four-defects reason:
-    /// every stale-publish bug in that type was something written after an
-    /// `await` by an operation that was no longer the current one.
+    /// Which run a read is for — the yesterday it ends at and the reach — so
+    /// midnight and the toggle each invalidate it and nothing else does. The
+    /// same shape `PastDaysRecord` keys on, for the same reason: every
+    /// stale-publish defect in that type was something written after an await
+    /// by an operation no longer current.
     private var loaded: Window?
 
     private struct Window: Equatable {
         let end: Date
         let span: TrendSpan
     }
+
+    private let checkIns: (any CheckInReading)?
+    private let plans: (any PlanVersionReading)?
+    private let calendar: Calendar
+    private let today: () -> Date
 
     init(
         checkIns: (any CheckInReading)?,
@@ -59,55 +71,78 @@ final class TrendRecord {
         self.today = today
     }
 
-    /// Switches the reach and reads it. The old trend stays on screen while
-    /// the new one loads — a graph that blinks to empty on every toggle reads
-    /// as the data vanishing.
+    /// The graph, built from the cached finished days and today's own
+    /// entries. Nil while the window has not loaded — or has stopped being
+    /// the current one, because bars mislabeled "today" are worse than a
+    /// moment of loading.
+    func trend(today todayEntries: [StoredCheckIn]) -> Trend? {
+        guard let pastDays, let history, pastWindow == currentWindow else { return nil }
+        let todayStart = calendar.startOfDay(for: today())
+        let todaysRollup = DayRollup(
+            day: todayStart, entries: todayEntries, capMg: history.cap(on: todayStart)
+        )
+        return Trend(days: pastDays + [todaysRollup], calendar: calendar, today: todayStart)
+    }
+
+    /// Switches the reach and reads it.
     func show(_ span: TrendSpan) async {
-        // A month is not a week with a different name: the old bars are
-        // cleared rather than left drawing under the wrong toggle. Within a
-        // span the old trend does stay through a failed re-read.
-        if span != self.span { trend = nil }
         self.span = span
         await load()
     }
 
-    /// Reads the window, once per (day, span).
+    /// Reads the window, once per (yesterday, span).
     func load() async {
-        guard let checkIns, let plans else { return }
-        let window = Window(end: calendar.startOfDay(for: today()), span: span)
+        guard let checkIns, let plans, let window = currentWindow else { return }
         guard loaded != window else { return }
         loaded = window
 
+        // One fewer than the span: today is the last bar and is not fetched.
         guard let start = calendar.date(
-            byAdding: .day, value: -(window.span.rawValue - 1), to: window.end
+            byAdding: .day, value: -(window.span.rawValue - 2), to: window.end
         ) else { return }
 
         do {
             let entries = try await checkIns.entries(from: start, to: window.end)
-            let history = PlanHistory(versions: try await plans.versions(), calendar: calendar)
+            let read = PlanHistory(versions: try await plans.versions(), calendar: calendar)
 
-            // Published only if this is still the run being asked for: the day
-            // can turn and the toggle can move while both reads are open.
-            guard Window(end: calendar.startOfDay(for: today()), span: span) == window else { return }
+            // Published only if this is still the run being asked for: the
+            // day can turn and the toggle can move while both reads are open.
+            guard currentWindow == window else { return }
 
             let byDay = Dictionary(grouping: entries, by: \.loggedOn)
-            let days = Self.days(from: start, to: window.end, calendar: calendar).map { day in
+            pastDays = Self.days(from: start, to: window.end, calendar: calendar).map { day in
                 DayRollup(
                     day: day,
                     entries: byDay[PlanDay.wireFormat(day, timeZone: calendar.timeZone)] ?? [],
-                    capMg: history.cap(on: day)
+                    capMg: read.cap(on: day)
                 )
             }
-            trend = Trend(days: days, calendar: calendar, today: window.end)
+            history = read
+            pastWindow = window
             isUnavailable = false
         } catch {
-            guard Window(end: calendar.startOfDay(for: today()), span: span) == window else { return }
-            // Forgotten either way, so coming back re-reads: the cache stops a
-            // finished read repeating, not a failed one from being retried.
+            guard currentWindow == window else { return }
+            // Forgotten either way, so coming back re-reads: the cache stops
+            // a finished read repeating, not a failed one being retried.
             loaded = nil
             guard !Task.isCancelled else { return }
-            isUnavailable = trend == nil
+            // Data from an older window is dropped rather than kept: after a
+            // failed midnight re-read, yesterday's run drawn as today is a
+            // graph lying about which day it is. Same-window data survives a
+            // failed refresh, because it is still true.
+            if pastWindow != window {
+                pastDays = nil
+                history = nil
+                pastWindow = nil
+            }
+            isUnavailable = pastDays == nil
         }
+    }
+
+    /// Yesterday and the reach, or nil before there is a yesterday.
+    private var currentWindow: Window? {
+        calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: today()))
+            .map { Window(end: $0, span: span) }
     }
 
     /// Every day from `start` through `end`, oldest first.

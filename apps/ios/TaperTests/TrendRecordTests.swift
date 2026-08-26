@@ -94,22 +94,30 @@ struct TrendRecordTests {
         TrendRecord(checkIns: days, plans: plans, calendar: calendar, today: { clock.now })
     }
 
-    @Test("a week is seven days ending today, read as one span")
-    func theWeekIncludesToday() async {
-        // The list's record ends at yesterday, because its today is another
-        // screen's. The graph has no other screen — its last bar is now.
+    @Test("a week reads six finished days, and today arrives by hand")
+    func todayIsAnInputNotAFetch() async {
+        // The finding this shape answers: with today inside the cached
+        // window, a check-in made after the read never reached the graph
+        // until midnight or a toggle.
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
         plans.versions = [plan(from: -40)]
-        days.set(wire(0), [entry(1, mg: 3)])
         let record = record(days, plans, clock: Clock(anchor))
 
         await record.load()
 
-        #expect(days.asked == ["\(wire(-6))…\(wire(0))"])
-        #expect(record.trend?.bars.count == 7)
-        #expect(record.trend?.bars.last?.isToday == true)
-        #expect(record.trend?.bars.last?.fraction ?? 0 > 0, "today's bar is empty")
+        #expect(days.asked == ["\(wire(-6))…\(wire(-1))"], "the read included today")
+
+        let before = record.trend(today: [])
+        #expect(before?.bars.count == 7)
+        #expect(before?.bars.last?.isToday == true)
+        #expect(before?.bars.last?.fraction == 0)
+
+        // The same tap home's card sees, visible with no second read.
+        let after = record.trend(today: [entry(1, mg: 3)])
+        #expect(after?.bars.last?.fraction ?? 0 > 0,
+                "a check-in made after the read never reached the graph")
+        #expect(days.asked.count == 1)
     }
 
     @Test("a finished read is not repeated, and a new day or span is")
@@ -126,23 +134,22 @@ struct TrendRecordTests {
 
         await record.show(.month)
         #expect(days.asked.count == 2)
-        #expect(days.asked.last == "\(wire(-29))…\(wire(0))")
-        #expect(record.trend?.bars.count == 30)
+        #expect(days.asked.last == "\(wire(-29))…\(wire(-1))")
+        #expect(record.trend(today: [])?.bars.count == 30)
 
         clock.now = day(1)
         await record.load()
         #expect(days.asked.count == 3, "midnight did not invalidate the cache")
     }
 
-    @Test("a read the day outran is dropped, not published")
+    @Test("a run the day outran refuses to draw, and is not published")
     func midnightRefusesTheStaleRun() async {
         // The same door every stale-publish defect in PastDaysRecord came
-        // through: something written after an await by an operation that is no
-        // longer the current one.
+        // through: something written after an await by an operation that is
+        // no longer the current one.
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
         plans.versions = [plan(from: -40)]
-        days.set(wire(0), [entry(1, mg: 3)])
         let clock = Clock(anchor)
         let record = record(days, plans, clock: clock)
 
@@ -155,10 +162,39 @@ struct TrendRecordTests {
         days.holds = false
         _ = await stale.value
 
-        #expect(record.trend == nil, "a run ending yesterday was published as today's")
+        #expect(record.trend(today: []) == nil,
+                "a run ending two days back was drawn as ending yesterday")
 
         await record.load()
-        #expect(record.trend?.bars.last?.day == day(1), "the re-read did not answer for the new day")
+        #expect(record.trend(today: [])?.bars.last?.day == calendar.startOfDay(for: day(1)),
+                "the re-read did not answer for the new day")
+    }
+
+    @Test("a failed midnight re-read drops yesterday's run rather than mislabel it")
+    func yesterdayIsNotDrawnAsToday() async {
+        // The window loads, the day turns, and the re-read fails. Keeping the
+        // old bars would mark yesterday's final bar as today — a graph lying
+        // about which day it is — so the stale run is dropped and the card
+        // apologises instead.
+        let days = FakeTrendDays(calendar: calendar)
+        let plans = FakeTrendVersions()
+        plans.versions = [plan(from: -40)]
+        let clock = Clock(anchor)
+        let record = record(days, plans, clock: clock)
+        await record.load()
+        #expect(record.trend(today: []) != nil)
+
+        clock.now = day(1)
+        days.fails = true
+        await record.load()
+
+        #expect(record.trend(today: []) == nil, "yesterday's run survived a failed re-read")
+        #expect(record.isUnavailable, "the stale run was dropped silently")
+
+        days.fails = false
+        await record.load()
+        #expect(record.trend(today: []) != nil)
+        #expect(record.isUnavailable == false)
     }
 
     @Test("a failed first read says so, and a retry takes it back")
@@ -175,13 +211,12 @@ struct TrendRecordTests {
         days.fails = false
         await record.load()
         #expect(record.isUnavailable == false)
-        #expect(record.trend != nil, "the retry was refused by the cache")
+        #expect(record.trend(today: []) != nil, "the retry was refused by the cache")
     }
 
     @Test("a month is not a week with a different name")
     func theTogglesDoNotShareBars() async {
-        // Switching spans clears the old bars rather than leaving seven days
-        // drawn under a toggle that says Month.
+        // Bars held for one span refuse to draw under the other's toggle.
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
         plans.versions = [plan(from: -40)]
@@ -192,10 +227,11 @@ struct TrendRecordTests {
         let switching = Task { await record.show(.month) }
         let deadline = Date().addingTimeInterval(2)
         while days.asked.count < 2, Date() < deadline { await Task.yield() }
-        #expect(record.trend == nil, "a week of bars stayed drawn under the Month toggle")
+        #expect(record.trend(today: []) == nil,
+                "a week of bars stayed drawn under the Month toggle")
         days.holds = false
         _ = await switching.value
 
-        #expect(record.trend?.bars.count == 30)
+        #expect(record.trend(today: [])?.bars.count == 30)
     }
 }
