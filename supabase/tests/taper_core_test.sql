@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(55);
+select plan(60);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -247,14 +247,6 @@ select throws_ok(
 -- MARK: the log, and what must outlive the pad it was logged from
 
 select throws_ok(
-  $$insert into public.check_ins (user_id, logged_on, ledger, label, form, mg)
-    values ('11111111-1111-1111-1111-111111111111', current_date, 'source', 'Urge passed', 'pouch', 0)$$,
-  '23514',
-  null,
-  'an entry worth nothing is refused — which the board''s own zero-mg key will hit'
-);
-
-select throws_ok(
   $$insert into public.check_ins (user_id, logged_on, ledger, label, form, mg, quantity)
     values ('11111111-1111-1111-1111-111111111111', current_date, 'source', 'Pouch', 'pouch', 6, 21)$$,
   '23514',
@@ -340,6 +332,76 @@ select throws_ok(
   '42501',
   null,
   'a stranger cannot log on somebody else''s behalf'
+);
+
+-- MARK: an urge that passed — a check-in worth nothing
+--
+-- This replaces a test that asserted the opposite, and named its own
+-- obsolescence while doing it: "an entry worth nothing is refused — which the
+-- board's own zero-mg key will hit". It did. `mg > 0` was right while every row
+-- was a thing taken; the craving screen's "It passed — count it" is the first
+-- row that is not.
+--
+-- Placed after the reads above rather than beside them, because those count the
+-- log and an extra row would move their answers.
+-- `form` stays a word this build already knows. The column has no check
+-- constraint, but `StoredCheckIn.form` decodes into a closed enum, and the read
+-- decodes an *array* — so one unfamiliar value there made a whole day
+-- unreadable. What the craving screen calls an urge is its decision to make;
+-- this migration only has to let the row exist.
+create function pg_temp.records_mg(
+  amount numeric, key bigint default null, name text default 'Urge passed'
+) returns boolean as $$
+begin
+  insert into public.check_ins
+    (user_id, pad_key_id, logged_on, ledger, label, form, mg)
+  values ('11111111-1111-1111-1111-111111111111', key, current_date,
+          'treatment', name, 'other', amount);
+  return true;
+exception when check_violation then
+  return false;
+end;
+$$ language plpgsql;
+
+select ok(pg_temp.records_mg(0), 'an urge that passed is a check-in at zero');
+select ok(not pg_temp.records_mg(-1), 'a negative dose is still refused');
+
+-- The other half of the relaxation: zero is for a row that tapped nothing, and
+-- a product logged at nought milligrams is still not an event.
+create temporary table a_real_key as
+with inserted as (
+  insert into public.pad_keys (user_id, ledger, label, form, mg)
+  values ('11111111-1111-1111-1111-111111111111', 'source', 'Pouches', 'pouch', 6)
+  returning id
+)
+select id from inserted;
+
+select ok(
+  not pg_temp.records_mg(0, (select id from a_real_key)),
+  'zero of something on the pad is still refused'
+);
+
+-- Labelled apart, or it would land in the sum below that asks what urges cost.
+select ok(
+  pg_temp.records_mg(6, (select id from a_real_key), 'Pouches'),
+  'and a real dose against that same key still goes in'
+);
+
+-- It needs nothing on the pad to point at: `pad_key_id` is provenance, and
+-- nullable, so an urge can be recorded against no key at all.
+select is(
+  (select count(*)::int from public.check_ins
+    where label = 'Urge passed' and pad_key_id is null),
+  1,
+  'an urge is recorded without a pad key'
+);
+
+-- And it costs the day nothing, which is the whole point of letting it through.
+select is(
+  (select coalesce(sum(mg * quantity), 0)::numeric from public.check_ins
+    where label = 'Urge passed'),
+  0::numeric,
+  'a day of urges adds nothing to what was used'
 );
 
 -- MARK: plan versions — what a past day is measured against
