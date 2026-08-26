@@ -51,8 +51,20 @@ final class ProductDetailRecord {
                        PendingEntry.quantityRange.upperBound)
     }
 
+    /// Whether this label's number is a dose that can be counted.
+    ///
+    /// False for a spray: openFDA carries its strength as a concentration —
+    /// Nicotrol NS is 10 mg per mL, and one actuation delivers about 0.5 mg —
+    /// so multiplying the catalogue's number by a count of sprays would
+    /// record twenty times the dose. The screen offers the facts and not the
+    /// write; the pad's own type-and-mg path is where a spray gets logged,
+    /// with a per-dose strength the user enters.
+    var isCountable: Bool { product.form != .spray }
+
     /// Writes the check-in, and hands the row up so the day can fold it in.
     func log() async -> StoredCheckIn? {
+        guard isCountable else { return nil }
+        
         guard status != .logging, status != .logged else { return nil }
         guard let store else {
             status = .failed(Self.noBackend)
@@ -75,9 +87,12 @@ final class ProductDetailRecord {
 
     // MARK: - What the screen says
 
-    /// "Stop smoking aid · FDA OTC monograph" — what every product the
-    /// catalogue can return is, by the rule that put it there.
-    var subtitleText: String { "Stop smoking aid · FDA OTC monograph" }
+    /// "Stop smoking aid · From the FDA label library" — what every product
+    /// the catalogue can return is, by the rule that put it there. Not "OTC
+    /// monograph": the catalogue also carries prescription NRT — Nicotrol's
+    /// inhaler and spray are NDA products — and the result does not say which
+    /// it is, so the screen does not claim to know.
+    var subtitleText: String { "Stop smoking aid · From the FDA label library" }
 
     /// "Nicotine polacrilex 2 mg" — the label's own name for the active
     /// ingredient. Polacrilex is the resin form in gum and lozenges; the
@@ -90,8 +105,18 @@ final class ProductDetailRecord {
     }
 
     /// "Active ingredient (per piece)" — the unit named the way the label
-    /// names it.
-    var ingredientHeading: String { "Active ingredient (per \(unitWord))" }
+    /// names it. A spray's number is a concentration, not a per-spray dose,
+    /// so its heading claims no unit.
+    var ingredientHeading: String {
+        isCountable ? "Active ingredient (per \(unitWord))" : "Active ingredient (as labeled)"
+    }
+
+    /// Why a spray offers no count and no button, said on the screen.
+    static let sprayNote = """
+        This label lists nicotine as a concentration, not a per-spray dose, \
+        so it can't be counted here. Add it to your pad with the per-dose \
+        strength from your pharmacist, and log it from there.
+        """
 
     /// "2 pieces", "1 patch" — the count in the unit the form comes in.
     var quantityText: String {

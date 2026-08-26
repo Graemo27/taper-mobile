@@ -107,5 +107,25 @@ struct ProductDetailRecordTests {
         let patchRecord = ProductDetailRecord(product: patch, store: nil)
         #expect(patchRecord.activeIngredientText == "Nicotine 14 mg")
         #expect(patchRecord.ingredientHeading == "Active ingredient (per patch)")
+
+        #expect(gumRecord.subtitleText == "Stop smoking aid · From the FDA label library",
+                "the screen claimed a marketing category the result does not carry")
+    }
+
+    @Test("a spray's concentration is not a per-spray dose, and cannot be logged as one")
+    func tenMilligramsPerMLIsNotOneSpray() async {
+        // openFDA carries Nicotrol NS as 10 mg — per mL. One actuation
+        // delivers about 0.5 mg, so counting sprays at the catalogue's number
+        // would record twenty times the dose.
+        let log = FakeCheckInLog()
+        let spray = NRTResult(brand: "Nicotrol NS", labeler: "Pfizer",
+                              form: .spray, strengths: [(mg: 10.0, ndc: "x")])
+        let record = ProductDetailRecord(product: spray, store: log)
+
+        #expect(record.isCountable == false)
+        #expect(record.ingredientHeading == "Active ingredient (as labeled)",
+                "a concentration was named per spray")
+        #expect(await record.log() == nil, "a spray was logged at its concentration")
+        #expect(log.logged.isEmpty)
     }
 }
