@@ -244,3 +244,41 @@ struct TodaysTallyTests {
         #expect(PendingEntry(key: padKey(.source, mg: 3), quantity: 3).recap == "Pouch × 3")
     }
 }
+
+/// Covers what a check-in does with a `form` this build has never heard of.
+struct UnknownFormDecodingTests {
+    private func json(_ form: String) -> Data {
+        Data("""
+        [{"id":1,"ledger":"treatment","label":"Urge passed","form":"\(form)",
+          "mg":0,"quantity":1,"logged_on":"2026-08-26",
+          "created_at":"2026-08-26T12:00:00Z"},
+         {"id":2,"ledger":"source","label":"Pouches","form":"pouch",
+          "mg":6,"quantity":1,"logged_on":"2026-08-26",
+          "created_at":"2026-08-26T12:01:00Z"}]
+        """.utf8)
+    }
+
+    /// No key strategy, because `StoredCheckIn` spells its own snake_case keys.
+    /// Adding `.convertFromSnakeCase` renames `logged_on` to `loggedOn` before
+    /// the explicit key can match it, and the row fails to decode for a reason
+    /// that has nothing to do with what is under test — which is exactly how
+    /// the first draft of this test failed.
+    private var decoder: JSONDecoder {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }
+
+    @Test("a form this build has never heard of does not take the day with it")
+    func oneStrangeRowIsNotAWholeLostHistory() throws {
+        // The read decodes an array. A closed enum means one unrecognised value
+        // fails the whole decode — so a single row written by a newer build, or
+        // by a backend that learned a word first, would make every day
+        // unreadable rather than one row odd.
+        let entries = try decoder.decode([StoredCheckIn].self, from: json("urge"))
+
+        #expect(entries.count == 2, "one unknown form lost the entire day")
+        #expect(entries[1].form == .pouch, "the rows around it decoded wrong")
+        #expect(entries[0].label == "Urge passed", "the label is what carries the meaning")
+    }
+}

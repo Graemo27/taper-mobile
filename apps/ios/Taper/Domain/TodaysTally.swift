@@ -12,6 +12,16 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
     let id: Int
     let ledger: PadKey.Ledger
     let label: String
+    /// What it was, as far as this build can tell.
+    ///
+    /// Decoded leniently: an unrecognised value becomes `.other` rather than
+    /// failing. The read decodes an *array*, so a closed enum meant one row
+    /// carrying a word this build had never heard of made the whole day — and
+    /// the whole history — unreadable. A newer client, or a backend that
+    /// learned a form first, is enough to cause that.
+    ///
+    /// `label` is the snapshot and carries the meaning regardless, so the cost
+    /// of not recognising a form is a row drawn plainly, not a row lost.
     let form: PadForm
     let mg: Double
     let quantity: Int
@@ -31,6 +41,43 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
     /// shown — a check-in made at 11:58pm in California belongs to that day
     /// whatever UTC thinks, which is why the two columns exist separately.
     let createdAt: Date
+
+    /// Written out because the lenient `init(from:)` below suppresses the
+    /// memberwise one the previews and tests build rows with.
+    init(
+        id: Int,
+        ledger: PadKey.Ledger,
+        label: String,
+        form: PadForm,
+        mg: Double,
+        quantity: Int,
+        loggedOn: String,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.ledger = ledger
+        self.label = label
+        self.form = form
+        self.mg = mg
+        self.quantity = quantity
+        self.loggedOn = loggedOn
+        self.createdAt = createdAt
+    }
+
+    init(from decoder: any Decoder) throws {
+        let row = try decoder.container(keyedBy: CodingKeys.self)
+        id = try row.decode(Int.self, forKey: .id)
+        ledger = try row.decode(PadKey.Ledger.self, forKey: .ledger)
+        label = try row.decode(String.self, forKey: .label)
+        // The one lenient field. Everything else is this build's own vocabulary
+        // or a plain value; `form` is the only column a future write could put
+        // an unfamiliar word in.
+        form = PadForm(rawValue: try row.decode(String.self, forKey: .form)) ?? .other
+        mg = try row.decode(Double.self, forKey: .mg)
+        quantity = try row.decode(Int.self, forKey: .quantity)
+        loggedOn = try row.decode(String.self, forKey: .loggedOn)
+        createdAt = try row.decode(Date.self, forKey: .createdAt)
+    }
 
     /// What this entry contributes: the strength, however many times.
     var totalMg: Double { mg * Double(quantity) }
