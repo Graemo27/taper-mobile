@@ -187,7 +187,7 @@ struct HomeView: View {
             Text("Nicotine over time")
                 .font(AppFont.text(AppSize.label, .medium))
                 .foregroundStyle(AppColor.ink)
-            TrendCard(record: trend)
+            TrendCard(record: trend, todayEntries: today.entries)
         }
     }
 

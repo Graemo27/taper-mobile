@@ -9,13 +9,19 @@ import SwiftUI
 /// it.
 struct TrendCard: View {
     @Bindable var record: TrendRecord
+    /// Today's rows, handed in from the record home's cards already read —
+    /// the graph's last bar is built from them, so a tap that moves the
+    /// figure above moves the bar with it.
+    let todayEntries: [StoredCheckIn]
+
+    private var trend: Trend? { record.trend(today: todayEntries) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.m) {
             header
             chart
                 .frame(height: 140)
-            if let trend = record.trend, trend.bars.count <= 7 {
+            if let trend, trend.bars.count <= 7 {
                 letters(trend)
             }
             Text(captionText)
@@ -30,7 +36,7 @@ struct TrendCard: View {
 
     private var header: some View {
         HStack {
-            Text(record.trend?.headline ?? "Nicotine over time")
+            Text(trend?.headline ?? "Nicotine over time")
                 .font(AppFont.display(AppSize.heading))
                 .foregroundStyle(AppColor.ink)
             Spacer(minLength: AppSpacing.sm)
@@ -67,7 +73,7 @@ struct TrendCard: View {
     /// Bars, the stepped cap line, and the baseline — all on `Trend`'s scale.
     private var chart: some View {
         Canvas { context, size in
-            guard let trend = record.trend, !trend.bars.isEmpty else {
+            guard let trend, !trend.bars.isEmpty else {
                 strokeBaseline(&context, size)
                 return
             }
@@ -139,17 +145,20 @@ struct TrendCard: View {
     }
 
     /// The caption is `Trend`'s sentence — or the apology, which outranks it.
+    /// The noun is the span's own: a failed month called "the week" says the
+    /// wrong thing about what is missing.
     var captionText: String {
+        let noun = record.span.word.lowercased()
         if record.isUnavailable {
-            return "Couldn't load the week. Check your connection and try again."
+            return "Couldn't load the \(noun). Check your connection and try again."
         }
-        return record.trend?.caption ?? "Reading the week…"
+        return trend?.caption ?? "Reading the \(noun)…"
     }
 
     /// The chart in words: the heading's verdict and the caption's count are
     /// already text, so the bars only need to say what they cover.
     var spokenChart: String {
-        guard let trend = record.trend else { return "Nicotine over time, loading" }
+        guard let trend else { return "Nicotine over time, loading" }
         return "Nicotine over time, \(trend.bars.count) days. \(trend.headline). \(trend.caption)"
     }
 }

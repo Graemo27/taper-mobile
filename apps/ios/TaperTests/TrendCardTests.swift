@@ -15,15 +15,21 @@ private final class EmptyVersions: PlanVersionReading, @unchecked Sendable {
 /// and the chart itself is `Trend`'s, already pinned.
 @MainActor
 struct TrendCardTests {
-    @Test("the apology outranks the caption, and loading is not an apology")
+    @Test("the apology outranks the caption, and it names the span it is about")
     func theCaptionSaysWhatIsActuallyKnown() async {
         let unread = TrendRecord(checkIns: nil, plans: nil)
-        #expect(TrendCard(record: unread).captionText == "Reading the week…")
+        #expect(TrendCard(record: unread, todayEntries: []).captionText == "Reading the week…")
 
         let failed = TrendRecord(checkIns: RefusingDays(), plans: EmptyVersions())
         await failed.load()
-        #expect(TrendCard(record: failed).captionText
+        #expect(TrendCard(record: failed, todayEntries: []).captionText
                 == "Couldn't load the week. Check your connection and try again.")
+
+        // A failed month called "the week" says the wrong thing about what is
+        // missing.
+        await failed.show(.month)
+        #expect(TrendCard(record: failed, todayEntries: []).captionText
+                == "Couldn't load the month. Check your connection and try again.")
     }
 
     @Test("the chart speaks its verdict and its count")
@@ -32,6 +38,6 @@ struct TrendCardTests {
         // claims, and neither reaches VoiceOver off a Canvas — a chart is the
         // one view with nothing readable in it unless it is said here.
         let record = TrendRecord(checkIns: nil, plans: nil)
-        #expect(TrendCard(record: record).spokenChart == "Nicotine over time, loading")
+        #expect(TrendCard(record: record, todayEntries: []).spokenChart == "Nicotine over time, loading")
     }
 }
