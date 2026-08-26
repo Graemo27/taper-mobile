@@ -115,6 +115,7 @@
 		C4D9601C5E217293592EBFCE /* CravingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D6C5DE45B13AB46F0884978 /* CravingView.swift */; };
 		C7BB569FEB8165AB4877C76F /* TodaySoFarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6058CD141DA498C70E6BC6C /* TodaySoFarCard.swift */; };
 		CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */; };
+		CFEAB6CF062FEBEBD67FFECD /* ProductDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B0DE07A9910EFCD0294569 /* ProductDetailView.swift */; };
 		D199EC3608A3A376198FE69B /* DayRollup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A58AB9858C32889C73D9F7 /* DayRollup.swift */; };
 		D2B2C97B8CD0DD3096075254 /* TodaySoFarCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5640C541A8FE4D023E5B42B /* TodaySoFarCardTests.swift */; };
 		D5E11560EF09DAD985F07964 /* PadSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9761AFFAA18FB8818B892201 /* PadSelectionTests.swift */; };
@@ -211,6 +212,7 @@
 		5A17E3EA25F4732A7769248A /* TodayListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayListView.swift; sourceTree = "<group>"; };
 		5B60B9E2BC8CE60893633421 /* PadRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadRecordTests.swift; sourceTree = "<group>"; };
 		5B7D8C0AB9BF610956BAD8A3 /* WhatYouUseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatYouUseView.swift; sourceTree = "<group>"; };
+		60B0DE07A9910EFCD0294569 /* ProductDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductDetailView.swift; sourceTree = "<group>"; };
 		63F7D57B4CA77D384577A81C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		67A1AAE4753C3A9A6A89AC8F /* StartingLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartingLineView.swift; sourceTree = "<group>"; };
 		696EF921A734BD48DA5A25ED /* CheckInEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInEditView.swift; sourceTree = "<group>"; };
@@ -565,6 +567,7 @@
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
 				2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */,
 				8A501D4685FA88F3B42482B3 /* ProductDetailRecord.swift */,
+				60B0DE07A9910EFCD0294569 /* ProductDetailView.swift */,
 				27616615CC236DECC6167432 /* TreatmentSearchRecord.swift */,
 				82EBA0A15E4E7F5F5376FA05 /* TreatmentSearchView.swift */,
 			);
@@ -807,6 +810,7 @@
 				B67665A40325E6E8A79642B1 /* PlanTabView.swift in Sources */,
 				17D35882393DA61139A50BE6 /* PriorAttempt.swift in Sources */,
 				9CBD7DC1BA3F80A01BBFCFB0 /* ProductDetailRecord.swift in Sources */,
+				CFEAB6CF062FEBEBD67FFECD /* ProductDetailView.swift in Sources */,
 				A0D9656FB8FBFA282F86E1E1 /* QuitDate.swift in Sources */,
 				27B5638EC436F5F8FC70DA39 /* QuitDateView.swift in Sources */,
 				68E94837D465D0736DFF7EFA /* ReadinessView.swift in Sources */,

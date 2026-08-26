@@ -31,6 +31,8 @@ struct TaperTabs: View {
     @State private var isSearching = false
     /// The key being made, if the search led to one.
     @State private var draft: NewKeyDraft?
+    /// L5, when a result's label is open.
+    @State private var facts: ProductDetailRecord?
     /// The source key being typed, if the pad's other run was tapped.
     @State private var sourceDraft: NewSourceDraft?
     /// Editing the pad, kept for the session so the mode survives a tab away.
@@ -131,6 +133,9 @@ struct TaperTabs: View {
                     search: search,
                     isSearching: $isSearching,
                     draft: $draft,
+                    facts: $facts,
+                    factsFor: { ProductDetailRecord(product: $0, store: stores?.checkIns) },
+                    onProductLogged: { today.fold($0) },
                     draftFor: { NewKeyDraft(product: $0, store: stores?.pad) },
                     sourceDraft: $sourceDraft,
                     newSourceDraft: { NewSourceDraft(store: stores?.pad) },
