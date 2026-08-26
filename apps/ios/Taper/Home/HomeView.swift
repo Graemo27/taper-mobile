@@ -12,6 +12,9 @@ struct HomeView: View {
     /// pad holds the same record and two of them would be two answers about one
     /// day.
     @Bindable var today: TodayRecord
+    /// The pad, for the card's per-key breakdown. Nil while unknown, and the
+    /// card draws no row rather than a row of zeros.
+    let pad: Pad?
     /// Switches to the log tab. Home does not own the selection, so the card's
     /// button reports the intent and lets the bar act on it.
     let onCheckIn: () -> Void
@@ -167,6 +170,8 @@ struct HomeView: View {
             TodaySoFarCard(
                 status: today.status,
                 tally: today.loggedTally(ceilingMg: progress.todaysCapMg),
+                breakdown: pad.map { DayBreakdown(pad: $0, entries: today.entries) },
+                outlastedCount: today.entries.filter(\.isUrge).count,
                 onCheckIn: onCheckIn,
                 onSeeHistory: onSeeHistory
             )
@@ -183,8 +188,8 @@ struct HomeView: View {
     /// once it is quietly wrong.
     private var unbuilt: some View {
         Text("""
-        The daily check-in still belongs here, and the card above will grow a breakdown and a \
-        link to the full list.
+        The daily check-in still belongs here, and nicotine over time — the week against the \
+        stepping cap — goes below the card.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)
@@ -241,5 +246,5 @@ private struct CrestMark: View {
             sickInBed: true
         ),
         today: Date()
-    )!, today: TodayRecord(store: nil), onCheckIn: {}, onSeeHistory: {}, onCraving: {})
+    )!, today: TodayRecord(store: nil), pad: nil, onCheckIn: {}, onSeeHistory: {}, onCraving: {})
 }

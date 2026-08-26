@@ -107,6 +107,7 @@ struct TaperTabs: View {
                     HomeView(
                         progress: progress,
                         today: today,
+                        pad: padKeys,
                         onCheckIn: { selection = .log },
                         onSeeHistory: { isShowingToday = true },
                         onCraving: { craving = CravingRecord(store: stores?.checkIns) }
