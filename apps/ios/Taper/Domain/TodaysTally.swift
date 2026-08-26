@@ -10,6 +10,13 @@ import Foundation
 /// never do.
 struct StoredCheckIn: Decodable, Equatable, Sendable {
     let id: Int
+    /// The key that was tapped, or nil when none was.
+    ///
+    /// Decoded so the day can tell an urge from a dose. Nil alone does not mean
+    /// urge — `on delete set null` empties this for any row whose key was later
+    /// removed from the pad — which is why `isUrge` asks for zero milligrams as
+    /// well.
+    let padKeyID: Int?
     let ledger: PadKey.Ledger
     let label: String
     /// What it was, as far as this build can tell.
@@ -52,9 +59,13 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
         mg: Double,
         quantity: Int,
         loggedOn: String,
-        createdAt: Date
+        createdAt: Date,
+        /// Defaulted, because every caller that predates the craving screen is
+        /// describing a row that came from a key being pressed.
+        padKeyID: Int? = 0
     ) {
         self.id = id
+        self.padKeyID = padKeyID
         self.ledger = ledger
         self.label = label
         self.form = form
@@ -67,6 +78,7 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
     init(from decoder: any Decoder) throws {
         let row = try decoder.container(keyedBy: CodingKeys.self)
         id = try row.decode(Int.self, forKey: .id)
+        padKeyID = try row.decodeIfPresent(Int.self, forKey: .padKeyID)
         ledger = try row.decode(PadKey.Ledger.self, forKey: .ledger)
         label = try row.decode(String.self, forKey: .label)
         // The one lenient field. Everything else is this build's own vocabulary
@@ -81,6 +93,14 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
 
     /// What this entry contributes: the strength, however many times.
     var totalMg: Double { mg * Double(quantity) }
+
+    /// Whether this is a craving somebody got through rather than a dose.
+    ///
+    /// Both halves are needed. A row whose key was deleted also has no
+    /// `pad_key_id`, and a zero on its own is a shape the column still permits
+    /// for a product — so an urge is the row that has neither a key nor an
+    /// amount.
+    var isUrge: Bool { padKeyID == nil && mg == 0 }
 
     /// The moment, as a clock reads it: "12:40 pm", or "12:40" where that is
     /// how people tell the time.
@@ -98,6 +118,7 @@ struct StoredCheckIn: Decodable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id, ledger, label, form, mg, quantity
+        case padKeyID = "pad_key_id"
         case loggedOn = "logged_on"
         case createdAt = "created_at"
     }

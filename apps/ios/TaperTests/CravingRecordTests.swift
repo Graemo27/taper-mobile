@@ -165,6 +165,60 @@ struct CravingRecordTests {
         #expect(log.logged.count == 1, "one craving was counted twice")
     }
 
+    @Test("one craving is counted once, however long the screen stays open")
+    func aSecondTapAfterASuccessIsRefused() async {
+        // The screen does not close itself the instant the write lands, so the
+        // button outlives the row it wrote. Re-enabling it would file the same
+        // craving twice — the first draft returned to `resting` on success and
+        // did exactly that.
+        let log = FakeLog()
+        let record = CravingRecord(store: log)
+
+        #expect(await record.itPassed() != nil)
+        #expect(record.status == .counted)
+        #expect(await record.itPassed() == nil, "the same craving was offered a second row")
+        #expect(log.logged.count == 1, "one craving was counted twice")
+    }
+
+    @Test("a write that did not land can still be tried again")
+    func aFailureIsNotTerminal() async {
+        // The other half of the rule above: `counted` closes the button because
+        // a row exists, and a failure means one does not.
+        let log = FakeLog()
+        log.fails = true
+        let record = CravingRecord(store: log)
+        _ = await record.itPassed()
+
+        log.fails = false
+        #expect(await record.itPassed() != nil, "a failed count could not be retried")
+    }
+
+    @Test("what to put away is named off what they are actually quitting")
+    func theTinIsNotEverybodys() {
+        // The board says "Put the tin away", which is true of a pouch and of
+        // nobody else. Telling a smoker mid-craving to put a tin away is the
+        // app not knowing who it is talking to.
+        func title(_ keys: [StoredPadKey]) -> String {
+            CravingRecord.putAwayTitle(for: Pad(keys: keys))
+        }
+
+        #expect(title([key(.pouch, "Pouches", mg: 6)]) == "Put the tin away")
+        #expect(title([key(.cigarette, "Cigarettes", mg: 1)]) == "Put the pack away")
+        #expect(title([key(.vape, "Vape", mg: 2)]) == "Put the vape away")
+
+        // Naming one of two would be a guess about which they are reaching for,
+        // and so would naming a source the user typed themselves.
+        let neutral = "Put it out of reach"
+        #expect(title([
+            key(.pouch, "Pouches", mg: 6, position: 0),
+            key(.cigarette, "Cigarettes", mg: 1, position: 1),
+        ]) == neutral)
+        #expect(title([key(.other, "Shisha", mg: 3)]) == neutral)
+        #expect(title([key(.lozenge, "Lozenge", mg: 4)]) == neutral,
+                "a treatment was named as the thing to get away from")
+        #expect(title([]) == neutral)
+    }
+
     @Test("a build with no backend says so rather than failing quietly")
     func nothingToCountInto() async {
         let record = CravingRecord(store: nil)

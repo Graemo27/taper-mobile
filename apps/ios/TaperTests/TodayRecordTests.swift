@@ -636,6 +636,27 @@ struct TodayRecordTests {
         #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
     }
 
+    @Test("a craving got through today is not a check-in either")
+    func todayCountsWhatWasTaken() async {
+        // The same rule the past days keep. A day of cravings ridden out and
+        // nothing used reading "3 check-ins · 0 mg" is the number saying the
+        // opposite of what happened — and today is the day somebody is actually
+        // looking at while they do it.
+        let store = FakeCheckIns()
+        store.existing = [
+            logged(1, mg: 3),
+            StoredCheckIn(id: 2, ledger: .treatment, label: CheckInDraft.urgeLabel,
+                          form: .other, mg: 0, quantity: 1,
+                          loggedOn: PlanDay.wireFormat(.testMoment),
+                          createdAt: .testMoment, padKeyID: nil),
+        ]
+        let record = record(store)
+        await record.load()
+
+        #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
+        #expect(record.entries.count == 2, "the urge left the day's list as well as its count")
+    }
+
     @Test("one check-in is not plural")
     func theSummaryCountsInEnglish() async {
         let store = FakeCheckIns()

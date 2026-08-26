@@ -8,6 +8,13 @@ import Foundation
 struct DayRollup: Equatable, Sendable {
     /// The day itself, at its start.
     let day: Date
+    /// How many times something was *taken*.
+    ///
+    /// Urges are excluded. A day where somebody got through three cravings and
+    /// used nothing would otherwise read "3 check-ins · 0 mg", which is the
+    /// number saying the opposite of what happened. They are still on the day's
+    /// list — the count is a claim about consumption, and the list is the
+    /// record of it.
     let checkInCount: Int
     /// Sources only, the same rule the cap counts by: treatment is logged and
     /// never added in.
@@ -21,7 +28,7 @@ struct DayRollup: Equatable, Sendable {
     init(day: Date, entries: [StoredCheckIn], capMg: Double?) {
         self.day = day
         self.capMg = capMg
-        checkInCount = entries.count
+        checkInCount = entries.filter { !$0.isUrge }.count
         loggedMg = entries
             .filter { $0.ledger == .source }
             .reduce(0) { $0 + $1.totalMg }

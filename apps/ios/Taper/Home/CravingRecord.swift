@@ -13,9 +13,17 @@ import Observation
 @MainActor
 final class CravingRecord {
     /// Where a "it passed" write is up to.
+    ///
+    /// `counted` is terminal, and that is the point of it: one craving is one
+    /// row, and returning to `resting` would re-enable the button over a screen
+    /// that is still open. `failed` does re-enable, because a write that did
+    /// not land is worth another try — which leaves the one duplicate no client
+    /// can close, the insert that committed and lost its response. That is what
+    /// the deferred `request_id` migration is for.
     enum Status: Equatable {
         case resting
         case counting
+        case counted
         case failed(String)
     }
 
@@ -52,7 +60,7 @@ final class CravingRecord {
     /// every other write in this app makes, for the same reason: a read issued
     /// now can be coalesced behind one already running.
     func itPassed() async -> StoredCheckIn? {
-        guard status != .counting else { return nil }
+        guard status != .counting, status != .counted else { return nil }
         guard let store else {
             status = .failed(Self.noBackend)
             return nil
@@ -61,7 +69,7 @@ final class CravingRecord {
         status = .counting
         do {
             let stored = try await store.log(.urgePassed(on: now()))
-            status = .resting
+            status = .counted
             return stored
         } catch {
             // Deliberately not "try again" in the way a failed check-in says it.
@@ -72,5 +80,33 @@ final class CravingRecord {
         }
     }
 
+    /// What to call the thing they should get away from.
+    ///
+    /// The board says "Put the tin away", which is true of a pouch and of
+    /// nobody else — a smoker told mid-craving to put a tin away is the app
+    /// visibly not knowing who it is talking to. So the noun comes off their
+    /// own sources, and mixed sources fall back to the neutral line rather than
+    /// guessing which of two they are reaching for.
+    static func putAwayTitle(for pad: Pad) -> String {
+        let nouns = Set(pad.sources.compactMap(\.thingToPutAway))
+        guard nouns.count == 1, let noun = nouns.first else { return "Put it out of reach" }
+        return "Put the \(noun) away"
+    }
+
     static let noBackend = "This build has no backend configured, so nothing can be saved."
+}
+
+private extension StoredPadKey {
+    /// The everyday word for what this source comes in, or nil where there is
+    /// no word the app can be sure of.
+    var thingToPutAway: String? {
+        switch form {
+        case .pouch, .dip: return "tin"
+        case .vape: return "vape"
+        case .cigarette: return "pack"
+        // `.other` is a source the user named, and the treatment forms are not
+        // what anybody is trying to get away from.
+        case .other, .patch, .lozenge, .gum, .inhaler, .spray: return nil
+        }
+    }
 }

@@ -83,3 +83,57 @@ struct DayRollupTests {
         #expect(finished.isOver, "3 mg against a cap of zero is over")
     }
 }
+
+/// Covers what a day counts, now that not everything on it was taken.
+@MainActor
+struct DayCountsWhatWasTakenTests {
+    private func entry(_ id: Int, mg: Double, padKeyID: Int?) -> StoredCheckIn {
+        StoredCheckIn(
+            id: id, ledger: mg == 0 ? .treatment : .source,
+            label: mg == 0 ? CheckInDraft.urgeLabel : "Pouches",
+            form: mg == 0 ? .other : .pouch, mg: mg, quantity: 1,
+            loggedOn: "2026-08-26", createdAt: Date(timeIntervalSince1970: 0),
+            padKeyID: padKeyID
+        )
+    }
+
+    @Test("a day of resisted cravings is not a day of check-ins")
+    func gettingThroughThreeIsNotUsingThreeTimes() {
+        // "3 check-ins · 0 mg" is the number saying the opposite of what
+        // happened. The count is a claim about consumption; the list is the
+        // record, and the urges stay on it.
+        let day = DayRollup(day: Date(), entries: [
+            entry(1, mg: 0, padKeyID: nil),
+            entry(2, mg: 0, padKeyID: nil),
+            entry(3, mg: 0, padKeyID: nil),
+        ], capMg: 18)
+
+        #expect(day.checkInCount == 0, "urges were counted as check-ins")
+        #expect(day.loggedMg == 0)
+    }
+
+    @Test("what was actually taken is still counted beside them")
+    func theTwoKindsAreToldApart() {
+        let day = DayRollup(day: Date(), entries: [
+            entry(1, mg: 0, padKeyID: nil),
+            entry(2, mg: 6, padKeyID: 5),
+            entry(3, mg: 6, padKeyID: 5),
+        ], capMg: 18)
+
+        #expect(day.checkInCount == 2)
+        #expect(day.loggedMg == 12)
+    }
+
+    @Test("a row whose key was deleted is still something taken")
+    func aMissingKeyIsNotAnUrge() {
+        // `on delete set null` empties `pad_key_id` for any row whose key left
+        // the pad. Reading nil alone as "urge" would erase a real dose from the
+        // count the day it was tidied up.
+        let day = DayRollup(day: Date(), entries: [
+            entry(1, mg: 6, padKeyID: nil),
+        ], capMg: 18)
+
+        #expect(day.checkInCount == 1, "a dose stopped counting when its key went")
+        #expect(day.loggedMg == 6)
+    }
+}

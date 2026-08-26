@@ -201,12 +201,15 @@ final class TodayRecord {
 
     /// The day read back in a line: how many entries, and where they leave it.
     ///
-    /// Counts every entry, including treatment — the list shows what happened,
-    /// and a patch taken is something that happened. The milligrams beside it
-    /// are the ones that count against the cap, which is why the two numbers
-    /// can look unrelated and are not.
+    /// Counts every entry that was *taken*, including treatment — the list
+    /// shows what happened, and a patch taken is something that happened. The
+    /// milligrams beside it are the ones that count against the cap, which is
+    /// why the two numbers can look unrelated and are not.
+    ///
+    /// Urges are the exception, on `DayRollup`'s rule and for its reason: "3
+    /// check-ins · 0 mg" is the number saying the opposite of what happened.
     func summary(ceilingMg: Double) -> String {
-        let count = entries.count
+        let count = entries.filter { !$0.isUrge }.count
         let noun = count == 1 ? "check-in" : "check-ins"
         let tally = tally(ceilingMg: ceilingMg)
         return "\(count) \(noun) · \(tally.loggedMg.clean) of \(ceilingMg.clean) mg"
