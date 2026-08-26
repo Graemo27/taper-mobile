@@ -81,6 +81,14 @@ struct Trend: Equatable, Sendable {
         guard !capped.isEmpty else {
             return "Dotted line is your daily cap. No cap covered these days."
         }
+        // An empty run is not evidence. Every capped zero-day counts as
+        // under, so a week with nothing logged would read "7 of 7 days under
+        // — the shape is working" beside a heading that says nothing was
+        // logged: a success claim with no observations behind it.
+        guard days.contains(where: { $0.loggedMg > 0 }) else {
+            return "Dotted line is your daily cap, stepping down. Nothing logged against it yet."
+        }
+
         let under = capped.filter { !$0.isOver }.count
         let opening = "Dotted line is your daily cap, stepping down."
         let count = "\(under) of \(capped.count) day\(capped.count == 1 ? "" : "s") under"

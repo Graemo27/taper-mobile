@@ -105,6 +105,18 @@ struct TrendTests {
         #expect(struggling.caption == "Dotted line is your daily cap, stepping down. 1 of 4 days under.")
     }
 
+    @Test("an empty run is not evidence that the shape is working")
+    func zeroObservationsMakeNoClaim() {
+        // Every capped zero-day counts as under, so a week with nothing
+        // logged would claim 7 of 7 and success — beside a heading that says
+        // nothing was logged.
+        let empty = trend(logged: [0, 0, 0], caps: [12, 12, 12])
+
+        #expect(empty.caption
+                == "Dotted line is your daily cap, stepping down. Nothing logged against it yet.")
+        #expect(!empty.caption.contains("working"), "an empty week flattered itself")
+    }
+
     @Test("a run before any plan says so instead of counting nothing")
     func noCapIsItsOwnSentence() {
         #expect(trend(logged: [3, 3], caps: [nil, nil]).caption
