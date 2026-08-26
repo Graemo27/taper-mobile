@@ -55,8 +55,8 @@ private final class FakeCheckIns: CheckInStoring, @unchecked Sendable {
         if let writeDelay { try await Task.sleep(for: writeDelay) }
         if writeFails { throw URLError(.notConnectedToInternet) }
         return StoredCheckIn(
-            id: writes.count, ledger: draft.key.ledger, label: draft.key.label,
-            form: draft.key.form, mg: draft.key.mg, quantity: draft.quantity
+            id: writes.count, ledger: draft.ledger, label: draft.label,
+            form: draft.form, mg: draft.mg, quantity: draft.quantity
         , loggedOn: PlanDay.wireFormat(.testMoment), createdAt: .testMoment)
     }
 }
