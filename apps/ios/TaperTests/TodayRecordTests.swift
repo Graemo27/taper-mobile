@@ -636,6 +636,52 @@ struct TodayRecordTests {
         #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
     }
 
+    /// A row the day did not write itself: what the craving screen hands back.
+    private func urge(_ id: Int, on writtenDay: Date) -> StoredCheckIn {
+        StoredCheckIn(id: id, ledger: .treatment, label: CheckInDraft.urgeLabel,
+                      form: .other, mg: 0, quantity: 1,
+                      loggedOn: PlanDay.wireFormat(writtenDay),
+                      createdAt: writtenDay, padKeyID: nil)
+    }
+
+    @Test("a row written by another screen joins the day without a re-read")
+    func theCravingScreensRowLandsHere() async {
+        // The craving screen writes its own rows and hands them back. A second
+        // round trip to learn what we were just told would put a spinner
+        // between getting through a craving and seeing it on the day.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        record.fold(urge(2, on: day))
+
+        #expect(record.entries.count == 2)
+        #expect(record.entries.last?.isUrge == true)
+        #expect(store.reads == 1, "the day was re-read to learn what it had just been handed")
+    }
+
+    @Test("a row stamped with the new day starts it rather than joining the old one")
+    func foldingFollowsTheRowsOwnDay() async {
+        // Midnight can pass while the craving screen is open, and the row says
+        // which day it counts on — `logged_on` is stamped by whoever wrote it.
+        // Appending it regardless would file the first craving of a new day
+        // under the day before, on the screen that decides what a day contains.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let tomorrow = day.addingTimeInterval(86_400)
+        let clock = Clock(day)
+        let record = record(store, clock: clock)
+        await record.load()
+
+        clock.now = tomorrow
+        record.fold(urge(2, on: tomorrow))
+
+        #expect(record.entries.count == 1, "yesterday's rows stayed under a row logged on the new day")
+        #expect(record.entries.first?.isUrge == true)
+        #expect(record.hasRolledOver == false, "the new day was folded in and still read as stale")
+    }
+
     @Test("a craving got through today is not a check-in either")
     func todayCountsWhatWasTaken() async {
         // The same rule the past days keep. A day of cravings ridden out and
@@ -758,6 +804,29 @@ struct TodayRecordTests {
         #expect(record.entries.map(\.id) == [7], "yesterday's entry was restored into today")
         #expect(record.tally(ceilingMg: 24).loggedMg == 4.5, "today's cap counted yesterday's row")
         #expect(record.removeFailure != nil, "a removal that failed said nothing")
+    }
+
+    @Test("a read that predates a craving does not take it back off the day")
+    func aStaleReadCannotUndoAFold() async {
+        // The fold's half of the race `removals` already covers. Home's read is
+        // in flight when somebody opens the craving screen and counts one; the
+        // read lands after, holding a snapshot from before the row existed, and
+        // applying it takes the craving off the day it was just recorded on.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        store.readDelay = .milliseconds(300)
+        let reloading = Task { await record.load() }
+        await waitUntil { store.reads == 2 }
+        // `existing` is left alone on purpose: it is what the server hands back
+        // to a read taken before the craving was written.
+        record.fold(urge(2, on: day))
+        await reloading.value
+
+        #expect(record.entries.map(\.id) == [1, 2], "a read from before the craving dropped it")
+        #expect(record.status == .ready, "the day was left on a spinner")
     }
 
     @Test("a read that predates a delete does not put the row back")

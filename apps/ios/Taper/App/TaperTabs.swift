@@ -37,6 +37,13 @@ struct TaperTabs: View {
     @State private var edit: PadEditRecord
     @State private var pad: PadRecord
     @State private var today: TodayRecord
+    /// The craving being got through, if one is open.
+    ///
+    /// Built on the way in and dropped on the way out rather than kept for the
+    /// session like the records above it. Those hold work in progress; this one
+    /// holds a write that has happened, and re-presenting a spent record would
+    /// show a screen that had already counted somebody's last craving.
+    @State private var craving: CravingRecord?
 
     init(progress: PlanProgress, stores: AppStores?) {
         self.progress = progress
@@ -48,6 +55,14 @@ struct TaperTabs: View {
         _pastDays = State(initialValue: PastDaysRecord(
             checkIns: stores?.checkIns, plans: stores?.planVersions
         ))
+    }
+
+    /// The pad, when there is one to read. Nil mid-load or after a failed
+    /// read, which is not the same as an empty pad — the craving screen offers
+    /// nothing rather than guessing at what is on it.
+    private var padKeys: Pad? {
+        if case let .ready(pad) = pad.status { return pad }
+        return nil
     }
 
     var body: some View {
@@ -93,7 +108,8 @@ struct TaperTabs: View {
                         progress: progress,
                         today: today,
                         onCheckIn: { selection = .log },
-                        onSeeHistory: { isShowingToday = true }
+                        onSeeHistory: { isShowingToday = true },
+                        onCraving: { craving = CravingRecord(store: stores?.checkIns) }
                     )
                 }
             case .log:
@@ -130,12 +146,39 @@ struct TaperTabs: View {
 
             TaperTabBar(selection: $selection)
         }
+        // A cover rather than a push: L8 is the one screen the board draws
+        // without the tab bar, and it is drawn that way because somebody
+        // mid-craving is doing one thing. It closes itself the moment it has
+        // written its row.
+        .fullScreenCover(item: $craving) { record in
+            CravingView(
+                record: record,
+                suggestion: CravingRecord.suggestion(from: padKeys),
+                putAwayTitle: CravingRecord.putAwayTitle(for: padKeys),
+                // Neither way out is open while the write is: the task
+                // outlives the cover, so a screen dismissed mid-write lets a
+                // second one be opened and a second row written for one
+                // craving. `CravingView` dims both controls to say so.
+                onClose: { if !record.isWriting { craving = nil } },
+                onLogged: { written in
+                    today.fold(written)
+                    craving = nil
+                },
+                onLogSomethingElse: {
+                    guard !record.isWriting else { return }
+                    craving = nil
+                    selection = .log
+                }
+            )
+        }
         .animation(.easeOut(duration: 0.22), value: isShowingToday)
         .background(AppColor.ground)
-        // Home needs the day for its tracking card; the pad needs the keys as
-        // well. Neither read holds a screen up — both tabs draw their plan
-        // figures first and fill the day in — and `PadRecord` and `TodayRecord`
-        // each guard against a second read, so returning to a tab is free.
+        // Home needs the day for its tracking card, and the keys as well: the
+        // craving button opens a screen that suggests one, and reading the pad
+        // only on the log tab left that suggestion missing for anyone who had
+        // not been there this session — which is how it shipped for exactly one
+        // test run. Neither read holds a screen up, and both records guard
+        // against a second read, so returning to a tab is free.
         //
         // Keyed on the tab so switching re-reads. That is what refreshes home
         // after a check-in made on the pad, and it is also the path that put
@@ -144,6 +187,7 @@ struct TaperTabs: View {
             switch selection {
             case .home:
                 await today.load()
+                await pad.load()
             case .log:
                 await pad.load()
                 await today.load()

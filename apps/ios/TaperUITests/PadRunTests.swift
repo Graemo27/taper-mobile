@@ -243,6 +243,54 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    func testTheCravingButtonOpensTheScreenForOneAndCountsIt() throws {
+        // The seam this suite exists for, one more time: L8 was drawn, tested
+        // by model, and reachable from nothing. Every piece of it — the
+        // suggestion off the pad, the write, the row landing on the day — had
+        // passed with no user able to arrive at the screen.
+        reachTheTabs()
+        tapCTA("I'm craving right now")
+
+        XCTAssertTrue(
+            app.staticTexts["Let it crest."].waitForExistence(timeout: 10),
+            "\"I'm craving right now\" did not open the craving screen"
+        )
+
+        // The one screen the board draws without the bar, because somebody
+        // mid-craving is doing one thing.
+        XCTAssertFalse(
+            app.buttons["tab.log"].isHittable,
+            "the tab bar came with the craving screen"
+        )
+
+        // This run tapers with a patch and a lozenge. A patch holds a floor and
+        // is no answer to a moment, so the lozenge is the only thing here that
+        // can be offered — and offering the patch is the mistake that would
+        // look right on a screenshot.
+        XCTAssertTrue(
+            option("Take your lozenge").exists,
+            "The screen did not offer the one fast-acting treatment on this run's pad"
+        )
+        expectNever(
+            "Take your patch · 14 mg",
+            "The screen offered a patch to somebody in the middle of a craving"
+        )
+
+        tapCTA("It passed — count it")
+
+        // It writes, it closes, and the day it wrote onto is unchanged: an urge
+        // is on the list and is not a check-in.
+        XCTAssertTrue(
+            app.staticTexts["Today so far, 0 of 18 milligrams"].waitForExistence(timeout: 10),
+            "Counting a craving did not return home, or it counted against the cap"
+        )
+        app.buttons["home.seeHistory"].tap()
+        XCTAssertTrue(
+            app.staticTexts["Urge passed"].waitForExistence(timeout: 10),
+            "The craving was counted but never reached the day's list"
+        )
+    }
+
     func testTappingAKeyMovesTheDayItWouldLeaveBehind() throws {
         // The gap named in the PR that made keys tappable: `simctl` cannot
         // inject a tap and nothing could reach this screen, so the button was
