@@ -165,7 +165,6 @@ final class ProductDetailRecord {
         case .lozenge: return "Dissolves in 20–30 min"
         case .patch: return "One worn through the day"
         case .inhaler: return "Puffed as needed"
-        case .spray: return "One spray per craving"
         default: return "As the label directs"
         }
     }

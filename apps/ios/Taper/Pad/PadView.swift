@@ -112,12 +112,18 @@ struct PadView: View {
                     // the list are still where they were.
                     self.facts = nil
                 } onLogged: { stored in
-                    // Logged is terminal on the record, so this fires once.
-                    // The search closes because the job the search was doing
-                    // is done — a check-in exists; the pad is what says so.
-                    self.facts = nil
-                    search.clear()
-                    isSearching = false
+                    // Only if this is still the screen that wrote it — the
+                    // draft's other bargain. A write is not cancelled with
+                    // the view that started it, so backing out mid-write and
+                    // opening another label leaves the first completion to
+                    // land and tear down a screen it does not own. The row
+                    // is still folded either way: it was written, whoever is
+                    // looking at what now.
+                    if self.facts === facts {
+                        self.facts = nil
+                        search.clear()
+                        isSearching = false
+                    }
                     onProductLogged(stored)
                 }
             } else if isSearching {

@@ -21,9 +21,15 @@ struct ProductDetailView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xl) {
                     heading
                     strength
-                    count
+                    if record.isCountable {
+                        count
+                    }
                     drugFacts
-                    total
+                    if record.isCountable {
+                        total
+                    } else {
+                        sprayNote
+                    }
                     honesty
                     if let note = record.failureText {
                         Text(note)
@@ -37,7 +43,9 @@ struct ProductDetailView: View {
             .scrollBounceBehavior(.basedOnSize)
             .frame(maxHeight: .infinity)
 
-            logButton
+            if record.isCountable {
+                logButton
+            }
         }
         .padding(.horizontal, AppLayout.gutter)
         .padding(.vertical, AppSpacing.l)
@@ -202,6 +210,20 @@ struct ProductDetailView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Logs to your treatment, \(record.totalText)")
+    }
+
+    /// A spray gets the facts and not the write — its label lists a
+    /// concentration, and counting sprays at that number would record twenty
+    /// times the dose.
+    private var sprayNote: some View {
+        Text(ProductDetailRecord.sprayNote)
+            .font(AppFont.text(AppSize.label))
+            .lineSpacing(AppLeading.normal - AppSize.label)
+            .foregroundStyle(AppColor.ink)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(AppSpacing.m)
+            .background(AppColor.sunken, in: RoundedRectangle(cornerRadius: AppRadius.small))
+            .accessibilityIdentifier("facts.sprayNote")
     }
 
     private var honesty: some View {
