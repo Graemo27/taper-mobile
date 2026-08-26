@@ -28,6 +28,11 @@ private final class FakeAdder: PadKeyWriting, @unchecked Sendable {
 
     func seed(_ keys: [PadKey]) async throws -> [StoredPadKey] { [] }
 
+    /// Unused: these drafts add keys and never take one off.
+    func remove(_ id: Int) async throws {
+        Issue.record("a draft removed a key, which it has no path to do")
+    }
+
     func add(_ key: PadKey, ndc: String?) async throws -> StoredPadKey {
         let shouldFail = lock.withLock {
             state.added.append((key, ndc))
