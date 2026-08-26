@@ -6,8 +6,12 @@ import Testing
 /// that are not "here is your total".
 @MainActor
 struct TodaySoFarCardTests {
-    private func card(_ status: DayStatus, tally: TodaysTally) -> TodaySoFarCard {
-        TodaySoFarCard(status: status, tally: tally, onCheckIn: {}, onSeeHistory: {})
+    private func card(
+        _ status: DayStatus, tally: TodaysTally,
+        breakdown: DayBreakdown? = nil, outlasted: Int = 0
+    ) -> TodaySoFarCard {
+        TodaySoFarCard(status: status, tally: tally, breakdown: breakdown,
+                       outlastedCount: outlasted, onCheckIn: {}, onSeeHistory: {})
     }
 
     private func tally(logged: Double, ceiling: Double = 12) -> TodaysTally {
@@ -90,5 +94,33 @@ struct TodaySoFarCardTests {
         // left to compare them.
         #expect(over.spokenTotalText == "Today so far, 14 of 12 milligrams, over today's cap")
         #expect(under.spokenTotalText == "Today so far, 7.5 of 12 milligrams")
+    }
+
+    @Test("the breakdown and the outlasted line wait for the day, like the figure")
+    func nothingCountsUnderAnEmDash() {
+        // The record keeps the last day's entries through a failed read, so
+        // both could describe a real day while the figure says it does not
+        // know — two answers to one question, the thing this card exists to
+        // avoid.
+        let pad = Pad(keys: [StoredPadKey(id: 1, form: .pouch, label: "Pouches",
+                                          mg: 3, position: 0, ndc: nil)])
+        let breakdown = DayBreakdown(pad: pad, entries: [])
+        let failed = card(.unavailable("no"), tally: tally(logged: 3),
+                          breakdown: breakdown, outlasted: 2)
+
+        #expect(failed.shownBreakdown == nil, "a breakdown was drawn under an em dash")
+        #expect(failed.outlastedText == nil, "an outlasted line was drawn under an em dash")
+    }
+
+    @Test("the outlasted line says the count, and nothing at zero")
+    func theLineReportsRatherThanApologises() {
+        let ready = tally(logged: 3)
+
+        #expect(card(.ready, tally: ready, outlasted: 2).outlastedText
+                == "Also today: 2 cravings outlasted · +0 mg")
+        #expect(card(.ready, tally: ready, outlasted: 1).outlastedText
+                == "Also today: 1 craving outlasted · +0 mg")
+        #expect(card(.ready, tally: ready, outlasted: 0).outlastedText == nil,
+                "the card reported the absence of cravings")
     }
 }

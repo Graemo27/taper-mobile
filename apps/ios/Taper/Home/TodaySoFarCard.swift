@@ -19,6 +19,13 @@ import SwiftUI
 struct TodaySoFarCard: View {
     let status: DayStatus
     let tally: TodaysTally
+    /// Today counted per key, or nil while the pad is unknown. Nil and empty
+    /// are different facts: an unloaded pad draws no row at all, because a row
+    /// of zeros would be the card asserting a day it has not been told about.
+    let breakdown: DayBreakdown?
+    /// Cravings got through today. Zero draws nothing — the line exists to
+    /// make counting one visibly worth doing, not to report its absence.
+    let outlastedCount: Int
     let onCheckIn: () -> Void
     /// Opens the day as a list. Reported rather than performed, the same way
     /// `onCheckIn` is: the card owns no more of the navigation than it does of
@@ -29,6 +36,10 @@ struct TodaySoFarCard: View {
         VStack(alignment: .leading, spacing: AppSpacing.l) {
             header
             DayTrack(tally: trackTally, context: .summary)
+            if let shownBreakdown, !shownBreakdown.columns.isEmpty {
+                countsRow(shownBreakdown)
+            }
+            if let outlastedText { outlastedLine(outlastedText) }
             if let failureText { note(failureText) }
             checkInButton
             historyButton
@@ -93,6 +104,26 @@ struct TodaySoFarCard: View {
         return tally
     }
 
+    /// The breakdown, only once the day it counts is actually on screen.
+    ///
+    /// Held back on `trackTally`'s reasoning: the record keeps the last day's
+    /// entries through a failed read, so a breakdown could describe a real day
+    /// while the figure above says it does not know.
+    var shownBreakdown: DayBreakdown? {
+        status == .ready ? breakdown : nil
+    }
+
+    /// "Also today: 2 cravings outlasted · +0 mg", or nil when there were none
+    /// to say — and, like the breakdown, nil until the day is known.
+    ///
+    /// "+0 mg" is the whole point of the line: it sits under a card of
+    /// milligrams saying that the hardest thing done today cost none.
+    var outlastedText: String? {
+        guard status == .ready, outlastedCount > 0 else { return nil }
+        let noun = outlastedCount == 1 ? "craving" : "cravings"
+        return "Also today: \(outlastedCount) \(noun) outlasted · +0 mg"
+    }
+
     /// Whether today's figure should be marked as over the cap.
     ///
     /// Only a day that read cleanly can be over one. A dash is not a number,
@@ -130,6 +161,52 @@ struct TodaySoFarCard: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// One bordered run of equal columns, the board's counts row.
+    private func countsRow(_ breakdown: DayBreakdown) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(breakdown.columns.enumerated()), id: \.element.keyID) { index, column in
+                VStack(spacing: AppSpacing.xxs) {
+                    Text(column.countText)
+                        .font(AppFont.display(AppSize.title))
+                        .foregroundStyle(AppColor.ink)
+                    Text(column.word)
+                        .font(AppFont.text(AppSize.caption))
+                        .foregroundStyle(AppColor.inkMuted)
+                    Text(column.strengthText)
+                        .font(AppFont.text(AppSize.nano, .medium))
+                        .foregroundStyle(column.isUntouched ? AppColor.inkFaint : AppColor.ink)
+                }
+                .frame(maxWidth: .infinity)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(column.count) \(column.word), \(column.strengthText) each")
+
+                if index < breakdown.columns.count - 1 {
+                    Rectangle().fill(AppColor.line).frame(width: 1)
+                }
+            }
+        }
+        .padding(.vertical, AppSpacing.mPlus)
+        .fixedSize(horizontal: false, vertical: true)
+        .background {
+            RoundedRectangle(cornerRadius: AppRadius.medium)
+                .strokeBorder(AppColor.line, lineWidth: 1)
+        }
+        .accessibilityIdentifier("home.breakdown")
+    }
+
+    /// The crest beside the count, the same wave the craving button wears.
+    private func outlastedLine(_ text: String) -> some View {
+        HStack(spacing: AppSpacing.sm) {
+            OutlastedMark()
+            Text(text)
+                .font(AppFont.text(AppSize.caption))
+                .foregroundStyle(AppColor.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("home.outlasted")
+    }
+
     private var checkInButton: some View {
         Button(action: onCheckIn) {
             HStack(spacing: AppSpacing.sm) {
@@ -165,6 +242,33 @@ extension TodaySoFarCard {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("home.seeHistory")
+    }
+}
+
+/// The double crest beside the outlasted line, on the board's 20-unit grid.
+///
+/// Drawn rather than an SF Symbol, for `PlusMark`'s reason — and quieter than
+/// the button's single crest, because this one reports rather than invites.
+private struct OutlastedMark: View {
+    var body: some View {
+        Canvas { context, size in
+            context.scaleBy(x: size.width / 20, y: size.height / 20)
+            var path = Path()
+            path.move(to: CGPoint(x: 2, y: 13))
+            path.addCurve(to: CGPoint(x: 7, y: 7),
+                          control1: CGPoint(x: 4.5, y: 13), control2: CGPoint(x: 4.5, y: 7))
+            path.addCurve(to: CGPoint(x: 12, y: 13),
+                          control1: CGPoint(x: 9.5, y: 7), control2: CGPoint(x: 9.5, y: 13))
+            path.addCurve(to: CGPoint(x: 18, y: 7),
+                          control1: CGPoint(x: 14.5, y: 13), control2: CGPoint(x: 14.5, y: 7))
+            context.stroke(
+                path,
+                with: .color(AppColor.inkMuted),
+                style: StrokeStyle(lineWidth: 1.6, lineCap: .round)
+            )
+        }
+        .frame(width: 16, height: 16)
+        .accessibilityHidden(true)
     }
 }
 
