@@ -33,6 +33,8 @@ struct TaperTabs: View {
     @State private var draft: NewKeyDraft?
     /// The source key being typed, if the pad's other run was tapped.
     @State private var sourceDraft: NewSourceDraft?
+    /// Editing the pad, kept for the session so the mode survives a tab away.
+    @State private var edit: PadEditRecord
     @State private var pad: PadRecord
     @State private var today: TodayRecord
 
@@ -42,6 +44,7 @@ struct TaperTabs: View {
         _pad = State(initialValue: PadRecord(store: stores?.pad))
         _today = State(initialValue: TodayRecord(store: stores?.checkIns))
         _search = State(initialValue: TreatmentSearchRecord(search: stores?.nrt))
+        _edit = State(initialValue: PadEditRecord(store: stores?.pad))
         _pastDays = State(initialValue: PastDaysRecord(
             checkIns: stores?.checkIns, plans: stores?.planVersions
         ))
@@ -108,6 +111,17 @@ struct TaperTabs: View {
                         // Reloaded only when there is no pad to add to — mid
                         // load, or after a read that failed.
                         if !pad.insert(stored) { Task { await pad.load() } }
+                    },
+                    edit: edit,
+                    onKeyRemoved: { id in
+                        // A failure is not proof the key survived. The delete
+                        // may have committed and lost its answer, leaving the
+                        // key gone on the server and drawn here — and the retry
+                        // the message invites then fails too, because the row
+                        // is already missing. So an unconfirmed removal asks
+                        // the server rather than assuming either way.
+                        if let id, pad.drop(id) { return }
+                        Task { await pad.load() }
                     }
                 )
             case .plan:

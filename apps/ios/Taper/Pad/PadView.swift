@@ -36,12 +36,39 @@ struct PadView: View {
     /// row is authoritative, and a read would be dropped if another were
     /// already running.
     let onKeyAdded: (StoredPadKey) -> Void
+    /// Editing: which keys are going, and whether the pad is in the mode at
+    /// all. Held by the tabs so a long-press does not lose its mode to a
+    /// glance at the plan.
+    @Bindable var edit: PadEditRecord
+    /// A removal that finished, whether or not it worked: the id when the
+    /// server confirmed it, nil when it did not.
+    ///
+    /// Nil is reported rather than swallowed because it does not mean the key
+    /// survived. A transport error after the delete committed leaves the key
+    /// gone on the server and still drawn here — and every retry then fails
+    /// too, because the row it is trying to remove is already missing.
+    let onKeyRemoved: (Int?) -> Void
 
     private var tally: TodaysTally { record.tally(ceilingMg: ceilingMg) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.lPlus) {
-            CapMeter(tally: tally, pending: record.selection.pending)
+            // The meter goes while editing. It reports a day being logged, and
+            // nothing here logs anything — leaving it up would put a live
+            // number above a screen that cannot change it.
+            if edit.isEditing {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text("Edit pad")
+                        .font(AppFont.display(AppSize.title))
+                        .foregroundStyle(AppColor.ink)
+                    Text(Self.editHint)
+                        .font(AppFont.text(AppSize.body))
+                        .foregroundStyle(AppColor.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                CapMeter(tally: tally, pending: record.selection.pending)
+            }
 
             if let sourceDraft {
                 NewSourceKeyView(draft: sourceDraft) {
@@ -129,16 +156,24 @@ struct PadView: View {
             // actions rather than at the top: they are about the tap that is
             // happening now, and a message off screen is a message nobody
             // reads.
-            if let question = tally.questionBeforeLogging { note(question, tone: AppColor.cautionInk) }
-            if let failure = record.writeFailure { note(failure, tone: AppColor.over) }
+            if !edit.isEditing, let question = tally.questionBeforeLogging {
+                note(question, tone: AppColor.cautionInk)
+            }
+            if !edit.isEditing, let failure = record.writeFailure {
+                note(failure, tone: AppColor.over)
+            }
+            if let failed = edit.failure { note(failed.message, tone: AppColor.over) }
 
-            PadActionBar(
-                title: record.checkInTitle,
-                isEnabled: record.canCheckIn,
-                onClear: record.clear,
-                onCheckIn: { Task { await record.checkIn() } }
-            )
-            .padding(.top, AppSpacing.m)
+            if edit.isEditing {
+                doneButton
+            } else {
+                PadActionBar(
+                    title: record.checkInTitle,
+                    isEnabled: record.canCheckIn,
+                    onClear: record.clear,
+                    onCheckIn: { Task { await record.checkIn() } }
+                )
+            }
         }
         .padding(.horizontal, AppLayout.gutter)
         .padding(.top, AppSpacing.lPlus)
@@ -197,7 +232,38 @@ struct PadView: View {
                 HStack(spacing: AppLayout.padGap) {
                     ForEach(row, id: \.self) { slot in
                         if slot < keys.count {
-                            PadKeyTile(key: keys[slot]) { record.selection.tap(keys[slot]) }
+                            let key = keys[slot]
+                            PadKeyTile(
+                                key: key,
+                                // Ignored while editing, which is also what
+                                // stops a long press queueing a check-in: the
+                                // gesture sets the mode at half a second and
+                                // the button's own tap arrives afterwards, on
+                                // touch-up, to find it already set.
+                                onTap: { if !edit.isEditing { record.selection.tap(key) } },
+                                onRemove: edit.isEditing ? {
+                                    Task { onKeyRemoved(await edit.remove(key.id)) }
+                                } : nil,
+                                isRemoving: edit.isRemoving(key.id)
+                            )
+                            // The way in, as the board names it: a long press
+                            // rather than a chrome control, because the pad's
+                            // whole surface is keys and a button for editing
+                            // would cost one of them.
+                            //
+                            // Simultaneous, because a `Button` consumes
+                            // `onLongPressGesture` outright — the press never
+                            // reached it. That means the tap fires too, so
+                            // entering the mode clears the selection it just
+                            // made: a pad being edited cannot check in, and a
+                            // pending tap left behind would be waiting on the
+                            // other side of Done.
+                            .simultaneousGesture(
+                                LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                    record.selection.clear()
+                                    edit.startEditing()
+                                }
+                            )
                         } else if canAdd == .treatment {
                             AddKeyTile.treatment { isSearching = true }
                         } else {
@@ -234,6 +300,29 @@ struct PadView: View {
     /// Reachable by anyone whose plan was saved before the pad was seeded, and
     /// by anyone whose seed failed. It says what is missing rather than showing
     /// a blank area, because a screen that is silently empty reads as broken.
+    /// Leaves edit mode, once nothing is still going.
+    private var doneButton: some View {
+        Button { edit.finishEditing() } label: {
+            Text("Done")
+                .font(AppFont.text(AppSize.bodyLarge, .medium))
+                .foregroundStyle(AppColor.inkInverse)
+                .frame(maxWidth: .infinity)
+                .frame(height: AppLayout.action)
+                .background(edit.canFinish ? AppColor.ink : AppColor.inkFaint, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(!edit.canFinish)
+        .padding(.top, AppSpacing.m)
+        .accessibilityIdentifier("pad.doneEditing")
+    }
+
+    /// How the board says the two edits work, in the order they are reachable.
+    ///
+    /// Reordering is not built yet, so the hint names only what is. A line
+    /// promising a drag that does nothing is the class of note this app has
+    /// twice had to go back and correct.
+    static let editHint = "Tap × to remove a key."
+
     /// Says the list ended, and how much of it there was.
     ///
     /// The pad scrolls now, and a run of keys that simply stops looks the same
@@ -305,6 +394,8 @@ struct PadView: View {
         draftFor: { NewKeyDraft(product: $0, store: nil) },
         sourceDraft: .constant(nil),
         newSourceDraft: { NewSourceDraft(store: nil) },
-        onKeyAdded: { _ in }
+        onKeyAdded: { _ in },
+        edit: PadEditRecord(store: nil),
+        onKeyRemoved: { _ in }
     )
 }
