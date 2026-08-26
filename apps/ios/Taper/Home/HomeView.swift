@@ -3,9 +3,8 @@ import SwiftUI
 /// L1 — where the app opens once there is a plan: the day, the countdown and
 /// today's cap.
 ///
-/// Deliberately a subset of the board still: nicotine over time — the graph —
-/// is the one surface left to build, and a control that cannot do its job is
-/// worse than an absent one.
+/// The whole of the board's L1 and L2, top to bottom: the craving hero, the
+/// tiles, the daily check-in, the day's tracking, and nicotine over time.
 struct HomeView: View {
     let progress: PlanProgress
     /// Today, for the tracking card. Passed rather than made here, because the
@@ -18,6 +17,8 @@ struct HomeView: View {
     /// The daily check-in's state, owned above for the pad's reason: one per
     /// session, so an answer survives a tab switch.
     let rating: DayRatingRecord
+    /// The graph's days, read once per day and span.
+    let trend: TrendRecord
     /// Switches to the log tab. Home does not own the selection, so the card's
     /// button reports the intent and lets the bar act on it.
     let onCheckIn: () -> Void
@@ -44,7 +45,7 @@ struct HomeView: View {
                 tiles.padding(.top, AppSpacing.xl)
                 checkIn.padding(.top, AppSpacing.xxl)
                 tracking.padding(.top, AppSpacing.xxl)
-                unbuilt.padding(.top, AppSpacing.xxl)
+                overTime.padding(.top, AppSpacing.xxl)
                     .padding(.bottom, AppSpacing.xxl)
             }
             .padding(.horizontal, AppLayout.gutter)
@@ -178,6 +179,18 @@ struct HomeView: View {
         }
     }
 
+    /// L2's graph section: the eyebrow, then the card. The last thing on
+    /// home, and the end of the unbuilt note that stood here — every surface
+    /// the board draws on L1 and L2 now exists.
+    private var overTime: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Nicotine over time")
+                .font(AppFont.text(AppSize.label, .medium))
+                .foregroundStyle(AppColor.ink)
+            TrendCard(record: trend)
+        }
+    }
+
     /// L2's tracking section: the eyebrow, then the card.
     ///
     /// The one figure on this screen that needs a request. It is read here
@@ -198,24 +211,6 @@ struct HomeView: View {
                 onSeeHistory: onSeeHistory
             )
         }
-    }
-
-    /// Says what is missing, for the same reason every other unfinished surface
-    /// in this app does: a screen that quietly lacks its main action reads as
-    /// broken, and one that says so reads as early.
-    ///
-    /// Rewritten twice now — when the log tab landed, and again when the
-    /// craving prompt above it did. Each time it named something that had
-    /// stopped being missing, and a note about what is missing is worth nothing
-    /// once it is quietly wrong.
-    private var unbuilt: some View {
-        Text("""
-        Nicotine over time — the week against the stepping cap — still goes below the card.
-        """)
-            .font(AppFont.text(AppSize.caption))
-            .lineSpacing(AppLeading.snug - AppSize.caption)
-            .foregroundStyle(AppColor.inkMuted)
-            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -268,5 +263,6 @@ private struct CrestMark: View {
         ),
         today: Date()
     )!, today: TodayRecord(store: nil), pad: nil, rating: DayRatingRecord(store: nil),
+       trend: TrendRecord(checkIns: nil, plans: nil),
        onCheckIn: {}, onSeeHistory: {}, onCraving: {})
 }
