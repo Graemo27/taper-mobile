@@ -33,9 +33,9 @@ final class HTTPClientTests: XCTestCase {
 
     func testFailureAndStatusArgumentsParse() {
         let faults = LaunchFaults(arguments: [
-            "Taper", "-FPFail", "food-search", "-FPStatus", "404",
+            "Taper", "-FPFail", "nrt-search", "-FPStatus", "404",
         ])
-        XCTAssertEqual(faults.failingURLSubstring, "food-search")
+        XCTAssertEqual(faults.failingURLSubstring, "nrt-search")
         XCTAssertEqual(faults.status, 404)
     }
 
