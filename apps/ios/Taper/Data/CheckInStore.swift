@@ -54,6 +54,24 @@ struct CheckInDraft: Equatable, Sendable {
     /// that passed must not read as something used. `.other` for the form
     /// rather than a new case, since `form` is a snapshot the log prints and
     /// `label` is what carries the meaning.
+    /// A licensed product logged straight from the catalogue, no key pressed.
+    ///
+    /// Keyless but not costless — the schema's zero-only-when-keyless rule is
+    /// untouched because `mg > 0` here. Treatment ledger always: everything
+    /// the catalogue can return is licensed NRT, which is the same rule that
+    /// keeps a source out of the search results in the first place.
+    static func product(
+        brand: String, form: PadForm, mg: Double, quantity: Int, on day: Date
+    ) -> CheckInDraft {
+        CheckInDraft(
+            padKeyID: nil, ledger: .treatment, label: brand,
+            form: form, mg: mg,
+            quantity: min(max(quantity, PendingEntry.quantityRange.lowerBound),
+                          PendingEntry.quantityRange.upperBound),
+            day: day
+        )
+    }
+
     static func urgePassed(on day: Date) -> CheckInDraft {
         CheckInDraft(
             padKeyID: nil, ledger: .treatment, label: Self.urgeLabel,
