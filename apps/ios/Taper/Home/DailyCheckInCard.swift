@@ -59,6 +59,12 @@ struct DailyCheckInCard: View {
                 }
         }
         .buttonStyle(.plain)
+        // Dimmed as well as refused while a save is open: the record ignores
+        // a tap mid-save, and a control that refuses invisibly reads as
+        // broken. The window is one round trip, so this is a flicker, not a
+        // lock.
+        .disabled(record.isSaving)
+        .opacity(record.isSaving ? 0.5 : 1)
         .accessibilityIdentifier("home.rating.\(rating.rawValue)")
         .accessibilityLabel(rating.word)
         .accessibilityAddTraits(isAnswer ? .isSelected : [])

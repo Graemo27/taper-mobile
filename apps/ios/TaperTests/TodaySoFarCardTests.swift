@@ -123,4 +123,22 @@ struct TodaySoFarCardTests {
         #expect(card(.ready, tally: ready, outlasted: 0).outlastedText == nil,
                 "the card reported the absence of cravings")
     }
+
+    @Test("the counts row wraps at three, because the pad has no key limit")
+    func sevenKeysAreNotSevenSlivers() {
+        // A single run divides the card's fixed width by however many keys
+        // exist; seven would squeeze every word to an ellipsis. Three per row
+        // is the board's own density.
+        let keys = (1...7).map {
+            StoredPadKey(id: $0, form: .pouch, label: "Pouches", mg: 3,
+                         position: $0, ndc: nil)
+        }
+        let breakdown = DayBreakdown(pad: Pad(keys: keys), entries: [])
+
+        #expect(breakdown.columns.count == 7)
+        let rows = stride(from: 0, to: breakdown.columns.count, by: 3).map {
+            Array(breakdown.columns[$0..<min($0 + 3, breakdown.columns.count)])
+        }
+        #expect(rows.map(\.count) == [3, 3, 1])
+    }
 }

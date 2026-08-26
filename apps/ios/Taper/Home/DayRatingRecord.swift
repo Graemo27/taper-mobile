@@ -15,8 +15,13 @@ final class DayRatingRecord {
     private(set) var rating: DayRating?
     /// The save that did not land, said quietly under the chips.
     private(set) var failureText: String?
-
-    private var isSaving = false
+    /// Read by the card so the chips can dim: a tap mid-save is refused, and
+    /// controls that refuse invisibly read as broken.
+    private(set) var isSaving = false
+    /// Bumped by every tap, so a read that started before one cannot land on
+    /// top of it — the same stale-overwrite door `TodayRecord` closes with its
+    /// counters, arriving here through `load()` racing a chip.
+    private var interactions = 0
     private let store: (any DayRatingStoring)?
     private let day: () -> Date
 
@@ -27,13 +32,21 @@ final class DayRatingRecord {
 
     /// Reads today's answer, quietly.
     ///
-    /// A failed read leaves the card unanswered rather than posting an error:
-    /// this is the one optional surface on home, and a card that nags about
-    /// not knowing the answer to an optional question has made it mandatory.
-    /// The write path is an upsert, so acting on a stale blank is harmless.
+    /// A failed read leaves the card as it stands rather than posting an
+    /// error: this is the one optional surface on home, and a card that nags
+    /// about not knowing the answer to an optional question has made it
+    /// mandatory. A read that *succeeds* publishes whatever it found — nil
+    /// included, because a new day's blank is an answer and keeping
+    /// yesterday's word over it would show a rating nobody gave today.
+    ///
+    /// Discarded when a tap happened while it was open: the tap is newer.
     func load() async {
         guard let store, !isSaving else { return }
-        rating = (try? await store.rating(on: day())) ?? rating
+        let before = interactions
+        let read: DayRating?
+        do { read = try await store.rating(on: day()) } catch { return }
+        guard interactions == before, !isSaving else { return }
+        rating = read
     }
 
     /// Answers, or un-answers when the tapped word is already the answer.
@@ -44,6 +57,7 @@ final class DayRatingRecord {
             return
         }
 
+        interactions += 1
         let before = rating
         let clearing = tapped == before
         rating = clearing ? nil : tapped

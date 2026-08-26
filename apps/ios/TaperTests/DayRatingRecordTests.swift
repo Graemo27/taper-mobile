@@ -10,6 +10,7 @@ private final class FakeRatings: DayRatingStoring, @unchecked Sendable {
     private struct State {
         var stored: DayRating?
         var fails = false
+        var holds = false
         var reads = 0
     }
 
@@ -22,13 +23,20 @@ private final class FakeRatings: DayRatingStoring, @unchecked Sendable {
         set { lock.withLock { state.fails = newValue } }
     }
     var reads: Int { lock.withLock { state.reads } }
+    var holds: Bool {
+        get { lock.withLock { state.holds } }
+        set { lock.withLock { state.holds = newValue } }
+    }
 
     func rating(on day: Date) async throws -> DayRating? {
-        try lock.withLock {
-            state.reads += 1
-            if state.fails { throw URLError(.notConnectedToInternet) }
-            return state.stored
-        }
+        // Snapshotted at call time and returned after the hold, because that
+        // is what a real response is: the database as the query saw it, not
+        // as it stands when the bytes finally arrive.
+        let (snapshot, fails) = lock.withLock { state.reads += 1
+            return (state.stored, state.fails) }
+        while holds { await Task.yield() }
+        if fails { throw URLError(.notConnectedToInternet) }
+        return snapshot
     }
     func rate(_ rating: DayRating, on day: Date) async throws {
         try lock.withLock {
@@ -129,6 +137,44 @@ struct DayRatingRecordTests {
 
         #expect(record.rating == nil)
         #expect(record.failureText == DayRatingRecord.noBackend)
+    }
+
+    @Test("a new day's blank is an answer, not a gap to keep yesterday in")
+    func yesterdaysWordDoesNotSurviveMidnight() async {
+        // The app stays open across midnight, the new day has no rating, and
+        // a read that treats nil as "keep what I had" shows yesterday's chip
+        // selected on a day nobody rated.
+        let store = FakeRatings()
+        store.stored = .rough
+        let record = DayRatingRecord(store: store)
+        await record.load()
+        #expect(record.rating == .rough)
+
+        store.stored = nil
+        await record.load()
+        #expect(record.rating == nil, "yesterday's answer survived into an unanswered day")
+    }
+
+    @Test("a read a tap overtook is dropped, not published")
+    func theTapIsNewer() async {
+        // load() starts, a chip is tapped while it is open, and the old
+        // response lands after the optimistic save — publishing it would put
+        // the stale value over the user's newest intent.
+        let store = FakeRatings()
+        store.stored = .easy
+        let record = DayRatingRecord(store: store)
+
+        store.holds = true
+        let reading = Task { await record.load() }
+        let deadline = Date().addingTimeInterval(2)
+        while store.reads == 0, Date() < deadline { await Task.yield() }
+
+        store.holds = false
+        await record.tapped(.rough)
+        _ = await reading.value
+
+        #expect(record.rating == .rough, "a stale read overwrote a newer tap")
+        #expect(store.stored == .rough)
     }
 
     @Test("the words are the board's, hyphen included")
