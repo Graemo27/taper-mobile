@@ -63,7 +63,8 @@ struct RootView: View {
             planVersions: plans,
             pad: SupabasePadKeyStore(client: client, session: session),
             checkIns: SupabaseCheckInStore(client: client, session: session),
-            nrt: SupabaseNRTSearch(client: client, session: session)
+            nrt: SupabaseNRTSearch(client: client, session: session),
+            ratings: SupabaseDayRatingStore(client: client, session: session)
         )
     }
 
