@@ -7,11 +7,16 @@ Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and Ed
 `apps/ios/Scripts/write-config.sh` step that gives the running app its backend configuration. Skipping it does
 not fail the build — it produces an app that launches with no backend.
 
-**The backend is Taper's; the UI does not exist yet.** `nrt-search` and the `taper_plans` /
-`pad_keys` / `check_ins` schema are in place, the food code is deleted and the iOS targets are
-named Taper — but the app launches to a bare root with no screens. Building those is the work
-in front of us. References to "Food Pad" under `docs/` are historical and accurate; leave them
-alone.
+**The backend is Taper's, and most of the UI now exists.** `nrt-search` and the `taper_plans` /
+`pad_keys` / `taper_plan_versions` / `check_ins` schema are in place, the food code is gone, and
+the app runs end to end: age gate, onboarding, home, the pad, the plan, the day's list, the
+licensed-catalogue search, adding a treatment or a source, and editing the pad.
+
+Still unbuilt, against the M1 board: **L5** product detail, **L6** logged confirmation, **L8**
+craving, and reordering the pad. Also open — a `request_id` idempotency migration and the
+non-atomic position allocation deferred from #126.
+
+References to "Food Pad" under `docs/` are historical and accurate; leave them alone.
 
 The SwiftUI migration completed on 2026-08-14 and the React Native app was deleted in PR #53.
 `docs/swift-migration.md` and `docs/swift-migration-reference.md` remain the record of how it
@@ -81,8 +86,10 @@ could not start were compatible states.
   are quitting during onboarding and can add to it later, because a source they cannot log
   is a cap that silently lies — but that path is a plain type-and-mg entry the user types
   themselves, never a search against a catalogue of brands.
-- **Never commit or print a secret.** `OPENFDA_API_KEY` — and `FDC_API_KEY` while it lasts —
-  are Edge Function secrets and must never reach the client.
+- **Never commit or print a secret.** `OPENFDA_API_KEY` is an Edge Function secret and must
+  never reach the client. `FDC_API_KEY` was the other one and is gone: the `food-search`
+  function it authenticated was deleted with the rest of the food code, so nothing reads it.
+  The hosted secret itself still exists and wants unsetting — a production action.
 - **Never bulk-delete Supabase rows.** Every user in this project is anonymous, including
   Graem's phone. Delete only rows you created, by id.
 - **Production actions need explicit authorisation** — `supabase db push`,

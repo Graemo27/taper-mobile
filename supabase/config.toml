@@ -73,13 +73,6 @@ verify_enabled = true
 # stated explicitly because it is a security control, not an incidental knob.
 anonymous_users = 30
 
-[functions.food-search]
-# The platform verifies the JWT's signature before the function runs. That alone
-# does not mean "a signed-in user" — with legacy keys the anon key is itself a
-# valid JWT and it ships inside the app bundle. The function re-checks the
-# claims; see the comment in its handler.
-verify_jwt = true
-
 [functions.nrt-search]
 # Same reasoning as above: platform verification proves the signature, and the
 # function re-checks the claims because the anon key is itself a valid JWT that

@@ -15,9 +15,8 @@
  * product is dropped. Note what this handler does *not* accept: there is no
  * product-type or category parameter, so no caller can widen the search.
  *
- * Structure follows `food-search/`: the entrypoint is one line so that
- * importing it does not start a server, and everything worth testing is reached
- * by calling `handle` with a `Request`.
+ * The entrypoint is one line so that importing it does not start a server, and
+ * everything worth testing is reached by calling `handle` with a `Request`.
  */
 
 import { OpenFdaError, searchNrt } from './nrt/openfda.ts';
@@ -38,7 +37,7 @@ function json(body: unknown, status = 200): Response {
 /**
  * Confirms the caller is a signed-in user rather than the app's public key.
  *
- * Same reasoning as `food-search`: `verify_jwt = true` proves the signature,
+ * `verify_jwt = true` proves the signature,
  * but the anon key is itself a signed JWT that ships in the bundle, so it
  * clears verification while carrying `role: "anon"` and no `sub`. Anonymous
  * *users* pass deliberately — they hold `role: "authenticated"` with

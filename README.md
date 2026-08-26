@@ -22,19 +22,19 @@ supabase/migrations/ Schema, applied in order
 docs/                The SwiftUI migration brief and its reference
 ```
 
-## The pivot is in progress
+## The pivot is done
 
-This repository was Food Pad, a food journal, until August 2026. The pivot is
-complete in the sense that nothing food-related is left running: the food UI,
-domain and repositories are deleted, `food-search` and the food tables are
-retired, and the iOS targets are named Taper.
+This repository was Food Pad, a food journal, until August 2026. Nothing
+food-related is left: the food UI, domain and repositories are deleted, the food
+tables were dropped by `retire_food_tables`, and the `food-search` Edge Function
+is gone from the project and from this repository.
 
-What is *not* done is Taper's own UI. The app currently launches to a bare root
-that signs in and reports whether it has a backend — see `apps/ios/Taper/App/TaperApp.swift`.
+Taper's own UI now runs end to end — age gate, onboarding, home, the pad, the
+plan, the day's list, the licensed-catalogue search, adding a treatment or a
+source, and editing the pad. `AGENTS.md` lists what is still unbuilt.
 
-`food-search` and the food tables are retired. Anything under `docs/` that says
-"Food Pad" is a historical record of the SwiftUI migration and is accurate as
-written — do not rewrite it to say Taper.
+Anything under `docs/` that says "Food Pad" is a historical record of the
+SwiftUI migration and is accurate as written — do not rewrite it to say Taper.
 
 The React Native app this replaced lived in `src/` and was deleted once the Swift
 app reached parity on device. `docs/swift-migration.md` records how that was done
