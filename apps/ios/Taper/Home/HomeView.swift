@@ -3,9 +3,9 @@ import SwiftUI
 /// L1 — where the app opens once there is a plan: the day, the countdown and
 /// today's cap.
 ///
-/// Deliberately a subset of the board, because the craving prompt and the daily
-/// check-in each need a screen or a table that does not exist yet, and a control
-/// that cannot do its job is worse than an absent one.
+/// Deliberately a subset of the board, because the daily check-in needs a table
+/// that does not exist yet, and a control that cannot do its job is worse than
+/// an absent one.
 struct HomeView: View {
     let progress: PlanProgress
     /// Today, for the tracking card. Passed rather than made here, because the
@@ -17,6 +17,10 @@ struct HomeView: View {
     let onCheckIn: () -> Void
     /// Opens today as a list. Home does not own the navigation stack either.
     let onSeeHistory: () -> Void
+    /// Opens L8. Above the countdown and the cap on the board, and that order
+    /// is the product: somebody who opens this app mid-craving should not have
+    /// to read a progress figure before reaching the one screen that helps.
+    let onCraving: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -24,7 +28,8 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.top, AppSpacing.smPlus)
 
-            tiles.padding(.top, AppSpacing.xxl)
+            cravingHero.padding(.top, AppSpacing.xxl)
+            tiles.padding(.top, AppSpacing.xl)
             tracking.padding(.top, AppSpacing.xxl)
             unbuilt.padding(.top, AppSpacing.xxl)
 
@@ -33,6 +38,37 @@ struct HomeView: View {
         .padding(.horizontal, AppLayout.gutter)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppColor.ground)
+    }
+
+    /// The board's first thing on the screen: what it is for, and the way in.
+    ///
+    /// The heading is a claim, not a question — "it will crest and pass" is the
+    /// one fact this app has that a person mid-craving does not, and putting it
+    /// on home means they have read it before they ever tap.
+    private var cravingHero: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.m) {
+            Text("RIGHT NOW")
+                .font(AppFont.text(AppSize.micro, .medium))
+                .tracking(AppTracking.eyebrowWide(AppSize.micro))
+                .foregroundStyle(AppColor.inkMuted)
+            Text("Craving? It will crest and pass.")
+                .font(AppFont.display(AppSize.display))
+                .foregroundStyle(AppColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(action: onCraving) {
+                HStack(spacing: AppSpacing.smPlus) {
+                    CrestMark()
+                    Text("I'm craving right now")
+                        .font(AppFont.text(AppSize.bodyLarge, .medium))
+                }
+                .foregroundStyle(AppColor.onAccent)
+                .frame(maxWidth: .infinity)
+                .frame(height: AppLayout.action)
+                .background(AppColor.accent, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("home.craving")
+        }
     }
 
     /// "Day 12 of 60", or just the day for a run with no end in sight.
@@ -141,19 +177,55 @@ struct HomeView: View {
     /// in this app does: a screen that quietly lacks its main action reads as
     /// broken, and one that says so reads as early.
     ///
-    /// Rewritten when the log tab landed. It used to say logging was the next
-    /// thing to build, which stopped being true the moment there was a way to
-    /// reach it — and a note about what is missing is worth nothing once it is
-    /// quietly wrong.
+    /// Rewritten twice now — when the log tab landed, and again when the
+    /// craving prompt above it did. Each time it named something that had
+    /// stopped being missing, and a note about what is missing is worth nothing
+    /// once it is quietly wrong.
     private var unbuilt: some View {
         Text("""
-        The craving prompt and the daily check-in still belong here, and the card above will \
-        grow a breakdown and a link to the full list.
+        The daily check-in still belongs here, and the card above will grow a breakdown and a \
+        link to the full list.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)
             .foregroundStyle(AppColor.inkMuted)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// The wave on the craving button: one crest, falling.
+///
+/// Drawn rather than borrowed from SF Symbols, for `NicotineMark`'s reason: the
+/// board's mark is an exact stroke on an exact grid, and the nearest system
+/// glyph is a different shape wearing the same idea.
+private struct CrestMark: View {
+    /// The board's grid, and its stroke.
+    private static let grid: CGFloat = 20
+    private static let stroke: CGFloat = 1.8
+
+    var body: some View {
+        Canvas { context, size in
+            context.scaleBy(x: size.width / Self.grid, y: size.height / Self.grid)
+            context.stroke(
+                Self.wave,
+                with: .color(AppColor.onAccent),
+                style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round)
+            )
+        }
+        .frame(width: Self.grid, height: Self.grid)
+        .accessibilityHidden(true)
+    }
+
+    private static var wave: Path {
+        var path = Path()
+        path.move(to: CGPoint(x: 2, y: 13))
+        path.addCurve(to: CGPoint(x: 7, y: 7),
+                      control1: CGPoint(x: 4.5, y: 13), control2: CGPoint(x: 4.5, y: 7))
+        path.addCurve(to: CGPoint(x: 12, y: 13),
+                      control1: CGPoint(x: 9.5, y: 7), control2: CGPoint(x: 9.5, y: 13))
+        path.addCurve(to: CGPoint(x: 18, y: 7),
+                      control1: CGPoint(x: 14.5, y: 13), control2: CGPoint(x: 14.5, y: 7))
+        return path
     }
 }
 
@@ -169,5 +241,5 @@ struct HomeView: View {
             sickInBed: true
         ),
         today: Date()
-    )!, today: TodayRecord(store: nil), onCheckIn: {}, onSeeHistory: {})
+    )!, today: TodayRecord(store: nil), onCheckIn: {}, onSeeHistory: {}, onCraving: {})
 }

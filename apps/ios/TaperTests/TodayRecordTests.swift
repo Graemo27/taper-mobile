@@ -636,6 +636,52 @@ struct TodayRecordTests {
         #expect(record.summary(ceilingMg: 12) == "1 check-in · 3 of 12 mg")
     }
 
+    /// A row the day did not write itself: what the craving screen hands back.
+    private func urge(_ id: Int, on writtenDay: Date) -> StoredCheckIn {
+        StoredCheckIn(id: id, ledger: .treatment, label: CheckInDraft.urgeLabel,
+                      form: .other, mg: 0, quantity: 1,
+                      loggedOn: PlanDay.wireFormat(writtenDay),
+                      createdAt: writtenDay, padKeyID: nil)
+    }
+
+    @Test("a row written by another screen joins the day without a re-read")
+    func theCravingScreensRowLandsHere() async {
+        // The craving screen writes its own rows and hands them back. A second
+        // round trip to learn what we were just told would put a spinner
+        // between getting through a craving and seeing it on the day.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        record.fold(urge(2, on: day))
+
+        #expect(record.entries.count == 2)
+        #expect(record.entries.last?.isUrge == true)
+        #expect(store.reads == 1, "the day was re-read to learn what it had just been handed")
+    }
+
+    @Test("a row stamped with the new day starts it rather than joining the old one")
+    func foldingFollowsTheRowsOwnDay() async {
+        // Midnight can pass while the craving screen is open, and the row says
+        // which day it counts on — `logged_on` is stamped by whoever wrote it.
+        // Appending it regardless would file the first craving of a new day
+        // under the day before, on the screen that decides what a day contains.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let tomorrow = day.addingTimeInterval(86_400)
+        let clock = Clock(day)
+        let record = record(store, clock: clock)
+        await record.load()
+
+        clock.now = tomorrow
+        record.fold(urge(2, on: tomorrow))
+
+        #expect(record.entries.count == 1, "yesterday's rows stayed under a row logged on the new day")
+        #expect(record.entries.first?.isUrge == true)
+        #expect(record.hasRolledOver == false, "the new day was folded in and still read as stale")
+    }
+
     @Test("a craving got through today is not a check-in either")
     func todayCountsWhatWasTaken() async {
         // The same rule the past days keep. A day of cravings ridden out and

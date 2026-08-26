@@ -17,11 +17,10 @@ struct CravingView: View {
     /// Named off the user's own sources, because "the tin" is only one of them.
     let putAwayTitle: String
     let onClose: () -> Void
-    /// Hands up the row a passed craving wrote, so the presenter can close:
-    /// one craving is one screen.
-    let onCounted: (StoredCheckIn) -> Void
-    /// Logs the suggested key, the way the pad would.
-    let onTake: (StoredPadKey) -> Void
+    /// Hands up whichever row this screen wrote — the dose it suggested or the
+    /// craving that passed — so the presenter can fold it into the day and
+    /// close. One craving is one screen, either way it ends.
+    let onLogged: (StoredCheckIn) -> Void
     /// Opens the pad, for somebody who used something else.
     let onLogSomethingElse: () -> Void
 
@@ -92,7 +91,11 @@ struct CravingView: View {
 
     /// The one card that is a dose, and the only one drawn in the accent.
     private func takeCard(_ key: StoredPadKey) -> some View {
-        Button { onTake(key) } label: {
+        Button {
+            Task {
+                if let taken = await record.take(key) { onLogged(taken) }
+            }
+        } label: {
             HStack(spacing: AppSpacing.m) {
                 NicotineMark(form: key.form)
                     .frame(width: AppLayout.tap, height: AppLayout.tap)
@@ -112,6 +115,7 @@ struct CravingView: View {
             .background(AppColor.accent, in: RoundedRectangle(cornerRadius: AppRadius.large))
         }
         .buttonStyle(.plain)
+        .disabled(record.isWriting || record.isSpent)
         .accessibilityIdentifier("craving.take")
     }
 
@@ -159,7 +163,7 @@ struct CravingView: View {
     private var passedButton: some View {
         Button {
             Task {
-                if let counted = await record.itPassed() { onCounted(counted) }
+                if let counted = await record.itPassed() { onLogged(counted) }
             }
         } label: {
             Text(passedLabel)
@@ -170,7 +174,7 @@ struct CravingView: View {
                 .background(AppColor.sunken, in: Capsule())
         }
         .buttonStyle(.plain)
-        .disabled(record.status == .counting || record.status == .counted)
+        .disabled(record.isWriting || record.isSpent)
         .accessibilityIdentifier("craving.itPassed")
     }
 
@@ -200,15 +204,18 @@ struct CravingView: View {
     /// animated, and a second tap would otherwise land on a screen still there.
     var passedLabel: String {
         switch record.status {
-        case .counting: return "Counting…"
-        case .counted: return "Counted"
-        case .resting, .failed: return "It passed — count it"
+        case .working(.count): return "Counting…"
+        case .logged(.count): return "Counted"
+        // Including a take in flight. That button says what is happening to it;
+        // this one has nothing to report about somebody else's write.
+        case .resting, .failed, .working(.take), .logged(.take):
+            return "It passed — count it"
         }
     }
 
     /// Only a failed count is shown, and it does not ask for a retry.
     var failureText: String? {
-        if case let .failed(message) = record.status { return message }
+        if case let .failed(_, message) = record.status { return message }
         return nil
     }
 }

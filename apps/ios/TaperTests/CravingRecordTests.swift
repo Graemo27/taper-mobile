@@ -125,7 +125,7 @@ struct CravingRecordTests {
         let record = CravingRecord(store: log)
 
         #expect(await record.itPassed() == nil)
-        #expect(record.status == .failed("That didn't save. It still counts."))
+        #expect(record.status == .failed(.count, "That didn't save. It still counts."))
     }
 
     @Test("one craving is counted once, however many times it is tapped")
@@ -175,7 +175,7 @@ struct CravingRecordTests {
         let record = CravingRecord(store: log)
 
         #expect(await record.itPassed() != nil)
-        #expect(record.status == .counted)
+        #expect(record.status == .logged(.count))
         #expect(await record.itPassed() == nil, "the same craving was offered a second row")
         #expect(log.logged.count == 1, "one craving was counted twice")
     }
@@ -191,6 +191,50 @@ struct CravingRecordTests {
 
         log.fails = false
         #expect(await record.itPassed() != nil, "a failed count could not be retried")
+    }
+
+    @Test("taking what the screen suggested logs it the way the pad would")
+    func theSuggestionIsARealDose() async {
+        // Written through its own store rather than the pad's selection: that
+        // selection is a count somebody may be halfway through tapping out on
+        // another tab, and borrowing it would either clobber it or send it.
+        let log = FakeLog()
+        let record = CravingRecord(store: log)
+        let lozenge = key(.lozenge, "Lozenge", mg: 4)
+
+        #expect(await record.take(lozenge) != nil)
+
+        let written = try? #require(log.logged.first)
+        #expect(written?.padKeyID == lozenge.id, "the dose cited no key")
+        #expect(written?.mg == 4)
+        #expect(written?.ledger == .treatment)
+        #expect(written?.isUrge == false, "a dose was recorded as a craving got through")
+    }
+
+    @Test("one screen writes one row, whichever button wrote it")
+    func aTakeAndACountCannotBothLand() async {
+        // Both end the screen. A count landing on top of a take would file the
+        // same craving as a dose and as a pass at once.
+        let log = FakeLog()
+        let record = CravingRecord(store: log)
+
+        #expect(await record.take(key(.lozenge, "Lozenge", mg: 4)) != nil)
+        #expect(await record.itPassed() == nil, "a spent screen counted a craving as well")
+        #expect(log.logged.count == 1)
+    }
+
+    @Test("a dose that did not record asks to be tried again")
+    func aFailedDoseIsNotAFailedCount() async {
+        // The other failure says the thing that mattered already happened. This
+        // one cannot: a dose is a real milligram against a real cap, and a log
+        // that quietly drops it is a cap that lies.
+        let log = FakeLog()
+        log.fails = true
+        let record = CravingRecord(store: log)
+
+        _ = await record.take(key(.lozenge, "Lozenge", mg: 4))
+
+        #expect(record.status == .failed(.take, "Couldn't log that. Try again."))
     }
 
     @Test("what to put away is named off what they are actually quitting")
@@ -224,6 +268,6 @@ struct CravingRecordTests {
         let record = CravingRecord(store: nil)
 
         #expect(await record.itPassed() == nil)
-        #expect(record.status == .failed(CravingRecord.noBackend))
+        #expect(record.status == .failed(.count, CravingRecord.noBackend))
     }
 }
