@@ -33,6 +33,10 @@ struct TaperTabs: View {
     @State private var draft: NewKeyDraft?
     /// L5, when a result's label is open.
     @State private var facts: ProductDetailRecord?
+    /// L6, in the moment after the catalogue logged something: the day as it
+    /// stands with the new row in it. Value state rather than a record —
+    /// nothing on the screen writes, so there is nothing to hold open.
+    @State private var logged: TodaysTally?
     /// The source key being typed, if the pad's other run was tapped.
     @State private var sourceDraft: NewSourceDraft?
     /// Editing the pad, kept for the session so the mode survives a tab away.
@@ -135,7 +139,10 @@ struct TaperTabs: View {
                     draft: $draft,
                     facts: $facts,
                     factsFor: { ProductDetailRecord(product: $0, store: stores?.checkIns) },
-                    onProductLogged: { today.fold($0) },
+                    onProductLogged: {
+                        today.fold($0)
+                        logged = today.loggedTally(ceilingMg: progress.todaysCapMg)
+                    },
                     draftFor: { NewKeyDraft(product: $0, store: stores?.pad) },
                     sourceDraft: $sourceDraft,
                     newSourceDraft: { NewSourceDraft(store: stores?.pad) },
@@ -186,6 +193,16 @@ struct TaperTabs: View {
                     selection = .log
                 }
             )
+        }
+        // L6, over everything for L8's reason: the board draws it without the
+        // tab bar. One button, one way out, nothing to guard — the write
+        // already happened before this appeared.
+        .fullScreenCover(isPresented: .init(
+            get: { logged != nil }, set: { if !$0 { logged = nil } }
+        )) {
+            if let logged {
+                LoggedView(tally: logged) { self.logged = nil }
+            }
         }
         .animation(.easeOut(duration: 0.22), value: isShowingToday)
         .background(AppColor.ground)
