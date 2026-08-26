@@ -263,6 +263,25 @@ struct CravingRecordTests {
         #expect(title([]) == neutral)
     }
 
+    @Test("a write in flight is visible, so nothing offers a way off the screen")
+    func theScreenSaysWhenItIsMidWrite() async {
+        // What both exits are guarded on. The write outlives the cover — it is
+        // unstructured on purpose — so a screen dismissed mid-write lets a
+        // second one be opened and a second row written for one craving.
+        let log = FakeLog()
+        log.holds = true
+        let record = CravingRecord(store: log)
+
+        let writing = Task { await record.itPassed() }
+        let deadline = Date().addingTimeInterval(3)
+        while log.logged.isEmpty, Date() < deadline { await Task.yield() }
+        #expect(record.isWriting, "a write was in flight and the screen did not say so")
+
+        log.holds = false
+        _ = await writing.value
+        #expect(record.isWriting == false, "the screen held itself shut after its row landed")
+    }
+
     @Test("a build with no backend says so rather than failing quietly")
     func nothingToCountInto() async {
         let record = CravingRecord(store: nil)

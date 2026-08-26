@@ -155,12 +155,17 @@ struct TaperTabs: View {
                 record: record,
                 suggestion: CravingRecord.suggestion(from: padKeys),
                 putAwayTitle: CravingRecord.putAwayTitle(for: padKeys),
-                onClose: { craving = nil },
+                // Neither way out is open while the write is: the task
+                // outlives the cover, so a screen dismissed mid-write lets a
+                // second one be opened and a second row written for one
+                // craving. `CravingView` dims both controls to say so.
+                onClose: { if !record.isWriting { craving = nil } },
                 onLogged: { written in
                     today.fold(written)
                     craving = nil
                 },
                 onLogSomethingElse: {
+                    guard !record.isWriting else { return }
                     craving = nil
                     selection = .log
                 }

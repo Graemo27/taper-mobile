@@ -117,6 +117,15 @@ final class TodayRecord {
     /// committed — a connection can drop after the delete lands — so a read
     /// spanning one cannot be trusted to reflect it whichever way it went.
     private var removals = 0
+    /// How many rows have been folded in, for the same reason `removals` counts
+    /// deletes: a read that started before a craving was recorded and lands
+    /// after it is holding a snapshot that predates the row, and applying it
+    /// would take the craving back off the day until something else refreshed.
+    ///
+    /// Its own counter rather than a shared one, because the two are not the
+    /// same event and a single number would make a fold look like a delete to
+    /// anything that ever reads them apart.
+    private var folds = 0
 
     init(
         store: (any CheckInStoring)?,
@@ -168,15 +177,16 @@ final class TodayRecord {
             // for cannot drift apart.
             let asked = day()
             let settled = removals
+            let folded = folds
             let read = try await store.entries(on: asked)
 
-            // A removal settled while this read was open, so the read is
-            // answering from before it. Dropped rather than applied: what is
-            // already on screen is the last good day minus the row that was
-            // taken off it, and that is nearer the truth than a snapshot from
-            // before the delete. Nothing is lost — a removal can only settle
-            // against a day that loaded, so there is always a day to keep.
-            guard removals == settled else {
+            // A removal settled, or a row was folded in, while this read was
+            // open — so the read is answering from before it. Dropped rather
+            // than applied: what is already on screen is the last good day plus
+            // or minus the change, and that is nearer the truth than a snapshot
+            // taken before it. Nothing is lost — neither can happen against a
+            // day that never loaded, so there is always a day to keep.
+            guard removals == settled, folds == folded else {
                 status = .ready
                 return
             }
@@ -385,6 +395,7 @@ final class TodayRecord {
         }
         loadedDay = onDay
         status = .ready
+        folds += 1
     }
 
     private static let noBackend = "This build has no backend configured, so nothing can be logged."

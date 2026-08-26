@@ -806,6 +806,29 @@ struct TodayRecordTests {
         #expect(record.removeFailure != nil, "a removal that failed said nothing")
     }
 
+    @Test("a read that predates a craving does not take it back off the day")
+    func aStaleReadCannotUndoAFold() async {
+        // The fold's half of the race `removals` already covers. Home's read is
+        // in flight when somebody opens the craving screen and counts one; the
+        // read lands after, holding a snapshot from before the row existed, and
+        // applying it takes the craving off the day it was just recorded on.
+        let store = FakeCheckIns()
+        store.existing = [logged(1, mg: 3)]
+        let record = record(store)
+        await record.load()
+
+        store.readDelay = .milliseconds(300)
+        let reloading = Task { await record.load() }
+        await waitUntil { store.reads == 2 }
+        // `existing` is left alone on purpose: it is what the server hands back
+        // to a read taken before the craving was written.
+        record.fold(urge(2, on: day))
+        await reloading.value
+
+        #expect(record.entries.map(\.id) == [1, 2], "a read from before the craving dropped it")
+        #expect(record.status == .ready, "the day was left on a spinner")
+    }
+
     @Test("a read that predates a delete does not put the row back")
     func aStaleReadCannotResurrectARemovedRow() async {
         // The other end of the same race. `removing` says what is in flight

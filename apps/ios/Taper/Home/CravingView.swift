@@ -67,6 +67,7 @@ struct CravingView: View {
                     .overlay { Circle().strokeBorder(AppColor.line, lineWidth: 1) }
             }
             .buttonStyle(.plain)
+            .disabled(record.isWriting)
             .accessibilityIdentifier("craving.close")
             .accessibilityLabel("Close")
         }
@@ -186,6 +187,9 @@ struct CravingView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
+        // Dead while a write is in flight, for the close button's reason: a
+        // way off this screen that outruns its own row is a way to write two.
+        .disabled(record.isWriting)
         .accessibilityIdentifier("craving.iUsed")
     }
 
