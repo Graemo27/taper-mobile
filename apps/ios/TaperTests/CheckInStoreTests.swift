@@ -83,14 +83,21 @@ extension LiveBackendTests {
         // the shape the migration allows was still unreachable from the app.
         let (checkIns, _) = await checkInBackend()
 
-        let logged = try await checkIns.log(.urgePassed(on: Date()))
+        // One instant for the write and the read. Two `Date()` calls straddle
+        // midnight roughly once in a hundred thousand runs, and when they do
+        // the read asks a different day than the write answered — the same
+        // boundary `logged_on` exists to pin down, arriving in the test rather
+        // than in the column.
+        let moment = Date()
+
+        let logged = try await checkIns.log(.urgePassed(on: moment))
 
         #expect(logged.mg == 0, "an urge was written as a dose")
         #expect(logged.label == CheckInDraft.urgeLabel)
         #expect(logged.ledger == .treatment)
         // Read back rather than trusted from the insert's own echo: a null
         // foreign key is exactly the sort of thing a round trip settles.
-        let day = try await checkIns.entries(from: Date(), to: Date())
+        let day = try await checkIns.entries(from: moment, to: moment)
         #expect(day.contains { $0.label == CheckInDraft.urgeLabel },
                 "the urge did not come back with the day")
     }
