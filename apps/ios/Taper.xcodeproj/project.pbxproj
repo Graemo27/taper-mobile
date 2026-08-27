@@ -77,6 +77,7 @@
 		7CF719E37B2E4EE6A68A9849 /* PadRunTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92D1598E57443987CD03A24 /* PadRunTests.swift */; };
 		7D5853D0EC5928A2417B8C88 /* NewKeyDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C771B074CD11746F968D65 /* NewKeyDraft.swift */; };
 		7E3BAFF6DCCF66B5E244D5FC /* PastDaysRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E24D4F5D6154FF40A552901 /* PastDaysRecord.swift */; };
+		7F29A0C2C815666171FDC45B /* PadDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76DB41B0116FB55598DA8236 /* PadDrag.swift */; };
 		82ED837089810ACA49697660 /* LoggedViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 142258FC04253587205FEBFD /* LoggedViewTests.swift */; };
 		8520DB5858D703C0CB2182D4 /* NewTreatmentKeyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C851D90813354110CFD9B12 /* NewTreatmentKeyView.swift */; };
 		8AD4F01573512A6BFDF559EE /* NRTSearchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6998A66E4C83F21037164921 /* NRTSearchStore.swift */; };
@@ -115,6 +116,7 @@
 		C48674CC3D48E1D870373685 /* TaperPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */; };
 		C4D9601C5E217293592EBFCE /* CravingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D6C5DE45B13AB46F0884978 /* CravingView.swift */; };
 		C7BB569FEB8165AB4877C76F /* TodaySoFarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6058CD141DA498C70E6BC6C /* TodaySoFarCard.swift */; };
+		CDC8EF2B58F40CDD28B6E2A0 /* PadDragTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF243A154D57C68999E7C293 /* PadDragTests.swift */; };
 		CEA6557283AE356C66F04431 /* TaperPlanDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18DD771ED2E08D20CCDAB94 /* TaperPlanDraft.swift */; };
 		CFEAB6CF062FEBEBD67FFECD /* ProductDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B0DE07A9910EFCD0294569 /* ProductDetailView.swift */; };
 		D199EC3608A3A376198FE69B /* DayRollup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A58AB9858C32889C73D9F7 /* DayRollup.swift */; };
@@ -230,6 +232,7 @@
 		7647D93BDDDDB17B5CEDB528 /* Ginger.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ginger.otf; sourceTree = "<group>"; };
 		76A198F850C8A0E35AEF60BB /* PlanTabTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTabTests.swift; sourceTree = "<group>"; };
 		76BC345FB4EB1A7CD614AE13 /* TaperPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlanStore.swift; sourceTree = "<group>"; };
+		76DB41B0116FB55598DA8236 /* PadDrag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadDrag.swift; sourceTree = "<group>"; };
 		77C2C69AA733464C0B820675 /* LinearGrotesk-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "LinearGrotesk-Regular.otf"; sourceTree = "<group>"; };
 		78CFECFF581F116D3F38394B /* PlanHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanHistoryTests.swift; sourceTree = "<group>"; };
 		7ADF57D828C4F6D815EEE968 /* NRTSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NRTSearchTests.swift; sourceTree = "<group>"; };
@@ -276,6 +279,7 @@
 		C8CE03E1DFE9D4B43113814E /* PlanPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreview.swift; sourceTree = "<group>"; };
 		C92D1598E57443987CD03A24 /* PadRunTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadRunTests.swift; sourceTree = "<group>"; };
 		CC52BAFE9B1B5318358861DD /* TrendRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendRecordTests.swift; sourceTree = "<group>"; };
+		CF243A154D57C68999E7C293 /* PadDragTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadDragTests.swift; sourceTree = "<group>"; };
 		D0387430608B2CDAA738C73C /* TrendRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendRecord.swift; sourceTree = "<group>"; };
 		D1FCEA66261E0D1BADA40F2A /* TaperPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaperPlan.swift; sourceTree = "<group>"; };
 		D5640C541A8FE4D023E5B42B /* TodaySoFarCardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaySoFarCardTests.swift; sourceTree = "<group>"; };
@@ -415,6 +419,7 @@
 				E94FA2858738E07EB7BE1BCC /* NicotineMarkTests.swift */,
 				7ADF57D828C4F6D815EEE968 /* NRTSearchTests.swift */,
 				F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */,
+				CF243A154D57C68999E7C293 /* PadDragTests.swift */,
 				750CE3939D956A3FE695A30F /* PadEditRecordTests.swift */,
 				97B8A9244E6D32AD7E5A8592 /* PadKeyStoreTests.swift */,
 				91C35928EF74BBD4AF319497 /* PadKeyTests.swift */,
@@ -569,6 +574,7 @@
 				A6CC6A558C00EF7958DE8349 /* NewSourceKeyView.swift */,
 				3C851D90813354110CFD9B12 /* NewTreatmentKeyView.swift */,
 				FBD1FA4880F90D7EA4A5BA29 /* PadActionBar.swift */,
+				76DB41B0116FB55598DA8236 /* PadDrag.swift */,
 				84BC87C82DD90B48D155372C /* PadEditRecord.swift */,
 				023D87A309D4250BB9299DF8 /* PadKeyTile.swift */,
 				2A1EA9F6ED4DB4CA8CC73907 /* PadView.swift */,
@@ -738,6 +744,7 @@
 				AC3071CBF7BEEA7E474FE58C /* NewSourceDraftTests.swift in Sources */,
 				7BE5341D70A65DC5C4C1DBC3 /* NicotineMarkTests.swift in Sources */,
 				F27B8E52E6909FD0813F0402 /* OnboardingTests.swift in Sources */,
+				CDC8EF2B58F40CDD28B6E2A0 /* PadDragTests.swift in Sources */,
 				5B26C1AEE295FD87C99D59C0 /* PadEditRecordTests.swift in Sources */,
 				2F776532ECCCC2D5C65020EB /* PadKeyStoreTests.swift in Sources */,
 				F5D11A597CF3E5EF7925075B /* PadKeyTests.swift in Sources */,
@@ -801,6 +808,7 @@
 				6CEFD467EB5512459E0A15A6 /* OnboardingScaffold.swift in Sources */,
 				DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */,
 				484244286E837CD23F7A442B /* PadActionBar.swift in Sources */,
+				7F29A0C2C815666171FDC45B /* PadDrag.swift in Sources */,
 				94F1F6416013674F7EAA5DB2 /* PadEditRecord.swift in Sources */,
 				31F8639ED45E27F1E962635E /* PadKey.swift in Sources */,
 				9538768352F4B4C5F5BE0ED2 /* PadKeyStore.swift in Sources */,

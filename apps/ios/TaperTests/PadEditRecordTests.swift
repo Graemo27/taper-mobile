@@ -4,9 +4,13 @@ import Testing
 
 /// A store that records what it was asked to remove, and can refuse or stall.
 private final class FakeRemover: PadKeyWriting, @unchecked Sendable {
-    /// Unused here: this fake exists for the write under test, and the pad's
-    /// order is not it.
-    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] { [] }
+    private(set) var reordered: [[Int]] = []
+
+    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] {
+        lock.withLock { reordered.append(ids) }
+        if fails { throw URLError(.notConnectedToInternet) }
+        return []
+    }
 
     private let lock = NSLock()
     private var state = State()
@@ -198,5 +202,40 @@ struct PadEditRecordTests {
         #expect(edit.failure == PadEditRecord.Failure(
             keyID: 7, message: PadEditRecord.noBackend
         ))
+    }
+
+    @Test("an arrangement that lands says nothing")
+    func aSavedOrderIsNotAnEvent() async {
+        // The pad already moved when this is called, so success has nothing
+        // left to report: the thing somebody wanted to see happened before
+        // the request went out.
+        let store = FakeRemover()
+        let record = PadEditRecord(store: store)
+
+        #expect(await record.reorder([3, 1, 2]))
+        #expect(store.reordered == [[3, 1, 2]], "the arrangement was not sent whole")
+        #expect(record.failure == nil)
+    }
+
+    @Test("an arrangement that fails says the pad went back")
+    func theUndoIsPartOfTheMessage() async {
+        // Because it did go back — the caller reverts on false. Saying only
+        // "couldn't save" would leave somebody believing an arrangement they
+        // can no longer see is on its way.
+        let store = FakeRemover()
+        store.fails = true
+        let record = PadEditRecord(store: store)
+
+        #expect(await record.reorder([3, 1, 2]) == false)
+        #expect(record.failure?.message == PadEditRecord.orderNotSaved)
+        #expect(record.isReordering == false, "the pad was left unable to drag again")
+    }
+
+    @Test("a build with no backend cannot save an order either")
+    func nothingToArrangeInto() async {
+        let record = PadEditRecord(store: nil)
+
+        #expect(await record.reorder([1]) == false)
+        #expect(record.failure?.message == PadEditRecord.noBackend)
     }
 }

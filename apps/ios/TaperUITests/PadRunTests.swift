@@ -542,6 +542,80 @@ final class PadRunTests: TaperRunCase {
         XCTAssertTrue(end.isHittable, "the end of the pad could not be scrolled to")
     }
 
+    /// L3e's other half, driven: the pad is rearranged by hand and stays that
+    /// way across a relaunch.
+    ///
+    /// Only a run can show this. The gesture arithmetic is unit-tested and the
+    /// write is store-tested, but neither can say whether a drag on a real pad
+    /// reaches either of them — and the whole feature is a finger on a key.
+    func testAKeyCanBeDraggedToANewPlace() throws {
+        openTheLog()
+
+        // A second source, so there is an order to change. Typed rather than
+        // searched: what somebody is quitting never comes from a catalogue.
+        app.buttons["pad.addSource"].tap()
+        let cigarette = app.buttons["newSource.form.cigarettes"]
+        XCTAssertTrue(cigarette.waitForExistence(timeout: 5), "the add tile opened nothing")
+        cigarette.tap()
+        let addedMg = app.staticTexts["newSource.mg"].label
+        app.buttons["newSource.save"].tap()
+
+        let pouches = app.buttons[self.pouches]
+        XCTAssertTrue(pouches.waitForExistence(timeout: 10), "the seeded key is missing")
+        let addedLabel = "Cigarettes, \(addedMg) milligrams"
+        let added = app.buttons[addedLabel]
+        XCTAssertTrue(added.waitForExistence(timeout: 10), "the second source never landed")
+        XCTAssertLessThan(
+            pouches.frame.minX, added.frame.minX,
+            "the fixture does not start in the order this test is about to change"
+        )
+
+        pouches.press(forDuration: 1.0)
+        XCTAssertTrue(
+            app.buttons["pad.doneEditing"].waitForExistence(timeout: 5),
+            "a long press did not open edit mode"
+        )
+
+        // Onto the seat beside it, held long enough that the press is read as
+        // a drag rather than a tap.
+        pouches.press(forDuration: 0.6, thenDragTo: added)
+
+        XCTAssertTrue(
+            app.buttons[addedLabel].waitForExistence(timeout: 5),
+            "the pad stopped drawing its keys"
+        )
+        XCTAssertLessThan(
+            app.buttons[addedLabel].frame.minX,
+            app.buttons[self.pouches].frame.minX,
+            "the key did not move under the drag"
+        )
+
+        app.buttons["pad.doneEditing"].tap()
+
+        // The point of the write. A rearrangement that only lived on screen
+        // would look identical to a saved one until something re-read the pad,
+        // and leaving the tab is what does that — `task(id:)` reloads on the
+        // way back. A relaunch would prove more and cannot be used: this
+        // harness launches with the session forgotten, so the app would come
+        // back as a different anonymous person with no pad at all.
+        app.buttons["tab.home"].tap()
+        XCTAssertTrue(
+            app.buttons["home.craving"].waitForExistence(timeout: 10),
+            "home never appeared, so the pad was never left"
+        )
+        app.buttons["tab.log"].tap()
+
+        XCTAssertTrue(
+            app.buttons[addedLabel].waitForExistence(timeout: 10),
+            "the pad did not come back"
+        )
+        XCTAssertLessThan(
+            app.buttons[addedLabel].frame.minX,
+            app.buttons[self.pouches].frame.minX,
+            "the new order was not what the server sent back"
+        )
+    }
+
     func testAKeyCanBeTakenOffThePad() throws {
         // Until now every key was permanent. A mis-tapped "Add" stayed on the
         // pad for good, which is the thing that made this app not worth putting

@@ -152,6 +152,7 @@ struct TaperTabs: View {
                         if !pad.insert(stored) { Task { await pad.load() } }
                     },
                     edit: edit,
+                    onReseat: { ledger, ids in pad.reseat(ledger, to: ids) },
                     onKeyRemoved: { id in
                         // A failure is not proof the key survived. The delete
                         // may have committed and lost its answer, leaving the
