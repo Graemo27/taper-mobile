@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(85);
+select plan(86);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -765,6 +765,17 @@ select throws_like(
      $q$) $$,
   '%pad_keys_user_ledger_position_key%',
   'two keys in one ledger cannot hold the same seat');
+
+-- An owner holds `update` on their own rows, and the column is nullable so
+-- that inserts can decline to choose. Clearing a seat is neither: the pad
+-- decodes `position` as a plain Int, so a null would fail the read outright.
+select throws_like(
+  $$ select pg_temp.as_user('33333333-3333-3333-3333-333333333333', $q$
+       update public.pad_keys set position = null
+        where user_id = '33333333-3333-3333-3333-333333333333' and ledger = 'source'
+     $q$) $$,
+  '%cannot be left without a seat%',
+  'a key cannot be updated out of its seat');
 
 select lives_ok(
   $$ select pg_temp.as_user('33333333-3333-3333-3333-333333333333', $q$

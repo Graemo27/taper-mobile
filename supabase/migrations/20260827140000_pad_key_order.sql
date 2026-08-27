@@ -46,7 +46,13 @@ alter table public.pad_keys
 --
 -- `position` becomes nullable so a caller can decline to choose one, which is
 -- what the trigger below is for. Nullable in the column, never null in a row:
--- nothing that reaches the table keeps a null.
+-- the trigger fills it on insert and refuses it on update, so the loosened
+-- column is a way of saying "you pick" and not a way of storing nothing.
+--
+-- That distinction has to be enforced, not assumed. Owners hold `update` on
+-- their own rows, so without the update branch anyone could clear a seat —
+-- and `StoredPadKey.position` is not optional, so a null would not merely
+-- sort oddly, it would fail the decode and take the whole pad read with it.
 alter table public.pad_keys
   alter column position drop not null,
   alter column position drop default;
@@ -61,6 +67,9 @@ create function public.place_pad_key() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
   if new.position is null then
+    if tg_op = 'UPDATE' then
+      raise exception 'pad_keys: a key cannot be left without a seat';
+    end if;
     perform pg_advisory_xact_lock(hashtext(new.user_id::text || ':' || new.ledger));
     select coalesce(max(position), -1) + 1 into new.position
       from public.pad_keys
@@ -69,8 +78,10 @@ begin
   return new;
 end $$;
 
+-- Both operations, for the reason above: insert is where a seat is given,
+-- update is where one could be taken away.
 create trigger pad_keys_place
-  before insert on public.pad_keys
+  before insert or update of position on public.pad_keys
   for each row execute function public.place_pad_key();
 
 -- Reordering, as one statement.
