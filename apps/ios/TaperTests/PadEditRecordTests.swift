@@ -8,6 +8,7 @@ private final class FakeRemover: PadKeyWriting, @unchecked Sendable {
 
     func reorder(_ ids: [Int]) async throws -> [StoredPadKey] {
         lock.withLock { reordered.append(ids) }
+        while holds { await Task.yield() }
         if fails { throw URLError(.notConnectedToInternet) }
         return []
     }
@@ -57,6 +58,13 @@ private final class FakeRemover: PadKeyWriting, @unchecked Sendable {
 private final class Outcome {
     var decided = false
     var value: Int?
+}
+
+/// The same idea as `Outcome`, for a call that answers with a Bool.
+@MainActor
+private final class Refusal {
+    var decided = false
+    var value = true
 }
 
 /// Waits with a deadline, so a condition that never comes reports rather than
@@ -229,6 +237,45 @@ struct PadEditRecordTests {
         #expect(await record.reorder([3, 1, 2]) == false)
         #expect(record.failure?.message == PadEditRecord.orderNotSaved)
         #expect(record.isReordering == false, "the pad was left unable to drag again")
+    }
+
+    @Test("one arrangement at a time, however fast the second is asked for")
+    func twoWritesInFlightWouldRaceEachOther() async {
+        // Two whole-ledger writes land in whichever order the network chose,
+        // so the older one can be the last word. The drag's own gesture
+        // refuses a second drag, but the accessibility actions beside it are
+        // two taps with nothing between them — and the record is what both go
+        // through.
+        let store = FakeRemover()
+        store.holds = true
+        let record = PadEditRecord(store: store)
+
+        let first = Task { await record.reorder([2, 1]) }
+        let deadline = Date().addingTimeInterval(2)
+        while store.reordered.isEmpty, Date() < deadline { await Task.yield() }
+        #expect(record.isReordering, "the first write never started")
+
+        // Started rather than awaited: with the guard missing this reaches
+        // the held write and sits there, and a test that hangs teaches
+        // nothing. The wait ends on whichever answer arrives — refused, so
+        // the task finishes without touching the store, or accepted, so the
+        // store sees a second arrangement.
+        let outcome = Refusal()
+        let second = Task { @MainActor in
+            outcome.value = await record.reorder([1, 2])
+            outcome.decided = true
+        }
+        let secondDeadline = Date().addingTimeInterval(3)
+        while !outcome.decided, store.reordered.count < 2, Date() < secondDeadline {
+            await Task.yield()
+        }
+        #expect(outcome.decided, "the second arrangement reached the store instead of being refused")
+        #expect(outcome.value == false)
+        #expect(store.reordered == [[2, 1]], "two arrangements reached the server")
+
+        store.holds = false
+        _ = await second.value
+        #expect(await first.value)
     }
 
     @Test("a build with no backend cannot save an order either")
