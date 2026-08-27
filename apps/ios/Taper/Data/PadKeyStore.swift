@@ -20,6 +20,16 @@ struct StoredPadKey: Decodable, Equatable, Sendable {
 
     var ledger: PadKey.Ledger { form.ledger }
 
+    /// The same key, drawn at a different seat.
+    ///
+    /// Used to move a key under a finger before the write that makes it true.
+    /// A whole value rather than a mutable `position`, so the only way to
+    /// change a key's seat is to say which one — there is no half-updated key.
+    func seated(at position: Int) -> StoredPadKey {
+        StoredPadKey(id: id, form: form, label: label, mg: mg,
+                     position: position, ndc: ndc)
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, form, label, mg, position, ndc
     }
@@ -65,6 +75,17 @@ protocol PadKeyWriting: Sendable {
     /// enumerate it, so a gap where a key was is not a state to repair — and
     /// repairing it would mean rewriting every row after it for nothing.
     func remove(_ id: Int) async throws
+
+    /// Seats one ledger in the order given, and returns it as stored.
+    ///
+    /// The whole ledger, every time. A partial list would strand the keys it
+    /// omits on seats the listed ones now want, and the database refuses it —
+    /// so the caller sends the arrangement rather than the change.
+    ///
+    /// One request, because it is one decision. Sent as N updates it would be
+    /// N chances to leave the pad half-rearranged, and there is no arrangement
+    /// half of a drag is supposed to produce.
+    func reorder(_ ids: [Int]) async throws -> [StoredPadKey]
 }
 
 /// Reading the pad already on file.
@@ -162,6 +183,19 @@ extension SupabasePadKeyStore {
             throw PadKeyWriteFailure.keyWasNotWritten
         }
         return stored
+    }
+
+    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] {
+        guard !ids.isEmpty else { return [] }
+        return try await session.authenticated { _ in
+            // Through the function rather than as updates: PostgREST cannot
+            // wrap several of those in a transaction. `security invoker`, so
+            // it can only move rows RLS would already have let us update.
+            try await client
+                .rpc("reorder_pad_keys", params: ReorderParams(keyIDs: ids))
+                .execute()
+                .value
+        }
     }
 
     func remove(_ id: Int) async throws {
@@ -262,5 +296,14 @@ private struct PadKeyRow: Encodable {
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
         case ledger, label, form, mg, position, ndc
+    }
+}
+
+/// The reorder function's one argument, named the way Postgres names it.
+private struct ReorderParams: Encodable {
+    let keyIDs: [Int]
+
+    enum CodingKeys: String, CodingKey {
+        case keyIDs = "key_ids"
     }
 }

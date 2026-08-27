@@ -460,3 +460,78 @@ struct EndOfPadTests {
         #expect(PadView.endOfPad(Pad(keys: [])) == nil)
     }
 }
+
+/// Covers reseating a ledger: the local half of dragging a key to a new
+/// place, and the exactness the write's undo depends on.
+@MainActor
+struct PadReorderTests {
+    /// A record holding a ready pad, the way every other test here gets one.
+    private func loaded(_ keys: [StoredPadKey]) async -> PadRecord {
+        let reader = FakeReader()
+        reader.keys = keys
+        let record = PadRecord(store: reader)
+        await record.load()
+        return record
+    }
+
+    private func sources(_ record: PadRecord) -> [StoredPadKey] {
+        guard case let .ready(pad) = record.status else { return [] }
+        return pad.sources
+    }
+
+    private func treatment(_ record: PadRecord) -> [StoredPadKey] {
+        guard case let .ready(pad) = record.status else { return [] }
+        return pad.treatment
+    }
+
+    @Test("a ledger can be reseated locally, before the write says so")
+    func aDragMovesUnderTheFinger() async {
+        // Local and immediate on purpose: a key that waits for a round trip
+        // before it moves is a key that feels stuck.
+        let record = await loaded([
+            key(1, .pouch, position: 0), key(2, .vape, position: 1),
+            key(3, .dip, position: 2), key(9, .lozenge, position: 0),
+        ])
+
+        let previous = record.reseat(.source, to: [3, 1, 2])
+
+        #expect(previous == [1, 2, 3], "the order it replaced was not reported")
+        #expect(sources(record).map(\.id) == [3, 1, 2])
+        #expect(sources(record).map(\.position) == [0, 1, 2],
+                "the keys moved but kept their old seats")
+        #expect(treatment(record).map(\.id) == [9],
+                "reseating one ledger disturbed the other")
+    }
+
+    @Test("the order it replaced is what puts the pad back")
+    func aFailedWriteIsUndoable() async {
+        // The write follows the drag, so the undo has to be exact. Re-reading
+        // instead would ask the server what it thinks while the failed write
+        // is still in the air.
+        let record = await loaded([key(1, .pouch, position: 0), key(2, .vape, position: 1)])
+
+        let previous = record.reseat(.source, to: [2, 1])
+        #expect(sources(record).map(\.id) == [2, 1])
+
+        record.reseat(.source, to: previous ?? [])
+        #expect(sources(record).map(\.id) == [1, 2], "the pad did not go back")
+    }
+
+    @Test("a list that is not the ledger's own is refused")
+    func halfAnArrangementIsWorseThanNone() async {
+        // A short list would drop a key off the pad and a strange id would
+        // seat something that is not there. Both are worse than a drag that
+        // does nothing, and both are what a bug upstream would produce.
+        let record = await loaded([key(1, .pouch, position: 0), key(2, .vape, position: 1)])
+
+        #expect(record.reseat(.source, to: [2]) == nil, "a key was dropped off the pad")
+        #expect(record.reseat(.source, to: [1, 2, 7]) == nil, "a stranger was seated")
+        #expect(record.reseat(.source, to: [1, 1]) == nil, "one key was seated twice")
+        #expect(sources(record).map(\.id) == [1, 2], "a refused list still moved the pad")
+    }
+
+    @Test("there is nothing to reseat before the pad has loaded")
+    func anUnreadPadIsNotAnEmptyOne() {
+        #expect(PadRecord(store: nil).reseat(.source, to: [1]) == nil)
+    }
+}
