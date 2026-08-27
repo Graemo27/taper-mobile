@@ -37,6 +37,8 @@ struct TaperTabs: View {
     @State private var edit: PadEditRecord
     @State private var pad: PadRecord
     @State private var today: TodayRecord
+    /// The daily check-in's answer, kept for the session like the rest.
+    @State private var rating: DayRatingRecord
     /// The craving being got through, if one is open.
     ///
     /// Built on the way in and dropped on the way out rather than kept for the
@@ -50,6 +52,7 @@ struct TaperTabs: View {
         self.stores = stores
         _pad = State(initialValue: PadRecord(store: stores?.pad))
         _today = State(initialValue: TodayRecord(store: stores?.checkIns))
+        _rating = State(initialValue: DayRatingRecord(store: stores?.ratings))
         _search = State(initialValue: TreatmentSearchRecord(search: stores?.nrt))
         _edit = State(initialValue: PadEditRecord(store: stores?.pad))
         _pastDays = State(initialValue: PastDaysRecord(
@@ -108,6 +111,7 @@ struct TaperTabs: View {
                         progress: progress,
                         today: today,
                         pad: padKeys,
+                        rating: rating,
                         onCheckIn: { selection = .log },
                         onSeeHistory: { isShowingToday = true },
                         onCraving: { craving = CravingRecord(store: stores?.checkIns) }
@@ -189,6 +193,7 @@ struct TaperTabs: View {
             case .home:
                 await today.load()
                 await pad.load()
+                await rating.load()
             case .log:
                 await pad.load()
                 await today.load()

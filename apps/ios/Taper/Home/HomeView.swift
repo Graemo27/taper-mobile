@@ -3,9 +3,9 @@ import SwiftUI
 /// L1 — where the app opens once there is a plan: the day, the countdown and
 /// today's cap.
 ///
-/// Deliberately a subset of the board, because the daily check-in needs a table
-/// that does not exist yet, and a control that cannot do its job is worse than
-/// an absent one.
+/// Deliberately a subset of the board still: nicotine over time — the graph —
+/// is the one surface left to build, and a control that cannot do its job is
+/// worse than an absent one.
 struct HomeView: View {
     let progress: PlanProgress
     /// Today, for the tracking card. Passed rather than made here, because the
@@ -15,6 +15,9 @@ struct HomeView: View {
     /// The pad, for the card's per-key breakdown. Nil while unknown, and the
     /// card draws no row rather than a row of zeros.
     let pad: Pad?
+    /// The daily check-in's state, owned above for the pad's reason: one per
+    /// session, so an answer survives a tab switch.
+    let rating: DayRatingRecord
     /// Switches to the log tab. Home does not own the selection, so the card's
     /// button reports the intent and lets the bar act on it.
     let onCheckIn: () -> Void
@@ -26,20 +29,28 @@ struct HomeView: View {
     let onCraving: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            dayPill
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.top, AppSpacing.smPlus)
+        // A scroll, from this card on: the check-in made home taller than a
+        // screen, which is the board's own shape — L2 is home scrolled. The
+        // alternative was compression, which SwiftUI performs silently by
+        // squeezing whatever yields first, and a button squeezed to nothing
+        // still passes every test that does not try to press it.
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                dayPill
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.top, AppSpacing.smPlus)
 
-            cravingHero.padding(.top, AppSpacing.xxl)
-            tiles.padding(.top, AppSpacing.xl)
-            tracking.padding(.top, AppSpacing.xxl)
-            unbuilt.padding(.top, AppSpacing.xxl)
-
-            Spacer(minLength: 0)
+                cravingHero.padding(.top, AppSpacing.xxl)
+                tiles.padding(.top, AppSpacing.xl)
+                checkIn.padding(.top, AppSpacing.xxl)
+                tracking.padding(.top, AppSpacing.xxl)
+                unbuilt.padding(.top, AppSpacing.xxl)
+                    .padding(.bottom, AppSpacing.xxl)
+            }
+            .padding(.horizontal, AppLayout.gutter)
         }
-        .padding(.horizontal, AppLayout.gutter)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColor.ground)
     }
 
@@ -156,6 +167,17 @@ struct HomeView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// The daily check-in, between the tiles and the tracking — the board's
+    /// order, which puts the question about the day above the numbers of it.
+    private var checkIn: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Daily check-in")
+                .font(AppFont.text(AppSize.label, .medium))
+                .foregroundStyle(AppColor.ink)
+            DailyCheckInCard(record: rating)
+        }
+    }
+
     /// L2's tracking section: the eyebrow, then the card.
     ///
     /// The one figure on this screen that needs a request. It is read here
@@ -188,8 +210,7 @@ struct HomeView: View {
     /// once it is quietly wrong.
     private var unbuilt: some View {
         Text("""
-        The daily check-in still belongs here, and nicotine over time — the week against the \
-        stepping cap — goes below the card.
+        Nicotine over time — the week against the stepping cap — still goes below the card.
         """)
             .font(AppFont.text(AppSize.caption))
             .lineSpacing(AppLeading.snug - AppSize.caption)
@@ -246,5 +267,6 @@ private struct CrestMark: View {
             sickInBed: true
         ),
         today: Date()
-    )!, today: TodayRecord(store: nil), pad: nil, onCheckIn: {}, onSeeHistory: {}, onCraving: {})
+    )!, today: TodayRecord(store: nil), pad: nil, rating: DayRatingRecord(store: nil),
+       onCheckIn: {}, onSeeHistory: {}, onCraving: {})
 }

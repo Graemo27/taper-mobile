@@ -161,37 +161,55 @@ struct TodaySoFarCard: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// One bordered run of equal columns, the board's counts row.
+    /// The board's counts row, wrapped into runs of three.
+    ///
+    /// The pad has no key limit, and a single HStack divides its fixed width
+    /// by however many keys exist — seven keys would squeeze every word to an
+    /// ellipsis. Three per row is the board's own density, and a fourth key
+    /// starts a second row inside the same border.
     private func countsRow(_ breakdown: DayBreakdown) -> some View {
-        HStack(spacing: 0) {
-            ForEach(Array(breakdown.columns.enumerated()), id: \.element.keyID) { index, column in
-                VStack(spacing: AppSpacing.xxs) {
-                    Text(column.countText)
-                        .font(AppFont.display(AppSize.title))
-                        .foregroundStyle(AppColor.ink)
-                    Text(column.word)
-                        .font(AppFont.text(AppSize.caption))
-                        .foregroundStyle(AppColor.inkMuted)
-                    Text(column.strengthText)
-                        .font(AppFont.text(AppSize.nano, .medium))
-                        .foregroundStyle(column.isUntouched ? AppColor.inkFaint : AppColor.ink)
+        let rows = stride(from: 0, to: breakdown.columns.count, by: 3).map {
+            Array(breakdown.columns[$0..<min($0 + 3, breakdown.columns.count)])
+        }
+        return VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { rowIndex, row in
+                if rowIndex > 0 {
+                    Rectangle().fill(AppColor.line).frame(height: 1)
                 }
-                .frame(maxWidth: .infinity)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(column.count) \(column.word), \(column.strengthText) each")
-
-                if index < breakdown.columns.count - 1 {
-                    Rectangle().fill(AppColor.line).frame(width: 1)
+                HStack(spacing: 0) {
+                    ForEach(Array(row.enumerated()), id: \.element.keyID) { index, column in
+                        countColumn(column)
+                        if index < row.count - 1 {
+                            Rectangle().fill(AppColor.line).frame(width: 1)
+                        }
+                    }
                 }
+                .padding(.vertical, AppSpacing.mPlus)
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, AppSpacing.mPlus)
-        .fixedSize(horizontal: false, vertical: true)
         .background {
             RoundedRectangle(cornerRadius: AppRadius.medium)
                 .strokeBorder(AppColor.line, lineWidth: 1)
         }
         .accessibilityIdentifier("home.breakdown")
+    }
+
+    private func countColumn(_ column: DayBreakdown.Column) -> some View {
+        VStack(spacing: AppSpacing.xxs) {
+            Text(column.countText)
+                .font(AppFont.display(AppSize.title))
+                .foregroundStyle(AppColor.ink)
+            Text(column.word)
+                .font(AppFont.text(AppSize.caption))
+                .foregroundStyle(AppColor.inkMuted)
+            Text(column.strengthText)
+                .font(AppFont.text(AppSize.nano, .medium))
+                .foregroundStyle(column.isUntouched ? AppColor.inkFaint : AppColor.ink)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(column.count) \(column.word), \(column.strengthText) each")
     }
 
     /// The crest beside the count, the same wave the craving button wears.
