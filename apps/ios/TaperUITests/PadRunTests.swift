@@ -616,13 +616,16 @@ extension PadRunTests {
         XCTAssertTrue(home.waitForExistence(timeout: 10))
         sleep(2)
         home.swipeUp()
-        save(app.screenshot(), as: "home-middle")
+        try save(app.screenshot(), as: "home-middle")
         home.swipeUp()
-        save(app.screenshot(), as: "home-bottom")
+        try save(app.screenshot(), as: "home-bottom")
     }
 
-    private func save(_ screenshot: XCUIScreenshot, as name: String) {
-        try? screenshot.pngRepresentation.write(
+    /// Throws rather than shrugging: a screenshot test that cannot write its
+    /// screenshots has produced nothing, and passing anyway would report the
+    /// artifacts exist when they do not.
+    private func save(_ screenshot: XCUIScreenshot, as name: String) throws {
+        try screenshot.pngRepresentation.write(
             to: URL(fileURLWithPath: "/tmp/taper-\(name).png"))
     }
 }

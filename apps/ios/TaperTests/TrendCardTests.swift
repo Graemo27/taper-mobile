@@ -20,6 +20,14 @@ struct TrendCardTests {
         let unread = TrendRecord(checkIns: nil, plans: nil)
         #expect(TrendCard(record: unread, todayEntries: []).captionText == "Reading the week…")
 
+        // A build with no backend is not a bad connection: "try again" on it
+        // would ask somebody to retry a fact. Before this said anything, the
+        // card sat on "Reading the week…" forever.
+        await unread.load()
+        #expect(TrendCard(record: unread, todayEntries: []).captionText
+                == TrendRecord.noBackend)
+        #expect(unread.isUnavailable)
+
         let failed = TrendRecord(checkIns: RefusingDays(), plans: EmptyVersions())
         await failed.load()
         #expect(TrendCard(record: failed, todayEntries: []).captionText

@@ -31,8 +31,11 @@ enum TrendSpan: Int, CaseIterable, Sendable {
 @MainActor
 final class TrendRecord {
     /// Separate from an empty trend: a week with nothing logged is an
-    /// ordinary week, a week that could not be read is an apology.
+    /// ordinary week, a week that could not be read is an apology. The text
+    /// says which apology — a build with no backend is not a bad connection,
+    /// and "try again" on it would be asking somebody to retry a fact.
     private(set) var isUnavailable = false
+    private(set) var apologyText: String?
     private(set) var span: TrendSpan = .week
 
     /// The finished days in hand, oldest first, and the window they answer
@@ -92,7 +95,12 @@ final class TrendRecord {
 
     /// Reads the window, once per (yesterday, span).
     func load() async {
-        guard let checkIns, let plans, let window = currentWindow else { return }
+        guard let checkIns, let plans else {
+            isUnavailable = true
+            apologyText = Self.noBackend
+            return
+        }
+        guard let window = currentWindow else { return }
         guard loaded != window else { return }
         loaded = window
 
@@ -120,6 +128,7 @@ final class TrendRecord {
             history = read
             pastWindow = window
             isUnavailable = false
+            apologyText = nil
         } catch {
             guard currentWindow == window else { return }
             // Forgotten either way, so coming back re-reads: the cache stops
@@ -136,8 +145,13 @@ final class TrendRecord {
                 pastWindow = nil
             }
             isUnavailable = pastDays == nil
+            apologyText = isUnavailable
+                ? "Couldn't load the \(span.word.lowercased()). Check your connection and try again."
+                : nil
         }
     }
+
+    static let noBackend = "This build has no backend configured, so there is nothing to draw."
 
     /// Yesterday and the reach, or nil before there is a yesterday.
     private var currentWindow: Window? {

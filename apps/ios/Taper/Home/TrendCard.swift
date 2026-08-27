@@ -148,11 +148,8 @@ struct TrendCard: View {
     /// The noun is the span's own: a failed month called "the week" says the
     /// wrong thing about what is missing.
     var captionText: String {
-        let noun = record.span.word.lowercased()
-        if record.isUnavailable {
-            return "Couldn't load the \(noun). Check your connection and try again."
-        }
-        return trend?.caption ?? "Reading the \(noun)…"
+        if let apology = record.apologyText { return apology }
+        return trend?.caption ?? "Reading the \(record.span.word.lowercased())…"
     }
 
     /// The chart in words: the heading's verdict and the caption's count are
