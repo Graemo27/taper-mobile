@@ -129,7 +129,7 @@ struct SupabasePadKeyStore: PadKeyWriting, PadKeyReading {
         return try await session.authenticated { userID in
             try await client
                 .from("pad_keys")
-                .insert(keys.map { PadKeyRow(key: $0, userID: userID) })
+                .insert(keys.map { PadKeyRow(key: $0, userID: userID, position: $0.position) })
                 .select()
                 .order("position")
                 .execute()
@@ -140,27 +140,16 @@ struct SupabasePadKeyStore: PadKeyWriting, PadKeyReading {
 
 extension SupabasePadKeyStore {
     func add(_ key: PadKey, ndc: String?) async throws -> StoredPadKey {
-        // The position is read rather than sent by the caller: the pad draws
-        // each ledger numbered from zero, and a screen that has not looked at
-        // the other ledger cannot know where its own ends.
-        //
-        // Check-then-act, like `seed`, and the same race with the same bound:
-        // two adds close enough together both read the same last position and
-        // both take it. Postgres has no unique index on it — two keys may
-        // legitimately share a position while a pad is being reordered — so
-        // the cost is a pair drawn in an arbitrary order, not a failed write
-        // or a lost key. The durable fix is a generated position, which is a
-        // migration rather than a client change.
-        let existing = try await currentKeys().filter { $0.form.ledger == key.ledger }
-        let placed = PadKey(
-            form: key.form, label: key.label, mg: key.mg,
-            position: (existing.map(\.position).max() ?? -1) + 1
-        )
-
+        // No position sent, and that is the fix for #126's race. This used to
+        // read the last position and add one — check-then-act, so two adds
+        // close enough together both read the same number and both took it.
+        // The seat is now assigned by a trigger holding an advisory lock on
+        // the user's own ledger, which is the only place the two writers can
+        // be made to take turns.
         let rows: [StoredPadKey] = try await session.authenticated { userID in
             try await client
                 .from("pad_keys")
-                .insert([PadKeyRow(key: placed, userID: userID, ndc: ndc)])
+                .insert([PadKeyRow(key: key, userID: userID, ndc: ndc, position: nil)])
                 .select()
                 .execute()
                 .value
@@ -248,10 +237,13 @@ private struct PadKeyRow: Encodable {
     let label: String
     let form: String
     let mg: Double
-    let position: Int
+    /// Nil to let the database seat it, which is how `add` avoids the race
+    /// that used to let two keys claim one position. `seed` still names them:
+    /// onboarding is defining an order, not appending to one.
+    let position: Int?
     let ndc: String?
 
-    init(key: PadKey, userID: UUID, ndc: String? = nil) {
+    init(key: PadKey, userID: UUID, ndc: String? = nil, position: Int?) {
         self.userID = userID
         // Both halves off the same value, so the pair the table checks cannot
         // be written in disagreement.
@@ -259,7 +251,7 @@ private struct PadKeyRow: Encodable {
         form = key.form.rawValue
         label = key.label
         mg = key.mg
-        position = key.position
+        self.position = position
         // Trimmed to nil rather than sent empty: the column's check refuses a
         // blank string, so an empty one would fail the whole insert where
         // "this key came from nowhere" is exactly what null already says.

@@ -172,53 +172,39 @@ extension LiveBackendTests {
         #expect(stored.ndc == nil, "whitespace was written as an NDC")
     }
 
-    @Test("a key that leaves a tie and comes back does not lose its place",
+    @Test("a tie cannot be made any more, which is what lets order be edited",
           .enabled(if: LocalBackend.isAvailable))
-    func tiedPositionsDrawInTheOrderTheyWereMade() async throws {
-        // `position` is not unique — two `add` calls close enough together both
-        // read the same last one — and Postgres promises nothing about the
-        // order of tied rows.
+    func theTieIsRefusedRatherThanTolerated() async throws {
+        // This test used to prove the opposite: that `position` was not unique
+        // and the pad survived a tie by breaking it on id. The reasoning is
+        // worth keeping because it is why the tie mattered at all.
         //
-        // It takes a *non-HOT* update to see it, which is why this moves
-        // `position` rather than something cheaper. An ordinary column update
-        // stays on its page and leaves every index entry alone, so an index
-        // scan still yields the original order and the pad looks stable whether
-        // or not anything breaks the tie. Rewriting an indexed column reinserts
-        // the entry at the end of its equal-key group, and the row jumps to the
-        // back of the pad.
-        //
-        // That is not a hypothetical write: it is precisely what reordering the
-        // pad does, which is the feature this ordering has to survive.
-        let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
-        try? await client.auth.signOut(scope: .local)
-        let store = SupabasePadKeyStore(
-            client: client,
-            session: SessionCoordinator(auth: SupabaseAnonymousAuth(client: client))
-        )
-        let seeded = try await store.seed([
-            PadKey(form: .gum, label: "First", mg: 2, position: 0),
-            PadKey(form: .lozenge, label: "Second", mg: 4, position: 0),
-            PadKey(form: .patch, label: "Third", mg: 21, position: 0),
-        ])
-        #expect(Set(seeded.map(\.position)) == [0], "the fixture must tie every position")
+        // It takes a *non-HOT* update to see a tie go wrong. An ordinary
+        // column update stays on its page and leaves every index entry alone,
+        // so an index scan still yields the original order and the pad looks
+        // stable whether or not anything breaks the tie. Rewriting an indexed
+        // column reinserts the entry at the end of its equal-key group, and a
+        // tied row jumps to the back of the pad — which is precisely what
+        // reordering does. Tolerating ties and letting the user *set* the
+        // order could not both be true, so the tie is now refused.
+        let store = await padStore()
 
-        let before = try await store.currentKeys()
-        #expect(before.count == 3, "the fixture did not land")
-        let moved = try #require(before.first)
-
-        for position in [1, 0] {
-            let rewritten: [StoredPadKey] = try await client.from("pad_keys")
-                .update(["position": position])
-                .eq("id", value: moved.id)
-                .select()
-                .execute()
-                .value
-            #expect(rewritten.map(\.id) == [moved.id],
-                    "the update did not rewrite exactly the key it was given")
+        await #expect(throws: (any Error).self) {
+            _ = try await store.seed([
+                PadKey(form: .gum, label: "First", mg: 2, position: 0),
+                PadKey(form: .lozenge, label: "Second", mg: 4, position: 0),
+            ])
         }
 
-        #expect(try await store.currentKeys().map(\.id) == before.map(\.id),
-                "a key that left the tie came back at the end of the pad")
+        // A seat is per ledger, so the same number in the other one is fine —
+        // and is what every pad in the app actually looks like.
+        let seeded = try await store.seed([
+            PadKey(form: .gum, label: "Gum", mg: 2, position: 0),
+            PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0),
+        ])
+        #expect(seeded.count == 2)
+
+        for key in try await store.currentKeys() { try await store.remove(key.id) }
     }
 
     @Test("a key can be taken off the pad, and stays off",
@@ -361,5 +347,59 @@ extension LiveBackendTests {
         await #expect(throws: (any Error).self) {
             try await client.auth.session
         }
+    }
+
+    @Test("a key is seated by the database, at the end of its own ledger",
+          .enabled(if: LocalBackend.isAvailable))
+    func theSeatIsNotTheClientsToChoose() async throws {
+        // #126's race, closed where it had to be. The client used to read the
+        // last position and add one — check-then-act, so two adds close
+        // enough together both took the same seat. It sends no position now.
+        let store = await padStore()
+        _ = try await store.seed([
+            PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0),
+            PadKey(form: .lozenge, label: "Lozenge", mg: 4, position: 0),
+        ])
+
+        let added = try await store.add(
+            PadKey(form: .vape, label: "Vape", mg: 2, position: 99), ndc: String?.none
+        )
+
+        #expect(added.position == 1, "the client's own number reached the row")
+
+        let pad = Pad(keys: try await store.currentKeys())
+        #expect(pad.sources.map(\.label) == ["Pouches", "Vape"])
+        #expect(pad.treatment.map(\.position) == [0],
+                "the ledgers were seated against each other")
+
+        for key in try await store.currentKeys() { try await store.remove(key.id) }
+    }
+
+    @Test("two adds at once take different seats",
+          .enabled(if: LocalBackend.isAvailable))
+    func theRaceIsClosedRatherThanNarrowed() async throws {
+        // The failure this migration exists for. Run concurrently, the old
+        // read-then-add gave both keys the same position; the trigger's
+        // advisory lock makes them take turns. Ten so the window is not
+        // squinted at.
+        let store = await padStore()
+        _ = try await store.seed([PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0)])
+
+        await withTaskGroup(of: Void.self) { group in
+            for index in 1...10 {
+                group.addTask {
+                    _ = try? await store.add(
+                        PadKey(form: .vape, label: "Vape \(index)", mg: 2, position: 0), ndc: String?.none
+                    )
+                }
+            }
+        }
+
+        let seats = Pad(keys: try await store.currentKeys()).sources.map(\.position)
+        #expect(seats.count == 11)
+        #expect(Set(seats).count == seats.count, "two keys claimed one seat")
+        #expect(seats.sorted() == Array(0...10), "the ledger has gaps or repeats")
+
+        for key in try await store.currentKeys() { try await store.remove(key.id) }
     }
 }

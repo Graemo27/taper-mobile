@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(75);
+select plan(85);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -704,6 +704,119 @@ $$), 1, 'one user''s intent id does not collide with another''s');
 select is(pg_temp.as_user('11111111-1111-1111-1111-111111111111', $$
   select * from public.check_ins where request_id is not null
 $$), 1, 'and neither user can see the other''s');
+
+-- Pad order: a fact the database keeps.
+--
+-- Its own user, because the suite above has already given users 1 and 2 pad
+-- keys and these assertions are about a whole ledger's seating.
+insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
+values ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
+        'authenticated', 'authenticated', now(), now(), true)
+on conflict (id) do nothing;
+
+-- Runs a statement with the position constraint checked immediately. The
+-- constraint is `initially deferred` so a reorder can pass through a shared
+-- seat, which also means a plain duplicate insert raises nothing until commit
+-- — and pgTAP never commits. This is how the rule is driven rather than
+-- merely declared.
+create function pg_temp.as_user_now(uid text, stmt text) returns int as $$
+declare n int;
+begin
+  execute 'set local role authenticated';
+  execute format('set local request.jwt.claims = %L',
+                 json_build_object('sub', uid, 'role', 'authenticated')::text);
+  execute 'set constraints public.pad_keys_user_ledger_position_key immediate';
+  execute stmt;
+  get diagnostics n = row_count;
+  execute 'set constraints public.pad_keys_user_ledger_position_key deferred';
+  execute 'reset role';
+  return n;
+exception when others then
+  execute 'set constraints public.pad_keys_user_ledger_position_key deferred';
+  execute 'reset role';
+  raise;
+end $$ language plpgsql;
+
+select is(pg_temp.as_user('33333333-3333-3333-3333-333333333333', $$
+  insert into public.pad_keys (user_id, ledger, label, form, mg)
+  values ('33333333-3333-3333-3333-333333333333', 'source', 'Pouches', 'pouch', 6),
+         ('33333333-3333-3333-3333-333333333333', 'source', 'Vape', 'vape', 2),
+         ('33333333-3333-3333-3333-333333333333', 'treatment', 'Lozenge', 'lozenge', 4)
+$$), 3, 'a key can be added without naming its own seat');
+
+-- The trigger's advisory lock is what makes allocation atomic, and a
+-- single-session suite cannot race to prove it. What it can see is the trace:
+-- the lock is transaction-scoped, so it is still held here. Without it the
+-- allocation still works in one session and nothing else here would notice.
+select isnt_empty(
+  $$ select 1 from pg_locks where locktype = 'advisory' $$,
+  'adding a key takes the lock that makes two concurrent adds safe');
+
+select results_eq(
+  $$ select ledger, position::int from public.pad_keys
+      where user_id = '33333333-3333-3333-3333-333333333333' order by ledger, position $$,
+  $$ values ('source', 0), ('source', 1), ('treatment', 0) $$,
+  'each ledger is seated from zero, and they do not share a numbering');
+
+select throws_like(
+  $$ select pg_temp.as_user_now('33333333-3333-3333-3333-333333333333', $q$
+       insert into public.pad_keys (user_id, ledger, label, form, mg, position)
+       values ('33333333-3333-3333-3333-333333333333', 'source', 'Dip', 'dip', 3, 0)
+     $q$) $$,
+  '%pad_keys_user_ledger_position_key%',
+  'two keys in one ledger cannot hold the same seat');
+
+select lives_ok(
+  $$ select pg_temp.as_user('33333333-3333-3333-3333-333333333333', $q$
+       select public.reorder_pad_keys(array(
+         select id from public.pad_keys
+          where user_id = '33333333-3333-3333-3333-333333333333' and ledger = 'source'
+          order by position desc))
+     $q$) $$,
+  'a reorder passes through a shared seat without being refused');
+
+select results_eq(
+  $$ select label from public.pad_keys
+      where user_id = '33333333-3333-3333-3333-333333333333' and ledger = 'source'
+      order by position $$,
+  $$ values ('Vape'), ('Pouches') $$,
+  'and the pad is left in the order it was asked for');
+
+select throws_like(
+  $$ select pg_temp.as_user('33333333-3333-3333-3333-333333333333', $q$
+       select public.reorder_pad_keys(array(
+         select id from public.pad_keys
+          where user_id = '33333333-3333-3333-3333-333333333333'
+            and ledger = 'source' limit 1))
+     $q$) $$,
+  '%every key in the ledger must be listed%',
+  'a partial reorder is refused rather than half-applied');
+
+select throws_like(
+  $$ select pg_temp.as_user('33333333-3333-3333-3333-333333333333', $q$
+       select public.reorder_pad_keys(array(
+         select id from public.pad_keys
+          where user_id = '33333333-3333-3333-3333-333333333333'))
+     $q$) $$,
+  '%all in one ledger%',
+  'a reorder spanning both ledgers is refused');
+
+-- A convenience and a transaction, not a privilege: RLS still decides.
+select throws_like(
+  $$ select pg_temp.as_user('22222222-2222-2222-2222-222222222222', $q$
+       select public.reorder_pad_keys(array(
+         select id from public.pad_keys
+          where user_id = '33333333-3333-3333-3333-333333333333' and ledger = 'source'))
+     $q$) $$,
+  '%must be your own%',
+  'reordering is refused for keys that are not yours');
+
+select results_eq(
+  $$ select label from public.pad_keys
+      where user_id = '33333333-3333-3333-3333-333333333333' and ledger = 'source'
+      order by position $$,
+  $$ values ('Vape'), ('Pouches') $$,
+  'and leaves the owner''s pad exactly as it was');
 
 select * from finish();
 rollback;
