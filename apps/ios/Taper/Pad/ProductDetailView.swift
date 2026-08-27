@@ -28,7 +28,7 @@ struct ProductDetailView: View {
                     if record.isCountable {
                         total
                     } else {
-                        sprayNote
+                        uncountableNote
                     }
                     honesty
                     if let note = record.failureText {
@@ -119,7 +119,7 @@ struct ProductDetailView: View {
     private var count: some View {
         HStack {
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                Text(record.quantityText)
+                Text(record.quantityText ?? "")
                     .font(AppFont.text(AppSize.bodyLarge, .medium))
                     .foregroundStyle(AppColor.ink)
                 Text(record.usageText)
@@ -201,7 +201,7 @@ struct ProductDetailView: View {
                 .foregroundStyle(AppColor.inkMuted)
             Spacer(minLength: AppSpacing.sm)
             HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
-                Text(record.totalText.replacingOccurrences(of: " mg", with: ""))
+                Text((record.totalText ?? "").replacingOccurrences(of: " mg", with: ""))
                     .font(AppFont.display(AppSize.metric))
                 Text("mg")
                     .font(AppFont.display(AppSize.unitSmall))
@@ -209,14 +209,13 @@ struct ProductDetailView: View {
             .foregroundStyle(AppColor.ink)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Logs to your treatment, \(record.totalText)")
+        .accessibilityLabel("Logs to your treatment, \(record.totalText ?? "")")
     }
 
-    /// A spray gets the facts and not the write — its label lists a
-    /// concentration, and counting sprays at that number would record twenty
-    /// times the dose.
-    private var sprayNote: some View {
-        Text(ProductDetailRecord.sprayNote)
+    /// An uncountable label gets the facts and not the write, and the note
+    /// says which reason — a concentration, or no stated strength at all.
+    private var uncountableNote: some View {
+        Text(record.uncountableNote ?? "")
             .font(AppFont.text(AppSize.label))
             .lineSpacing(AppLeading.normal - AppSize.label)
             .foregroundStyle(AppColor.ink)
