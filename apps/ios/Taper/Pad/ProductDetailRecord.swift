@@ -59,7 +59,20 @@ final class ProductDetailRecord {
     /// record twenty times the dose. The screen offers the facts and not the
     /// write; the pad's own type-and-mg path is where a spray gets logged,
     /// with a per-dose strength the user enters.
-    var isCountable: Bool { product.form != .spray }
+    var isCountable: Bool { product.form != .spray && mg > 0 }
+
+    /// Why there is no count and no button, when there is a reason to give.
+    ///
+    /// Two reasons, two sentences: a spray's label lists a concentration,
+    /// and a label with no stated strength has no number to count at all. A
+    /// zero would be worse than either — a keyless zero-milligram treatment
+    /// row is the exact shape the day reads back as a craving outlasted, so
+    /// logging one would file a dose as an urge.
+    var uncountableNote: String? {
+        if product.form == .spray { return Self.sprayNote }
+        if mg <= 0 { return Self.noStrengthNote }
+        return nil
+    }
 
     /// Writes the check-in, and hands the row up so the day can fold it in.
     func log() async -> StoredCheckIn? {
@@ -71,12 +84,14 @@ final class ProductDetailRecord {
             return nil
         }
 
+        guard let draft = CheckInDraft.product(
+            brand: product.brand, form: product.form,
+            mg: mg, quantity: quantity, on: now()
+        ) else { return nil }
+
         status = .logging
         do {
-            let stored = try await store.log(.product(
-                brand: product.brand, form: product.form,
-                mg: mg, quantity: quantity, on: now()
-            ))
+            let stored = try await store.log(draft)
             status = .logged
             return stored
         } catch {
@@ -118,13 +133,26 @@ final class ProductDetailRecord {
         strength from your pharmacist, and log it from there.
         """
 
-    /// "2 pieces", "1 patch" — the count in the unit the form comes in.
-    var quantityText: String {
-        "\(quantity) \(quantity == 1 ? unitWord : unitPlural)"
+    /// The other reason a label cannot be counted: it names no strength.
+    static let noStrengthNote = """
+        This label doesn't state a strength, so there is no number to log. \
+        Add it to your pad with the strength from its packaging, and log it \
+        from there.
+        """
+
+    /// "2 pieces", "1 patch" — the count in the unit the form comes in. Nil
+    /// where counting means nothing, so no caller can dress a concentration
+    /// or a missing strength as a dose.
+    var quantityText: String? {
+        guard isCountable else { return nil }
+        return "\(quantity) \(quantity == 1 ? unitWord : unitPlural)"
     }
 
     /// "4 mg" — what this check-in will record, strength times count.
-    var totalText: String { "\((mg * Double(quantity)).clean) mg" }
+    var totalText: String? {
+        guard isCountable else { return nil }
+        return "\((mg * Double(quantity)).clean) mg"
+    }
 
     private var unitWord: String {
         switch product.form {

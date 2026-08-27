@@ -127,5 +127,28 @@ struct ProductDetailRecordTests {
                 "a concentration was named per spray")
         #expect(await record.log() == nil, "a spray was logged at its concentration")
         #expect(log.logged.isEmpty)
+        #expect(record.uncountableNote == ProductDetailRecord.sprayNote)
+        #expect(record.totalText == nil, "a concentration was dressed as a total")
+    }
+
+    @Test("a label with no stated strength has no number to log")
+    func zeroIsNotADoseEither() async {
+        // The dangerous half of this: a keyless zero-milligram treatment row
+        // is the exact shape `isUrge` reads back as a craving outlasted, so a
+        // catalogue gap logged at zero would be filed as willpower.
+        let log = FakeCheckInLog()
+        let blank = NRTResult(brand: "Mystery gum", labeler: "Nobody",
+                              form: .gum, strengths: [])
+        let record = ProductDetailRecord(product: blank, store: log)
+
+        #expect(record.isCountable == false)
+        #expect(record.uncountableNote == ProductDetailRecord.noStrengthNote)
+        #expect(record.quantityText == nil)
+        #expect(await record.log() == nil, "a strengthless label was logged at zero")
+        #expect(log.logged.isEmpty)
+
+        #expect(CheckInDraft.product(brand: "x", form: .gum, mg: 0,
+                                     quantity: 1, on: .testMoment) == nil,
+                "the draft boundary let a zero-milligram product through")
     }
 }

@@ -60,10 +60,15 @@ struct CheckInDraft: Equatable, Sendable {
     /// untouched because `mg > 0` here. Treatment ledger always: everything
     /// the catalogue can return is licensed NRT, which is the same rule that
     /// keeps a source out of the search results in the first place.
+    /// Nil for a strength that is not a dose. A keyless zero-milligram
+    /// treatment row is the exact shape `isUrge` reads back as a craving
+    /// outlasted, so refusing it here keeps a catalogue gap from ever being
+    /// filed as somebody's willpower.
     static func product(
         brand: String, form: PadForm, mg: Double, quantity: Int, on day: Date
-    ) -> CheckInDraft {
-        CheckInDraft(
+    ) -> CheckInDraft? {
+        guard mg > 0 else { return nil }
+        return CheckInDraft(
             padKeyID: nil, ledger: .treatment, label: brand,
             form: form, mg: mg,
             quantity: min(max(quantity, PendingEntry.quantityRange.lowerBound),
