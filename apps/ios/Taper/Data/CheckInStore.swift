@@ -113,6 +113,62 @@ struct CheckInDraft: Equatable, Sendable {
     var isUrge: Bool { padKeyID == nil && mg == 0 }
 }
 
+extension CheckInDraft {
+    /// Two drafts are equal when they *say* the same thing.
+    ///
+    /// `requestID` is deliberately not compared: it says which attempt this is,
+    /// not what is being written, and `WriteIntent` has to ask "is this the
+    /// same write?" of a draft that has not been given its id yet.
+    static func == (lhs: CheckInDraft, rhs: CheckInDraft) -> Bool {
+        lhs.padKeyID == rhs.padKeyID && lhs.ledger == rhs.ledger
+            && lhs.label == rhs.label && lhs.form == rhs.form
+            && lhs.mg == rhs.mg && lhs.quantity == rhs.quantity && lhs.day == rhs.day
+    }
+
+    /// The same write, carrying the given identity.
+    func identified(by requestID: UUID) -> CheckInDraft {
+        CheckInDraft(padKeyID: padKeyID, ledger: ledger, label: label, form: form,
+                     mg: mg, quantity: quantity, day: day, requestID: requestID)
+    }
+}
+
+/// One write's identity, held across the attempts that share an intent.
+///
+/// `request_id` only closes the duplicate if a retry carries the *same* id, and
+/// every retry in this app rebuilds its draft from scratch — a fresh id each
+/// time, which is no idempotency at all. This remembers the last attempt and
+/// hands a retry the id it already used.
+///
+/// Two rules, and the second is the sharper one:
+///
+/// - **A changed write is a new intent.** Reusing an id for different values
+///   would not write a second row, it would silently *rewrite* the first: the
+///   store upserts, and a conflict updates. So the id is minted afresh the
+///   moment the draft says something different.
+/// - **A finished write ends its intent.** Without `finish()`, logging one
+///   pouch and then logging an identical pouch an hour later would reuse the
+///   id and be handed back the first row — a real second tap swallowed as a
+///   retry. Every success calls it.
+struct WriteIntent {
+    private var attempted: CheckInDraft?
+    private var id = UUID()
+
+    /// The draft to send: the one given, carrying this intent's id.
+    mutating func stamp(_ draft: CheckInDraft) -> CheckInDraft {
+        if attempted != draft {
+            attempted = draft
+            id = UUID()
+        }
+        return draft.identified(by: id)
+    }
+
+    /// The write landed. The next one starts a new intent.
+    mutating func finish() {
+        attempted = nil
+        id = UUID()
+    }
+}
+
 /// Writing an entry.
 protocol CheckInWriting: Sendable {
     func log(_ draft: CheckInDraft) async throws -> StoredCheckIn

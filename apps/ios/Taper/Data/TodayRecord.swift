@@ -338,6 +338,9 @@ final class TodayRecord {
     /// apart is an ordinary afternoon, so a duplicate is indistinguishable
     /// from a second genuine tap. Letting the write finish removes the state
     /// rather than trying to recover from it.
+    /// Held across attempts so a retry is a retry. See `WriteIntent`.
+    private var intent = WriteIntent()
+
     func checkIn() async {
         guard let entry = selection.pending, !isWriting else { return }
 
@@ -357,9 +360,14 @@ final class TodayRecord {
             let today = day()
             // Not `try await store.log(...)` directly: an unstructured task
             // does not inherit cancellation, which is the whole point.
-            let draft = CheckInDraft(pending: entry, day: today)
+            // Stamped with the intent's id, so a retry after a lost response
+            // is the same write rather than a second one. `finish()` on
+            // success is what keeps a genuine second tap on the same key from
+            // being handed back the first row.
+            let draft = intent.stamp(CheckInDraft(pending: entry, day: today))
             let written = try await Task { try await store.log(draft) }.value
 
+            intent.finish()
             fold(written, on: today)
             selection.clear()
         } catch {

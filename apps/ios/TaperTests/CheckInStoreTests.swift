@@ -232,19 +232,6 @@ extension LiveBackendTests {
         #expect(try await checkIns.entries(on: day).isEmpty)
     }
 
-    @Test("the check-in suite leaves no session behind",
-          .enabled(if: LocalBackend.isAvailable))
-    func checkInTestsSignOutWhenDone() async throws {
-        // Teardown as a test, because `.serialized` runs in source order and
-        // `deinit` cannot await.
-        let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
-        try await client.auth.signOut(scope: .local)
-
-        await #expect(throws: (any Error).self) {
-            try await client.auth.session
-        }
-    }
-
     @Test("one intent sent twice is one row, and the row it was owed",
           .enabled(if: LocalBackend.isAvailable))
     func aCommitThatLostItsResponseIsNotWrittenTwice() async throws {
@@ -290,5 +277,17 @@ extension LiveBackendTests {
 
         try await store.remove(first.id)
         try await store.remove(second.id)
+    }
+    @Test("the check-in suite leaves no session behind",
+          .enabled(if: LocalBackend.isAvailable))
+    func checkInTestsSignOutWhenDone() async throws {
+        // Teardown as a test, because `.serialized` runs in source order and
+        // `deinit` cannot await.
+        let client = AppSupabase.make(url: LocalBackend.url!, publishableKey: LocalBackend.key!)
+        try await client.auth.signOut(scope: .local)
+
+        await #expect(throws: (any Error).self) {
+            try await client.auth.session
+        }
     }
 }

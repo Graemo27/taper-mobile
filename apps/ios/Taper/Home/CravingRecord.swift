@@ -85,6 +85,9 @@ final class CravingRecord {
     /// Returns the row so the day can show it without a re-read — the bargain
     /// every other write in this app makes, for the same reason: a read issued
     /// now can be coalesced behind one already running.
+    /// Held across attempts so a retry is a retry. See `WriteIntent`.
+    private var intent = WriteIntent()
+
     private func write(_ kind: Write, _ draft: CheckInDraft) async -> StoredCheckIn? {
         switch status {
         case .working, .logged: return nil
@@ -97,7 +100,8 @@ final class CravingRecord {
 
         status = .working(kind)
         do {
-            let stored = try await store.log(draft)
+            let stored = try await store.log(intent.stamp(draft))
+            intent.finish()
             status = .logged(kind)
             return stored
         } catch {
