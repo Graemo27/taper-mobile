@@ -117,6 +117,23 @@ struct TrendTests {
         #expect(!empty.caption.contains("working"), "an empty week flattered itself")
     }
 
+    @Test("the working claim rests on days with something logged")
+    func blanksAroundAnOverCapDayDoNotFlatter() {
+        // CodeRabbit's case on the empty-run guard: [0, 0, 16] against caps
+        // of 12. The count believes the record — two days under — but the
+        // only day with evidence is over, and "the shape is working" on that
+        // week would be the app flattering a claim its own observations
+        // refute. Late-taper zero days still earn it, because there the
+        // observed days are under too.
+        let mixed = trend(logged: [0, 0, 16], caps: [12, 12, 12])
+        #expect(mixed.caption == "Dotted line is your daily cap, stepping down. 2 of 3 days under.")
+        #expect(!mixed.caption.contains("working"))
+
+        let lateTaper = trend(logged: [0, 0, 2], caps: [1, 1, 12])
+        #expect(lateTaper.caption.contains("3 of 3 days under — the shape is working."),
+                "a genuinely clean late-taper week lost its own evidence")
+    }
+
     @Test("a run before any plan says so instead of counting nothing")
     func noCapIsItsOwnSentence() {
         #expect(trend(logged: [3, 3], caps: [nil, nil]).caption

@@ -92,7 +92,15 @@ struct Trend: Equatable, Sendable {
         let under = capped.filter { !$0.isOver }.count
         let opening = "Dotted line is your daily cap, stepping down."
         let count = "\(under) of \(capped.count) day\(capped.count == 1 ? "" : "s") under"
-        return under * 2 > capped.count
+        // The count believes the record — a day with nothing logged is under,
+        // the same answer its bar draws, and excluding it would erase exactly
+        // the days that matter most late in the taper, when zero is the goal.
+        // The *claim* is held to a higher bar: "working" rests only on days
+        // with something logged, so a week of blanks around one over-cap day
+        // states its numbers without flattering them.
+        let observed = capped.filter { $0.loggedMg > 0 }
+        let observedUnder = observed.filter { !$0.isOver }.count
+        return under * 2 > capped.count && observedUnder * 2 > observed.count
             ? "\(opening) \(count) — the shape is working."
             : "\(opening) \(count)."
     }
