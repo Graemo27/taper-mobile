@@ -605,3 +605,27 @@ final class PadRunTests: TaperRunCase {
         )
     }
 }
+
+extension PadRunTests {
+    /// Not an assertion run: walks onboarding, scrolls home to the bottom and
+    /// saves screenshots, so the new cards can be looked at with designer
+    /// eyes rather than trusted off a green suite.
+    func testHomeScrolledScreenshots() throws {
+        reachTheTabs()
+        let home = app.scrollViews.firstMatch
+        XCTAssertTrue(home.waitForExistence(timeout: 10))
+        sleep(2)
+        home.swipeUp()
+        try save(app.screenshot(), as: "home-middle")
+        home.swipeUp()
+        try save(app.screenshot(), as: "home-bottom")
+    }
+
+    /// Throws rather than shrugging: a screenshot test that cannot write its
+    /// screenshots has produced nothing, and passing anyway would report the
+    /// artifacts exist when they do not.
+    private func save(_ screenshot: XCUIScreenshot, as name: String) throws {
+        try screenshot.pngRepresentation.write(
+            to: URL(fileURLWithPath: "/tmp/taper-\(name).png"))
+    }
+}
