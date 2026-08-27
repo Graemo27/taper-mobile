@@ -4,6 +4,10 @@ import Testing
 
 /// A store that records what it was asked to remove, and can refuse or stall.
 private final class FakeRemover: PadKeyWriting, @unchecked Sendable {
+    /// Unused here: this fake exists for the write under test, and the pad's
+    /// order is not it.
+    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] { [] }
+
     private let lock = NSLock()
     private var state = State()
 

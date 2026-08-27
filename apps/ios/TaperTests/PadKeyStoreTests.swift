@@ -402,4 +402,54 @@ extension LiveBackendTests {
 
         for key in try await store.currentKeys() { try await store.remove(key.id) }
     }
+
+    @Test("a ledger can be reseated in one request, and it sticks",
+          .enabled(if: LocalBackend.isAvailable))
+    func theArrangementIsWrittenWhole() async throws {
+        // One request because it is one decision. Sent as three updates this
+        // would be three chances to leave the pad half-rearranged, and there
+        // is no arrangement half a drag is meant to produce.
+        let store = await padStore()
+        let seeded = try await store.seed([
+            PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0),
+            PadKey(form: .vape, label: "Vape", mg: 2, position: 1),
+            PadKey(form: .dip, label: "Dip", mg: 3, position: 2),
+            PadKey(form: .lozenge, label: "Lozenge", mg: 4, position: 0),
+        ])
+        let sources = Pad(keys: seeded).sources
+        let reversed = sources.map(\.id).reversed().map { $0 }
+
+        _ = try await store.reorder(reversed)
+
+        let pad = Pad(keys: try await store.currentKeys())
+        #expect(pad.sources.map(\.id) == reversed, "the pad did not keep the new order")
+        #expect(pad.sources.map(\.position) == [0, 1, 2], "the seats were not densely renumbered")
+        #expect(pad.treatment.map(\.label) == ["Lozenge"], "the other ledger moved")
+
+        for key in try await store.currentKeys() { try await store.remove(key.id) }
+    }
+
+    @Test("a partial arrangement is refused rather than half-applied",
+          .enabled(if: LocalBackend.isAvailable))
+    func theWholeLedgerOrNothing() async throws {
+        // A short list strands the keys it omits on seats the listed ones now
+        // want. The database refuses it, which is what lets the client send an
+        // arrangement rather than a diff.
+        let store = await padStore()
+        let seeded = try await store.seed([
+            PadKey(form: .pouch, label: "Pouches", mg: 6, position: 0),
+            PadKey(form: .vape, label: "Vape", mg: 2, position: 1),
+        ])
+        let sources = Pad(keys: seeded).sources
+        let before = sources.map(\.id)
+
+        await #expect(throws: (any Error).self) {
+            _ = try await store.reorder([try #require(sources.last).id])
+        }
+
+        #expect(Pad(keys: try await store.currentKeys()).sources.map(\.id) == before,
+                "a refused reorder still moved the pad")
+
+        for key in try await store.currentKeys() { try await store.remove(key.id) }
+    }
 }

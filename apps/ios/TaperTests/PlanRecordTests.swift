@@ -86,6 +86,10 @@ private final class FakePad: PadKeyStoring, @unchecked Sendable {
     let behaviour: FakeStore.Behaviour
     let order: OrderLog
 
+    /// Unused: this fake covers the plan's bootstrap, and the pad's order is
+    /// not part of it.
+    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] { [] }
+
     private let lock = NSLock()
     private var _seeded: [[PadKey]] = []
     /// Every seed it was asked for, in order. A list rather than a count, so a

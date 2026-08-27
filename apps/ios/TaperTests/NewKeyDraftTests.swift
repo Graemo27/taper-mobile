@@ -4,6 +4,10 @@ import Testing
 
 /// A store that answers on command and records what it was asked to write.
 private final class FakeAdder: PadKeyWriting, @unchecked Sendable {
+    /// Unused here: this fake exists for the write under test, and the pad's
+    /// order is not it.
+    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] { [] }
+
     private let lock = NSLock()
     private var state = Written()
 

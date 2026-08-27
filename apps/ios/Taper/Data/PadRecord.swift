@@ -117,6 +117,33 @@ final class PadRecord {
         return true
     }
 
+    /// Puts one ledger in the given order, without asking anybody.
+    ///
+    /// Local only, and immediate: a drag has to move under the finger, and a
+    /// key that waits for a round trip before it moves is a key that feels
+    /// stuck. The write follows, and this is also how it is undone — it
+    /// returns the order it replaced, so a caller holding that can put the pad
+    /// back exactly as it was rather than re-reading and hoping.
+    ///
+    /// Refused unless the ids are exactly the ledger's own. A list missing one
+    /// would drop a key off the pad, and a list naming a stranger would seat
+    /// something that is not there — both worse than a drag that does nothing.
+    @discardableResult
+    func reseat(_ ledger: PadKey.Ledger, to ids: [Int]) -> [Int]? {
+        guard case let .ready(pad) = status else { return nil }
+        let run = ledger == .treatment ? pad.treatment : pad.sources
+        let previous = run.map(\.id)
+        guard Set(ids) == Set(previous), ids.count == previous.count else { return nil }
+
+        let byID = Dictionary(uniqueKeysWithValues: run.map { ($0.id, $0) })
+        let reseated = ids.enumerated().compactMap { index, id in
+            byID[id]?.seated(at: index)
+        }
+        let other = ledger == .treatment ? pad.sources : pad.treatment
+        status = .ready(Pad(keys: reseated + other))
+        return previous
+    }
+
     func load() async {
         guard !isLoading else {
             wantsAnotherRead = true
