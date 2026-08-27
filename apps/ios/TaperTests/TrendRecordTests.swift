@@ -56,8 +56,8 @@ private final class FakeTrendDays: CheckInReading, @unchecked Sendable {
 }
 
 private final class FakeTrendVersions: PlanVersionReading, @unchecked Sendable {
-    var versions: [StoredPlanVersion] = []
-    func versions() async throws -> [StoredPlanVersion] { versions }
+    var stored: [StoredPlanVersion] = []
+    func versions() async throws -> [StoredPlanVersion] { stored }
 }
 
 /// Covers the graph's record: what it reads, what it caches on, and what a
@@ -101,7 +101,7 @@ struct TrendRecordTests {
         // until midnight or a toggle.
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
-        plans.versions = [plan(from: -40)]
+        plans.stored = [plan(from: -40)]
         let record = record(days, plans, clock: Clock(anchor))
 
         await record.load()
@@ -124,7 +124,7 @@ struct TrendRecordTests {
     func theCacheKnowsWhatItIsHolding() async {
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
-        plans.versions = [plan(from: -40)]
+        plans.stored = [plan(from: -40)]
         let clock = Clock(anchor)
         let record = record(days, plans, clock: clock)
 
@@ -149,7 +149,7 @@ struct TrendRecordTests {
         // no longer the current one.
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
-        plans.versions = [plan(from: -40)]
+        plans.stored = [plan(from: -40)]
         let clock = Clock(anchor)
         let record = record(days, plans, clock: clock)
 
@@ -178,7 +178,7 @@ struct TrendRecordTests {
         // apologises instead.
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
-        plans.versions = [plan(from: -40)]
+        plans.stored = [plan(from: -40)]
         let clock = Clock(anchor)
         let record = record(days, plans, clock: clock)
         await record.load()
@@ -201,7 +201,7 @@ struct TrendRecordTests {
     func theApologyIsNotPermanent() async {
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
-        plans.versions = [plan(from: -40)]
+        plans.stored = [plan(from: -40)]
         let record = record(days, plans, clock: Clock(anchor))
 
         days.fails = true
@@ -219,7 +219,7 @@ struct TrendRecordTests {
         // Bars held for one span refuse to draw under the other's toggle.
         let days = FakeTrendDays(calendar: calendar)
         let plans = FakeTrendVersions()
-        plans.versions = [plan(from: -40)]
+        plans.stored = [plan(from: -40)]
         let record = record(days, plans, clock: Clock(anchor))
         await record.load()
 
