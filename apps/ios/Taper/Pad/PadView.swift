@@ -51,6 +51,9 @@ struct PadView: View {
     /// A closure for `onKeyRemoved`'s reason: the pad's keys are owned a level
     /// up, and this screen reports the intent rather than holding the state.
     let onReseat: (PadKey.Ledger, [Int]) -> [Int]?
+    /// Asks for the pad to be read again, when this screen can no longer say
+    /// what it should look like.
+    let onNeedsReload: () -> Void
 
     /// The key under the finger, where it has been dragged to, and the two
     /// arrangements that matter: the one to put back on failure, and the one
@@ -348,6 +351,12 @@ struct PadView: View {
                                 dragGesture(for: key, in: keys, ledger: ledger),
                                 including: edit.isEditing ? .all : .subviews
                             )
+                            .accessibilityActions {
+                                if edit.isEditing {
+                                    Button("Move earlier") { move(key, in: keys, by: -1) }
+                                    Button("Move later") { move(key, in: keys, by: 1) }
+                                }
+                            }
                         } else if canAdd == .treatment {
                             AddKeyTile.treatment { isSearching = true }
                         } else {
@@ -356,6 +365,27 @@ struct PadView: View {
                     }
                     Spacer(minLength: 0)
                 }
+            }
+        }
+    }
+
+    /// Moving a key one seat, for somebody who is not dragging anything.
+    ///
+    /// A drag is a gesture VoiceOver cannot perform, so reordering would
+    /// otherwise be a feature only some people have. These are the same two
+    /// steps a drag makes, offered as actions on the key itself.
+    private func move(_ key: StoredPadKey, in keys: [StoredPadKey], by offset: Int) {
+        guard let ledger = keys.first?.ledger,
+              let from = keys.firstIndex(where: { $0.id == key.id }) else { return }
+        let to = from + offset
+        guard keys.indices.contains(to) else { return }
+
+        let order = keys.map(\.id)
+        let moved = PadDrag.reordered(order, moving: key.id, to: to)
+        guard onReseat(ledger, moved) != nil else { return }
+        Task {
+            if await edit.reorder(moved) == false, onReseat(ledger, order) == nil {
+                onNeedsReload()
             }
         }
     }
@@ -412,13 +442,18 @@ struct PadView: View {
                 dragTranslation = .zero
                 guard drag.current != drag.from else { return }
                 Task {
-                    if await edit.reorder(drag.current) == false {
-                        // Back to exactly where it started, rather than a
-                        // re-read: the failed write is still in the air, and
-                        // asking the server about a state nobody is sure of
-                        // is how a wrong answer becomes the pad.
-                        _ = onReseat(ledger, drag.from)
-                    }
+                    guard await edit.reorder(drag.current) == false else { return }
+                    // Back to exactly where it started, rather than a re-read:
+                    // the failed write is still in the air, and asking the
+                    // server about a state nobody is sure of is how a wrong
+                    // answer becomes the pad.
+                    //
+                    // Unless the pad has changed underneath — a key removed
+                    // while the write was open leaves an order naming a key
+                    // that is gone, which `reseat` rightly refuses. Then the
+                    // screen genuinely does not know what the pad should look
+                    // like, and the server is the only one who does.
+                    if onReseat(ledger, drag.from) == nil { onNeedsReload() }
                 }
             }
     }
@@ -548,6 +583,7 @@ struct PadView: View {
         onKeyAdded: { _ in },
         edit: PadEditRecord(store: nil),
         onReseat: { _, _ in nil },
+        onNeedsReload: {},
         onKeyRemoved: { _ in }
     )
 }

@@ -153,6 +153,7 @@ struct TaperTabs: View {
                     },
                     edit: edit,
                     onReseat: { ledger, ids in pad.reseat(ledger, to: ids) },
+                    onNeedsReload: { Task { await pad.load() } },
                     onKeyRemoved: { id in
                         // A failure is not proof the key survived. The delete
                         // may have committed and lost its answer, leaving the
@@ -225,7 +226,12 @@ struct TaperTabs: View {
                 await rating.load()
                 await trend.load()
             case .log:
-                await pad.load()
+                // Not while an arrangement is still being written. The server
+                // has not seen it yet, so its answer is the pad from before
+                // the drag — and applying it would put every key back under
+                // the finger that just moved one, then leave it there until
+                // something else read.
+                if !edit.isReordering { await pad.load() }
                 await today.load()
             case .plan:
                 break

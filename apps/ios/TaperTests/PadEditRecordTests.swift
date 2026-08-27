@@ -236,6 +236,9 @@ struct PadEditRecordTests {
         let record = PadEditRecord(store: nil)
 
         #expect(await record.reorder([1]) == false)
-        #expect(record.failure?.message == PadEditRecord.noBackend)
+        // Its own sentence: `noBackend` says nothing can be *removed*, which
+        // is a true statement about a different button.
+        #expect(record.failure?.message == PadEditRecord.noBackendForOrder)
+        #expect(record.failure?.message.contains("rearranged") == true)
     }
 }

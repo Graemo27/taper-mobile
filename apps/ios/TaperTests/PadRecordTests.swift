@@ -534,4 +534,5 @@ struct PadReorderTests {
     func anUnreadPadIsNotAnEmptyOne() {
         #expect(PadRecord(store: nil).reseat(.source, to: [1]) == nil)
     }
+
 }

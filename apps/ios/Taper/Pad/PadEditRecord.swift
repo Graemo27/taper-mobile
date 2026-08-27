@@ -101,7 +101,9 @@ final class PadEditRecord {
     /// arrangement lands or none of it does.
     func reorder(_ ids: [Int]) async -> Bool {
         guard let store else {
-            failure = Failure(keyID: ids.first ?? 0, message: Self.noBackend)
+            // Its own sentence: `noBackend` says nothing can be *removed*,
+            // which is a true statement about a different button.
+            failure = Failure(keyID: ids.first ?? 0, message: Self.noBackendForOrder)
             return false
         }
         isReordering = true
@@ -122,4 +124,7 @@ final class PadEditRecord {
     /// Says the pad went back, because it did — the alternative is somebody
     /// believing an arrangement they cannot see is saved.
     static let orderNotSaved = "Couldn't save that order. The pad's back as it was."
+
+    static let noBackendForOrder =
+        "This build has no backend configured, so nothing can be rearranged."
 }

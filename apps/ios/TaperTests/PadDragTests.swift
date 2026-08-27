@@ -19,6 +19,22 @@ struct PadDragTests {
                                count: 3) == 1)
     }
 
+    @Test("sideways is not a way down")
+    func aRowIsOnlyThreeWide() {
+        // Added linearly, a drag two seats right from the end of a row walked
+        // into the next one — the key changing rows while the finger never
+        // left its own. The column is clamped to the row it is in.
+        #expect(PadDrag.target(from: 2, translation: .init(width: step, height: 0),
+                               count: 6) == 2, "a key left its row without going down")
+        #expect(PadDrag.target(from: 1, translation: .init(width: step * 2, height: 0),
+                               count: 6) == 2)
+        #expect(PadDrag.target(from: 3, translation: .init(width: -step, height: 0),
+                               count: 6) == 3, "a key wrapped backwards into the row above")
+        // Down is still down, from any column.
+        #expect(PadDrag.target(from: 2, translation: .init(width: 0, height: step),
+                               count: 6) == 5)
+    }
+
     @Test("a row down is three keys along")
     func theGridIsThreeWide() {
         #expect(PadDrag.target(from: 0, translation: .init(width: 0, height: step),

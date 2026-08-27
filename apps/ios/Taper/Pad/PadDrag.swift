@@ -9,6 +9,9 @@ import CoreGraphics
 /// somebody wants to argue with is the one below, and it is checkable without
 /// rendering anything or touching a screen.
 enum PadDrag {
+    /// The pad is three keys to a row, fixed by `AppLayout`'s arithmetic.
+    static let perRow = 3
+
     /// One step right is one key plus one gap; one step down is three of them.
     static let step = CGSize(
         width: AppLayout.key + AppLayout.padGap,
@@ -27,10 +30,17 @@ enum PadDrag {
     /// alternative is a key that vanishes because somebody's thumb kept going.
     static func target(from origin: Int, translation: CGSize, count: Int) -> Int {
         guard count > 0 else { return 0 }
-        let across = (translation.width / step.width).rounded()
-        let down = (translation.height / step.height).rounded()
-        let moved = origin + Int(across) + Int(down) * 3
-        return min(max(moved, 0), count - 1)
+        // Worked out as a column and a row rather than as one number, because
+        // a row is only three wide and sideways is not a way down. Added
+        // linearly, a drag two seats right from the end of a row walked into
+        // the next one — the key changing rows while the finger never left
+        // its own. The column is clamped to the row it is in; reaching the
+        // row below means dragging down to it, which is where it is.
+        let across = Int((translation.width / step.width).rounded())
+        let down = Int((translation.height / step.height).rounded())
+        let column = min(max(origin % perRow + across, 0), perRow - 1)
+        let row = origin / perRow + down
+        return min(max(row * perRow + column, 0), count - 1)
     }
 
     /// The ledger's ids with one moved to a new index.
