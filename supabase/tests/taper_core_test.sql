@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(70);
+select plan(75);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -655,6 +655,55 @@ $$), 0, 'and undeletable by them — the probe is unqualified so the DELETE poli
 select is(pg_temp.privs('craving_ratings', 'authenticated'), 'DELETE,INSERT,SELECT,UPDATE',
           'skip freely includes un-answering, but the table cannot be emptied');
 select is(pg_temp.privs('craving_ratings', 'anon'), 'none', 'anon holds nothing on ratings');
+
+-- `request_id`: the duplicate no client can close.
+
+select is(pg_temp.as_user('11111111-1111-1111-1111-111111111111', $$
+  insert into public.check_ins
+    (user_id, pad_key_id, logged_on, ledger, label, form, mg, quantity, request_id)
+  values ('11111111-1111-1111-1111-111111111111', null, '2026-08-27',
+          'treatment', 'Lozenge', 'lozenge', 4, 1,
+          '33333333-3333-3333-3333-333333333333')
+$$), 1, 'a write can name the intent it belongs to');
+
+select throws_like(
+  $$ select pg_temp.as_user('11111111-1111-1111-1111-111111111111', $q$
+       insert into public.check_ins
+         (user_id, pad_key_id, logged_on, ledger, label, form, mg, quantity, request_id)
+       values ('11111111-1111-1111-1111-111111111111', null, '2026-08-27',
+               'treatment', 'Lozenge', 'lozenge', 4, 1,
+               '33333333-3333-3333-3333-333333333333')
+     $q$) $$,
+  '%check_ins_user_request_idx%',
+  'the same intent cannot be written twice — the commit that lost its response');
+
+-- Rows that predate the column still work: nulls are distinct in a unique
+-- index, so any number of rows may name no intent. Two of them here — a
+-- `not null` unique would have refused the second. This is also why the index
+-- needs no `where` predicate, and it must not have one: `on conflict` cannot
+-- infer a partial index without repeating it, which is a thing only a live
+-- write can discover. These inserts would pass either way.
+select is(pg_temp.as_user('11111111-1111-1111-1111-111111111111', $$
+  insert into public.check_ins
+    (user_id, pad_key_id, logged_on, ledger, label, form, mg, quantity)
+  values ('11111111-1111-1111-1111-111111111111', null, '2026-08-27',
+          'treatment', 'Lozenge', 'lozenge', 4, 1),
+         ('11111111-1111-1111-1111-111111111111', null, '2026-08-27',
+          'treatment', 'Lozenge', 'lozenge', 4, 1)
+$$), 2, 'rows naming no intent are not made to name a distinct one');
+
+-- Scoped by user: the constraint says an intent belongs to whoever formed it.
+select is(pg_temp.as_user('22222222-2222-2222-2222-222222222222', $$
+  insert into public.check_ins
+    (user_id, pad_key_id, logged_on, ledger, label, form, mg, quantity, request_id)
+  values ('22222222-2222-2222-2222-222222222222', null, '2026-08-27',
+          'source', 'Pouches', 'pouch', 6, 1,
+          '33333333-3333-3333-3333-333333333333')
+$$), 1, 'one user''s intent id does not collide with another''s');
+
+select is(pg_temp.as_user('11111111-1111-1111-1111-111111111111', $$
+  select * from public.check_ins where request_id is not null
+$$), 1, 'and neither user can see the other''s');
 
 select * from finish();
 rollback;
