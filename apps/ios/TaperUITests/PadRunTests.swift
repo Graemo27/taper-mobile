@@ -629,7 +629,11 @@ extension PadRunTests {
         }
         facts.tap()
 
-        let panel = app.otherElements["facts.panel"]
+        // By identifier across element types: `children: .combine` folds the
+        // panel into a single element whose class XCUITest reports as
+        // StaticText, and a query pinned to one type is a test that breaks
+        // when the fold changes shape.
+        let panel = app.descendants(matching: .any)["facts.panel"].firstMatch
         XCTAssertTrue(panel.waitForExistence(timeout: 5), "the info button opened no label")
         XCTAssertTrue(
             panel.label.contains("Purpose") && panel.label.contains("Stop smoking aid"),
