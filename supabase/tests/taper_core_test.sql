@@ -28,7 +28,7 @@
 -- zero. That is now a test rather than a memory.
 
 begin;
-select plan(60);
+select plan(70);
 
 -- Two anonymous users, which is what every user in this project is.
 insert into auth.users (id, instance_id, aud, role, created_at, updated_at, is_anonymous)
@@ -601,6 +601,60 @@ select is(pg_temp.privs('taper_plans', 'anon'), 'none', 'anon holds nothing on p
 select is(pg_temp.privs('taper_plan_versions', 'anon'), 'none', 'anon holds nothing on versions');
 select is(pg_temp.privs('pad_keys', 'anon'), 'none', 'anon holds nothing on pad keys');
 select is(pg_temp.privs('check_ins', 'anon'), 'none', 'anon holds nothing on check-ins');
+
+-- The daily check-in table, driven the same four ways.
+
+select is(pg_temp.as_user('11111111-1111-1111-1111-111111111111', $$
+  insert into public.craving_ratings (user_id, logged_on, rating)
+  values ('11111111-1111-1111-1111-111111111111', '2026-08-26', 'rough')
+$$), 1, 'a user can rate their own day');
+
+select throws_like(
+  $$ select pg_temp.as_user('11111111-1111-1111-1111-111111111111', $q$
+       insert into public.craving_ratings (user_id, logged_on, rating)
+       values ('11111111-1111-1111-1111-111111111111', '2026-08-26', 'fine')
+     $q$) $$,
+  '%craving_ratings_rating_check%',
+  'the rating vocabulary is closed: easy, so_so, rough and nothing else');
+
+select throws_like(
+  $$ select pg_temp.as_user('11111111-1111-1111-1111-111111111111', $q$
+       insert into public.craving_ratings (user_id, logged_on, rating)
+       values ('11111111-1111-1111-1111-111111111111', '2026-08-26', 'easy')
+     $q$) $$,
+  '%craving_ratings_user_id_logged_on_key%',
+  'one judgement per day: a second answer is an update, never a second row');
+
+select is(pg_temp.as_user('11111111-1111-1111-1111-111111111111', $$
+  insert into public.craving_ratings (user_id, logged_on, rating)
+  values ('11111111-1111-1111-1111-111111111111', '2026-08-26', 'easy')
+  on conflict (user_id, logged_on)
+  do update set rating = excluded.rating
+$$), 1, 'the upsert path lands a changed mind on the same row');
+
+select is(pg_temp.as_user('11111111-1111-1111-1111-111111111111', $$
+  select * from public.craving_ratings where rating = 'easy'
+$$), 1, 'and what is stored afterwards is the changed mind, not the first answer');
+
+select throws_like(
+  $$ select pg_temp.as_user('22222222-2222-2222-2222-222222222222', $q$
+       insert into public.craving_ratings (user_id, logged_on, rating)
+       values ('11111111-1111-1111-1111-111111111111', '2026-08-26', 'easy')
+     $q$) $$,
+  '%row-level security%',
+  'nobody can rate a day on someone else''s behalf');
+
+select is(pg_temp.as_user('22222222-2222-2222-2222-222222222222', $$
+  select * from public.craving_ratings
+$$), 0, 'one user''s ratings are invisible to another');
+
+select is(pg_temp.as_user('22222222-2222-2222-2222-222222222222', $$
+  delete from public.craving_ratings
+$$), 0, 'and undeletable by them — the probe is unqualified so the DELETE policy answers');
+
+select is(pg_temp.privs('craving_ratings', 'authenticated'), 'DELETE,INSERT,SELECT,UPDATE',
+          'skip freely includes un-answering, but the table cannot be emptied');
+select is(pg_temp.privs('craving_ratings', 'anon'), 'none', 'anon holds nothing on ratings');
 
 select * from finish();
 rollback;

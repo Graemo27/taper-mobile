@@ -96,6 +96,8 @@ struct AppStores {
     /// The licensed catalogue. Its own protocol because it is the only read in
     /// the app that goes through an Edge Function rather than a table.
     let nrt: any NRTSearching
+    /// The daily check-in's one word per day.
+    let ratings: any DayRatingStoring
 }
 
 /// The pad on the server: the whole of `pad_keys` for the signed-in anonymous

@@ -30,6 +30,7 @@
 		2A9727106B8648E36AD783E9 /* TreatmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADAEFE419C7110C11C8E6A5D /* TreatmentView.swift */; };
 		2B1A2B562996A61194968B5C /* TriedBeforeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C10A0C2752D96ED354F6C8 /* TriedBeforeView.swift */; };
 		2F776532ECCCC2D5C65020EB /* PadKeyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B8A9244E6D32AD7E5A8592 /* PadKeyStoreTests.swift */; };
+		314ED2E67BC3FEEA72EDA264 /* DayRatingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C39C5A34314406C6C7693A /* DayRatingStore.swift */; };
 		31C8052264059261B282EEE2 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D21CAB02E0AF2377EC8881 /* HTTPClient.swift */; };
 		31F8639ED45E27F1E962635E /* PadKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00A51CDF3AFF7D94A08109B /* PadKey.swift */; };
 		320BBD3372E8D8B6A670A68A /* PlanHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29C48EAAEE5BE454A7FFEC78 /* PlanHistory.swift */; };
@@ -117,6 +118,7 @@
 		DDFBD225F7AFF64FDD535DD4 /* CapMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA00ED9C801626583C7F0F8F /* CapMeter.swift */; };
 		DF19A8B86E15E68CEDD4948C /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = F975269EB5F504D1744C6A25 /* Controls.swift */; };
 		DFBBEB788F27E6750C1E8D0D /* OptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5ED41C9B96D5E2180D3006 /* OptionCard.swift */; };
+		E176DE6E443623703D9DDEE1 /* DayRatingStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF11FBFB1FD712B0C1D95F1 /* DayRatingStoreTests.swift */; };
 		F130D3ABB24EFA3BCC9F8307 /* FirstUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E43CC6E40DC0E70C171F47E /* FirstUseView.swift */; };
 		F27B8E52E6909FD0813F0402 /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2CF267D1082F7FB4EF7DE13 /* OnboardingTests.swift */; };
 		F5D11A597CF3E5EF7925075B /* PadKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C35928EF74BBD4AF319497 /* PadKeyTests.swift */; };
@@ -217,6 +219,7 @@
 		848DE3C0A2B296D372C55B52 /* CleanNumberTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanNumberTests.swift; sourceTree = "<group>"; };
 		84BC87C82DD90B48D155372C /* PadEditRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadEditRecord.swift; sourceTree = "<group>"; };
 		878DB78BEC425F63B60C1393 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		87C39C5A34314406C6C7693A /* DayRatingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRatingStore.swift; sourceTree = "<group>"; };
 		8ADDAD495331A13B8885B775 /* DayTrackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTrackTests.swift; sourceTree = "<group>"; };
 		8EDBE197D6148B9FFC8337A5 /* CravingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CravingRecord.swift; sourceTree = "<group>"; };
 		91C35928EF74BBD4AF319497 /* PadKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadKeyTests.swift; sourceTree = "<group>"; };
@@ -264,6 +267,7 @@
 		FA6C5F209132014C07F9CF88 /* PlanRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanRecordTests.swift; sourceTree = "<group>"; };
 		FBD1FA4880F90D7EA4A5BA29 /* PadActionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadActionBar.swift; sourceTree = "<group>"; };
 		FE1BA6ACDF80CF9C913E09D4 /* AgeGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgeGateTests.swift; sourceTree = "<group>"; };
+		FFF11FBFB1FD712B0C1D95F1 /* DayRatingStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRatingStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -309,6 +313,7 @@
 			isa = PBXGroup;
 			children = (
 				58348CD50451359D0AB2A154 /* CheckInStore.swift */,
+				87C39C5A34314406C6C7693A /* DayRatingStore.swift */,
 				6998A66E4C83F21037164921 /* NRTSearchStore.swift */,
 				2AA134A8BA603E9E897E8401 /* PadKeyStore.swift */,
 				BD07116EBF9CF6EE8E122698 /* PadRecord.swift */,
@@ -365,6 +370,7 @@
 				6CA102815244A5E1377B5A7C /* ConfigurationTests.swift */,
 				45C68E78BDDC4A9C498AB03E /* CravingRecordTests.swift */,
 				4DC4C853B23B356FAD1445D9 /* DayBreakdownTests.swift */,
+				FFF11FBFB1FD712B0C1D95F1 /* DayRatingStoreTests.swift */,
 				6DDA697AECD41D8C5B516E50 /* DayRollupTests.swift */,
 				8ADDAD495331A13B8885B775 /* DayTrackTests.swift */,
 				B216B7882EC0F27F7C2CC757 /* DesignTokenTests.swift */,
@@ -678,6 +684,7 @@
 				579C340C0BE2A9C1E4870510 /* ConfigurationTests.swift in Sources */,
 				9208855318B7D63B7766D666 /* CravingRecordTests.swift in Sources */,
 				9DB8A18D481EEA2921EA9C69 /* DayBreakdownTests.swift in Sources */,
+				E176DE6E443623703D9DDEE1 /* DayRatingStoreTests.swift in Sources */,
 				36435BC9FE706B455E4CE02E /* DayRollupTests.swift in Sources */,
 				F9DC16D7896F210B92C01CD8 /* DayTrackTests.swift in Sources */,
 				7C5A03BCA1E0793EF470F0C0 /* DesignTokenTests.swift in Sources */,
@@ -725,6 +732,7 @@
 				AB3F06BE636179F83E9D0DEE /* CravingRecord.swift in Sources */,
 				C4D9601C5E217293592EBFCE /* CravingView.swift in Sources */,
 				07ABEE9A0669C7A7D8A69B18 /* DayBreakdown.swift in Sources */,
+				314ED2E67BC3FEEA72EDA264 /* DayRatingStore.swift in Sources */,
 				D199EC3608A3A376198FE69B /* DayRollup.swift in Sources */,
 				7C82B2CC78800410E0BC19C9 /* DayTrack.swift in Sources */,
 				B495B01DAD58B742106956BB /* DesignTokens.swift in Sources */,
