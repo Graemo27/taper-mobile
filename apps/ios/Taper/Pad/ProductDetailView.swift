@@ -222,7 +222,7 @@ struct ProductDetailView: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(AppSpacing.m)
             .background(AppColor.sunken, in: RoundedRectangle(cornerRadius: AppRadius.small))
-            .accessibilityIdentifier("facts.sprayNote")
+            .accessibilityIdentifier("facts.uncountableNote")
     }
 
     private var honesty: some View {
