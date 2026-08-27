@@ -20,8 +20,24 @@ struct CheckInDraft: Equatable, Sendable {
     let quantity: Int
     /// The day it belongs to, as the user reckons days.
     let day: Date
+    /// This write's identity, chosen here rather than by the database.
+    ///
+    /// The row's primary key is decided on commit, which is exactly too late
+    /// for the failure worth guarding: an insert that commits and loses its
+    /// response leaves the client believing nothing was written. Naming the
+    /// intent before sending it means the second arrival of one draft
+    /// conflicts with the first rather than joining it.
+    ///
+    /// **A draft is one intent.** Two taps are two drafts and two ids; the
+    /// same draft sent twice is one row. That makes this cover the retry the
+    /// app cannot see — the transport's own — and *not* yet a user pressing a
+    /// failed button again, which builds a fresh draft. Making that path
+    /// idempotent means holding the intent across attempts, which is the
+    /// records' business and its own change.
+    let requestID: UUID
 
-    init(pending: PendingEntry, day: Date) {
+    init(pending: PendingEntry, day: Date, requestID: UUID = UUID()) {
+        self.requestID = requestID
         padKeyID = pending.key.id
         ledger = pending.key.ledger
         label = pending.key.label
@@ -33,8 +49,10 @@ struct CheckInDraft: Equatable, Sendable {
 
     private init(
         padKeyID: Int?, ledger: PadKey.Ledger, label: String,
-        form: PadForm, mg: Double, quantity: Int, day: Date
+        form: PadForm, mg: Double, quantity: Int, day: Date,
+        requestID: UUID = UUID()
     ) {
+        self.requestID = requestID
         self.padKeyID = padKeyID
         self.ledger = ledger
         self.label = label
@@ -93,6 +111,62 @@ struct CheckInDraft: Equatable, Sendable {
 
     /// Whether this row is an urge rather than something taken.
     var isUrge: Bool { padKeyID == nil && mg == 0 }
+}
+
+extension CheckInDraft {
+    /// Two drafts are equal when they *say* the same thing.
+    ///
+    /// `requestID` is deliberately not compared: it says which attempt this is,
+    /// not what is being written, and `WriteIntent` has to ask "is this the
+    /// same write?" of a draft that has not been given its id yet.
+    static func == (lhs: CheckInDraft, rhs: CheckInDraft) -> Bool {
+        lhs.padKeyID == rhs.padKeyID && lhs.ledger == rhs.ledger
+            && lhs.label == rhs.label && lhs.form == rhs.form
+            && lhs.mg == rhs.mg && lhs.quantity == rhs.quantity && lhs.day == rhs.day
+    }
+
+    /// The same write, carrying the given identity.
+    func identified(by requestID: UUID) -> CheckInDraft {
+        CheckInDraft(padKeyID: padKeyID, ledger: ledger, label: label, form: form,
+                     mg: mg, quantity: quantity, day: day, requestID: requestID)
+    }
+}
+
+/// One write's identity, held across the attempts that share an intent.
+///
+/// `request_id` only closes the duplicate if a retry carries the *same* id, and
+/// every retry in this app rebuilds its draft from scratch — a fresh id each
+/// time, which is no idempotency at all. This remembers the last attempt and
+/// hands a retry the id it already used.
+///
+/// Two rules, and the second is the sharper one:
+///
+/// - **A changed write is a new intent.** Reusing an id for different values
+///   would not write a second row, it would silently *rewrite* the first: the
+///   store upserts, and a conflict updates. So the id is minted afresh the
+///   moment the draft says something different.
+/// - **A finished write ends its intent.** Without `finish()`, logging one
+///   pouch and then logging an identical pouch an hour later would reuse the
+///   id and be handed back the first row — a real second tap swallowed as a
+///   retry. Every success calls it.
+struct WriteIntent {
+    private var attempted: CheckInDraft?
+    private var id = UUID()
+
+    /// The draft to send: the one given, carrying this intent's id.
+    mutating func stamp(_ draft: CheckInDraft) -> CheckInDraft {
+        if attempted != draft {
+            attempted = draft
+            id = UUID()
+        }
+        return draft.identified(by: id)
+    }
+
+    /// The write landed. The next one starts a new intent.
+    mutating func finish() {
+        attempted = nil
+        id = UUID()
+    }
 }
 
 /// Writing an entry.
@@ -155,9 +229,23 @@ struct SupabaseCheckInStore: CheckInWriting, CheckInReading, CheckInRemoving {
 
     func log(_ draft: CheckInDraft) async throws -> StoredCheckIn {
         try await session.authenticated { userID in
+            // Upsert rather than insert, on the intent's own id. A retry of
+            // one draft — the transport's, after a commit whose response was
+            // lost — conflicts with the row already there and is handed it
+            // back, so the caller gets the row it was always owed instead of
+            // an error or a second row.
+            //
+            // `do update` rather than `do nothing` because nothing returns no
+            // row, and this call is the app's only way to learn what it just
+            // wrote. The update is a no-op in substance: the values are the
+            // same draft's, which is what makes the conflict a retry rather
+            // than a different write wearing a used id.
             try await client
                 .from("check_ins")
-                .insert(CheckInRow(draft: draft, userID: userID, timeZone: timeZone))
+                .upsert(
+                    CheckInRow(draft: draft, userID: userID, timeZone: timeZone),
+                    onConflict: "user_id,request_id"
+                )
                 .select()
                 .single()
                 .execute()
@@ -219,6 +307,7 @@ extension SupabaseCheckInStore {
 /// recorded last Tuesday, and `pad_key_id` is provenance only.
 private struct CheckInRow: Encodable {
     let userID: UUID
+    let requestID: UUID
     /// Optional, because an urge tapped no key. PostgREST omits nothing — a nil
     /// here is sent as JSON null, which is what the column wants.
     let padKeyID: Int?
@@ -231,6 +320,7 @@ private struct CheckInRow: Encodable {
 
     init(draft: CheckInDraft, userID: UUID, timeZone: TimeZone) {
         self.userID = userID
+        requestID = draft.requestID
         padKeyID = draft.padKeyID
         // The same function the plan's dates go through. A second way of
         // turning an instant into a day is a second chance to store the wrong
@@ -246,6 +336,7 @@ private struct CheckInRow: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
+        case requestID = "request_id"
         case padKeyID = "pad_key_id"
         case loggedOn = "logged_on"
         case ledger, label, form, mg, quantity

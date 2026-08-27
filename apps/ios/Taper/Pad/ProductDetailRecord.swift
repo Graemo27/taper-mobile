@@ -75,6 +75,9 @@ final class ProductDetailRecord {
     }
 
     /// Writes the check-in, and hands the row up so the day can fold it in.
+    /// Held across attempts so a retry is a retry. See `WriteIntent`.
+    private var intent = WriteIntent()
+
     func log() async -> StoredCheckIn? {
         guard isCountable else { return nil }
         
@@ -91,7 +94,10 @@ final class ProductDetailRecord {
 
         status = .logging
         do {
-            let stored = try await store.log(draft)
+            // The intent survives a failed attempt, so pressing Log again
+            // after a lost response sends the same write rather than a second.
+            let stored = try await store.log(intent.stamp(draft))
+            intent.finish()
             status = .logged
             return stored
         } catch {

@@ -322,6 +322,70 @@ struct TodayRecordTests {
         #expect(record.entries.isEmpty, "a failed write reached the day anyway")
     }
 
+    @Test("a retry after a lost response is the same write, not a second")
+    func theIntentSurvivesAFailedAttempt() async {
+        // The production shape of the duplicate: supabase-swift retries only
+        // GET, HEAD, PUT, DELETE, OPTIONS and TRACE, so a POST whose response
+        // is lost never gets retried under us — the user retries, and before
+        // this the rebuilt draft carried a fresh id and wrote a second row.
+        let store = FakeCheckIns()
+        store.writeFails = true
+        let record = record(store)
+        await record.load()
+        record.selection.tap(key(9, mg: 3))
+        await record.checkIn()
+
+        store.writeFails = false
+        await record.checkIn()
+
+        #expect(store.writes.count == 2, "the retry never reached the store")
+        #expect(store.writes[0].requestID == store.writes[1].requestID,
+                "the retry introduced itself as a different write")
+    }
+
+    @Test("a second tap on the same key is a second row, not a retry")
+    func aFinishedIntentDoesNotOutliveItsWrite() async {
+        // The trap on the other side of the same mechanism. One pouch logged,
+        // then an identical pouch an hour later: same key, same quantity, same
+        // day, so the draft says exactly the same thing. Holding the id past
+        // the first success would hand the second tap the first row back and
+        // quietly lose a dose.
+        let store = FakeCheckIns()
+        let record = record(store)
+        await record.load()
+
+        record.selection.tap(key(9, mg: 3))
+        await record.checkIn()
+        record.selection.tap(key(9, mg: 3))
+        await record.checkIn()
+
+        #expect(store.writes.count == 2)
+        #expect(store.writes[0].requestID != store.writes[1].requestID,
+                "a real second tap was introduced as a retry of the first")
+    }
+
+    @Test("changing the tap before retrying is a different write")
+    func aChangedMindIsNotARetry() async {
+        // Reusing an id for different values would not add a row — it would
+        // rewrite the first one, because the store upserts and a conflict
+        // updates. So a changed draft has to mint a new id.
+        let store = FakeCheckIns()
+        store.writeFails = true
+        let record = record(store)
+        await record.load()
+        record.selection.tap(key(9, mg: 3))
+        await record.checkIn()
+
+        store.writeFails = false
+        record.selection.tap(key(9, mg: 3))
+        await record.checkIn()
+
+        #expect(store.writes.count == 2)
+        #expect(store.writes[0].quantity != store.writes[1].quantity)
+        #expect(store.writes[0].requestID != store.writes[1].requestID,
+                "a changed write reused an id and would have rewritten the first row")
+    }
+
     @Test("a retry that works clears the failure")
     func aFailureDoesNotOutliveItsCause() async {
         // Asserting the exit from the state, not only the entry.

@@ -232,6 +232,52 @@ extension LiveBackendTests {
         #expect(try await checkIns.entries(on: day).isEmpty)
     }
 
+    @Test("one intent sent twice is one row, and the row it was owed",
+          .enabled(if: LocalBackend.isAvailable))
+    func aCommitThatLostItsResponseIsNotWrittenTwice() async throws {
+        // The failure no client can see: the insert commits, the response is
+        // lost, and the app is told the write failed. Sending the same draft
+        // again is what a transport retry does, and before this the day grew
+        // a second row for one tap.
+        let (store, pad) = await checkInBackend()
+        let key = try await seededKey(pad)
+        let draft = CheckInDraft(
+            pending: PendingEntry(key: key, quantity: 2),
+            day: whenTheDaysDisagreeForLogging
+        )
+
+        let first = try await store.log(draft)
+        let second = try await store.log(draft)
+
+        #expect(first.id == second.id, "one intent was written as two rows")
+        #expect(second.quantity == 2, "the retry was handed back something else")
+
+        let day = try await store.entries(on: whenTheDaysDisagreeForLogging)
+        #expect(day.filter { $0.id == first.id }.count == 1)
+        #expect(day.count == 1, "the day grew a second row for one tap")
+
+        try await store.remove(first.id)
+    }
+
+    @Test("two taps are two rows, however alike they look",
+          .enabled(if: LocalBackend.isAvailable))
+    func idempotencyDoesNotSwallowARealSecondTap() async throws {
+        // The other half, and the one a careless constraint would break:
+        // somebody having a second pouch ten seconds later is a second event
+        // whose every column matches the first. Only the intent differs.
+        let (store, pad) = await checkInBackend()
+        let key = try await seededKey(pad)
+        let day = whenTheDaysDisagreeForLogging
+
+        let first = try await store.log(CheckInDraft(pending: PendingEntry(key: key), day: day))
+        let second = try await store.log(CheckInDraft(pending: PendingEntry(key: key), day: day))
+
+        #expect(first.id != second.id, "a real second tap was swallowed as a retry")
+        #expect(try await store.entries(on: day).count == 2)
+
+        try await store.remove(first.id)
+        try await store.remove(second.id)
+    }
     @Test("the check-in suite leaves no session behind",
           .enabled(if: LocalBackend.isAvailable))
     func checkInTestsSignOutWhenDone() async throws {
