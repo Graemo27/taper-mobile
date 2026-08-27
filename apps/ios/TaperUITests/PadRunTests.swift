@@ -643,7 +643,13 @@ extension PadRunTests {
         app.buttons["facts.plus"].tap()
         app.buttons["facts.log"].tap()
 
-        // Back on the pad: the write landed and the search's job is done.
+        // L6 first: the accent cover with the day's meter and one way out.
+        let done = app.buttons["logged.done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "logging showed no confirmation")
+        XCTAssertTrue(app.staticTexts["Logged."].exists, "the cover did not say what happened")
+        done.tap()
+
+        // Then the pad: the write landed and the search's job is done.
         XCTAssertTrue(
             app.buttons[pouches].waitForExistence(timeout: 10),
             "logging from the label did not come back to the pad"

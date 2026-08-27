@@ -13,20 +13,17 @@ the app runs end to end: age gate, onboarding, home, the pad, the plan, the day'
 licensed-catalogue search, adding a treatment or a source, editing the pad, and the craving
 screen.
 
-Still unbuilt, against the M1 board — a fuller list than this file carried before, because it
-had been naming screens and missing whole sections of L1 and L2:
+Still unbuilt, against the M1 board:
 
-- **L1** the daily check-in card ("How were cravings today?"), which needs a table of its own
-- **L2** the tracking card's per-key breakdown, and the "Also today: N cravings outlasted" line
-  that is where urges are *shown* now that they are recorded and kept out of the count
-- **L2** nicotine over time — the week/month graph against the stepping cap
-- **L5** product detail (drug facts)
-- **L6** logged confirmation
 - **L3e** reordering the pad, the half of edit-pad that was deferred
+- **L8a** the ride-it-out state behind L8's second card — designed, not drawn: the design
+  record keeps the ring and the NOTICE/NAME/RIDE sequence intact as L8a, but no artboard
+  exists yet, so the card ships inert. Build to the record, don't redesign
 
 Also open: a `request_id` idempotency migration — the one thing that would close the duplicate
-no client can, an insert that commits and loses its response — and the non-atomic position
-allocation deferred from #126.
+no client can, an insert that commits and loses its response — the non-atomic position
+allocation deferred from #126, and unsetting the dead hosted `FDC_API_KEY` secret. The
+`craving_ratings` migration ships in the daily-check-in PR and needs `db push` when it merges.
 
 **Check this list against the board before trusting it.** It has been quietly wrong three
 times, each time by naming something that had stopped being missing.
