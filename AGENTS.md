@@ -7,13 +7,13 @@ Native iOS in `apps/ios/` — SwiftUI, iOS 26 — with a Supabase backend and Ed
 `apps/ios/Scripts/write-config.sh` step that gives the running app its backend configuration. Skipping it does
 not fail the build — it produces an app that launches with no backend.
 
-**The backend is Taper's, and most of the UI now exists.** `nrt-search` and the `taper_plans` /
-`pad_keys` / `taper_plan_versions` / `check_ins` schema are in place, the food code is gone, and
-the app runs end to end: age gate, onboarding, home, the pad, the plan, the day's list, the
-licensed-catalogue search, adding a treatment or a source, editing the pad, and the craving
-screen.
+**Every screen on the M1 board exists.** `nrt-search`, the `taper_plans` / `pad_keys` /
+`taper_plan_versions` / `check_ins` / `craving_ratings` schema, and the app end to end: age
+gate, onboarding, home with its craving prompt and daily check-in and tracking card and graph,
+the pad, the plan, the day's list, the licensed catalogue and the label behind it, adding a
+treatment or a source, editing the pad, the craving screen, and the logged confirmation.
 
-Still unbuilt, against the M1 board:
+What is left is not screens. Against the M1 board:
 
 - **L3e** reordering the pad, the half of edit-pad that was deferred
 - **L8a** the ride-it-out state behind L8's second card — designed, not drawn: the design
@@ -22,8 +22,9 @@ Still unbuilt, against the M1 board:
 
 Also open: a `request_id` idempotency migration — the one thing that would close the duplicate
 no client can, an insert that commits and loses its response — the non-atomic position
-allocation deferred from #126, and unsetting the dead hosted `FDC_API_KEY` secret. The
-`craving_ratings` migration ships in the daily-check-in PR and needs `db push` when it merges.
+allocation deferred from #126, and unsetting the dead hosted `FDC_API_KEY` secret. Every
+migration in `supabase/migrations/` is applied to the hosted project, `craving_ratings`
+included.
 
 **Check this list against the board before trusting it.** It has been quietly wrong three
 times, each time by naming something that had stopped being missing.
