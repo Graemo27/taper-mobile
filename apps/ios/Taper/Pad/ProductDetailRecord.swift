@@ -154,6 +154,21 @@ final class ProductDetailRecord {
         return "\((mg * Double(quantity)).clean) mg"
     }
 
+    /// The label's one-line usage fact, said under the count.
+    ///
+    /// These are the OTC label's own directions compressed to a clause, not
+    /// medical advice invented here — the gum is chewed, the lozenge
+    /// dissolves, the patch is worn.
+    var usageText: String {
+        switch product.form {
+        case .gum: return "Chewed ~30 min each"
+        case .lozenge: return "Dissolves in 20–30 min"
+        case .patch: return "One worn through the day"
+        case .inhaler: return "Puffed as needed"
+        default: return "As the label directs"
+        }
+    }
+
     private var unitWord: String {
         switch product.form {
         case .gum, .lozenge: return "piece"

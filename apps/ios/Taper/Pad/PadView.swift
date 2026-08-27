@@ -23,6 +23,13 @@ struct PadView: View {
     /// tabs rather than here so a half-filled draft survives a glance at the
     /// plan, the same bargain the search query makes.
     @Binding var draft: NewKeyDraft?
+    /// L5, when a result's label is being read. Held by the tabs like the
+    /// draft, and for its reason.
+    @Binding var facts: ProductDetailRecord?
+    /// Makes L5's record for a result the search surfaced.
+    let factsFor: (NRTResult) -> ProductDetailRecord
+    /// A catalogue product was logged straight from L5; the day needs the row.
+    let onProductLogged: (StoredCheckIn) -> Void
     /// Makes a draft for a chosen product. Passed in because the pad has no
     /// store of its own — it is handed what it draws.
     let draftFor: (NRTResult) -> NewKeyDraft
@@ -99,12 +106,34 @@ struct PadView: View {
                     // looking at what now.
                     onKeyAdded(stored)
                 }
+            } else if let facts {
+                ProductDetailView(record: facts) {
+                    // Back to the results, the draft's bargain: the query and
+                    // the list are still where they were.
+                    self.facts = nil
+                } onLogged: { stored in
+                    // Only if this is still the screen that wrote it — the
+                    // draft's other bargain. A write is not cancelled with
+                    // the view that started it, so backing out mid-write and
+                    // opening another label leaves the first completion to
+                    // land and tear down a screen it does not own. The row
+                    // is still folded either way: it was written, whoever is
+                    // looking at what now.
+                    if self.facts === facts {
+                        self.facts = nil
+                        search.clear()
+                        isSearching = false
+                    }
+                    onProductLogged(stored)
+                }
             } else if isSearching {
                 TreatmentSearchView(record: search) {
                     search.clear()
                     isSearching = false
                 } onPick: { product in
                     draft = draftFor(product)
+                } onFacts: { product in
+                    facts = factsFor(product)
                 }
             } else {
                 // The keys scroll and the meter and the actions do not, which
@@ -391,6 +420,9 @@ struct PadView: View {
         search: TreatmentSearchRecord(search: nil),
         isSearching: $isSearching,
         draft: .constant(nil),
+        facts: .constant(nil),
+        factsFor: { ProductDetailRecord(product: $0, store: nil) },
+        onProductLogged: { _ in },
         draftFor: { NewKeyDraft(product: $0, store: nil) },
         sourceDraft: .constant(nil),
         newSourceDraft: { NewSourceDraft(store: nil) },

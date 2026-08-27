@@ -12,6 +12,8 @@ struct TreatmentSearchView: View {
     /// A product the user chose. The search does not make the key itself —
     /// naming it and choosing a strength is a screen of its own.
     let onPick: (NRTResult) -> Void
+    /// Opens L5 for a result: the label, before the pad.
+    let onFacts: (NRTResult) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.m) {
@@ -121,24 +123,42 @@ struct TreatmentSearchView: View {
     private func rows(_ results: [NRTResult]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(results) { result in
-                Button { onPick(result) } label: {
-                    TreatmentResultRow(result: result)
-                        .contentShape(Rectangle())
+                HStack(spacing: 0) {
+                    Button { onPick(result) } label: {
+                        TreatmentResultRow(result: result)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    // The row's label lives here rather than on the row. A
+                    // button whose content is already an accessibility element
+                    // has two, and the inner one takes hit testing with it — a
+                    // row that reads correctly and cannot be tapped.
+                    //
+                    // Set without `accessibilityElement(children: .ignore)`,
+                    // which would replace the button with a plain element and
+                    // take the button trait with it: the row would then be
+                    // neither tappable nor findable as a button.
+                    .accessibilityLabel(TreatmentResultRow.spokenText(for: result))
+                    .accessibilityIdentifier("search.result")
+
+                    factsButton(result)
                 }
-                .buttonStyle(.plain)
-                // The row's label lives here rather than on the row. A button
-                // whose content is already an accessibility element has two,
-                // and the inner one takes hit testing with it — a row that
-                // reads correctly and cannot be tapped.
-                //
-                // Set without `accessibilityElement(children: .ignore)`, which
-                // would replace the button with a plain element and take the
-                // button trait with it: the row would then be neither tappable
-                // nor findable as a button.
-                .accessibilityLabel(TreatmentResultRow.spokenText(for: result))
-                .accessibilityIdentifier("search.result")
             }
         }
+    }
+
+    /// The way into L5, beside every result: the label, before the pad.
+    private func factsButton(_ result: NRTResult) -> some View {
+        Button { onFacts(result) } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(AppColor.inkMuted)
+                .frame(width: AppLayout.tap, height: AppLayout.tap)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Drug facts for \(result.brand)")
+        .accessibilityIdentifier("search.facts")
     }
 }
 

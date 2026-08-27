@@ -607,6 +607,55 @@ final class PadRunTests: TaperRunCase {
 }
 
 extension PadRunTests {
+    func testTheLabelCanBeReadAndLoggedFromTheCatalogue() throws {
+        // L5 end to end: the search finds a product, the info button opens its
+        // label, a strength and count become a check-in, and the day shows the
+        // row — on the treatment ledger, so the cap does not move.
+        openTheLog()
+        app.buttons["pad.addTreatment"].tap()
+
+        let field = app.textFields["search.field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "the catalogue did not open")
+        field.tap()
+        field.typeText("nicorette")
+
+        // Skipped, not failed, when the catalogue does not answer — the local
+        // Edge Function runs on openFDA's shared per-IP allowance, and a red
+        // run that means "somebody else used the quota" teaches people to
+        // ignore red runs.
+        let facts = app.buttons["search.facts"].firstMatch
+        guard facts.waitForExistence(timeout: 20) else {
+            throw XCTSkip("openFDA returned nothing for 'nicorette', so L5 could not be reached.")
+        }
+        facts.tap()
+
+        // By identifier across element types: `children: .combine` folds the
+        // panel into a single element whose class XCUITest reports as
+        // StaticText, and a query pinned to one type is a test that breaks
+        // when the fold changes shape.
+        let panel = app.descendants(matching: .any)["facts.panel"].firstMatch
+        XCTAssertTrue(panel.waitForExistence(timeout: 5), "the info button opened no label")
+        XCTAssertTrue(
+            panel.label.contains("Purpose") && panel.label.contains("Stop smoking aid"),
+            "the Drug Facts panel did not read as a label"
+        )
+
+        app.buttons["facts.plus"].tap()
+        app.buttons["facts.log"].tap()
+
+        // Back on the pad: the write landed and the search's job is done.
+        XCTAssertTrue(
+            app.buttons[pouches].waitForExistence(timeout: 10),
+            "logging from the label did not come back to the pad"
+        )
+        // The tally the meter reads counts sources only, so a treatment logged
+        // from the catalogue must leave it exactly where it was.
+        XCTAssertTrue(
+            app.staticTexts["0 of 18 mg today"].waitForExistence(timeout: 5),
+            "a treatment logged from the catalogue moved the source tally"
+        )
+    }
+
     /// Not an assertion run: walks onboarding, scrolls home to the bottom and
     /// saves screenshots, so the new cards can be looked at with designer
     /// eyes rather than trusted off a green suite.
