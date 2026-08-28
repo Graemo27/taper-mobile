@@ -47,6 +47,42 @@ struct RideRecordTests {
         #expect(record.ride?.isDone == true)
     }
 
+    @Test("a clock correction does not rewind a ride somebody has sat through")
+    func timeOnlyWentForwardForThePersonHoldingThePhone() {
+        // Clamping each sample keeps one reading sane, not a sequence of them.
+        // Ninety seconds in, an NTP correction lands the next sample at
+        // thirty and the ring rewinds under somebody sitting still.
+        let clock = Clock(start)
+        let record = RideRecord(clock: { clock.now })
+        record.begin()
+
+        clock.now = start.addingTimeInterval(90)
+        record.tick()
+        #expect(record.ride?.elapsed == 90)
+
+        clock.now = start.addingTimeInterval(30)
+        record.tick()
+        #expect(record.ride?.elapsed == 90, "the ride rewound under a backwards clock")
+    }
+
+    @Test("a finished ride stays finished")
+    func theButtonItEarnedDoesNotDisappear() {
+        // The sharper end of the same thing: a completed ride sampled after
+        // the clock moves back stops being done, and the count it earned
+        // vanishes from the screen.
+        let clock = Clock(start)
+        let record = RideRecord(clock: { clock.now })
+        record.begin()
+
+        clock.now = start.addingTimeInterval(Ride.span)
+        #expect(record.tick() == false)
+        #expect(record.ride?.isDone == true)
+
+        clock.now = start.addingTimeInterval(10)
+        record.tick()
+        #expect(record.ride?.isDone == true, "a finished ride came undone")
+    }
+
     @Test("beginning reads one instant, not two")
     func schedulingAndDrawingShareABaseline() {
         // The midnight lesson: scheduling from time and initialising from time

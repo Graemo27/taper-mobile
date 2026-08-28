@@ -31,6 +31,21 @@ final class RideRecord {
         now = instant
     }
 
+    /// The clock, never allowed to run backwards.
+    ///
+    /// Clamping each sample against `startedAt` keeps a single reading sane,
+    /// but not a sequence of them: ninety seconds in, an NTP correction or a
+    /// manual change lands the next sample at thirty, and the ring rewinds
+    /// under somebody who has been sitting still. Worse at the end — a ride
+    /// that had finished stops being finished, and the button it earned
+    /// disappears.
+    ///
+    /// So the session keeps the furthest point it has reached. Time only ever
+    /// went forward for the person holding the phone.
+    private func advance() {
+        now = max(now, clock())
+    }
+
     /// Redraws, and reports whether there is still anything to redraw for.
     ///
     /// Returning false is what ends the loop: a `while true` that outlives its
@@ -38,7 +53,7 @@ final class RideRecord {
     /// the easiest place in an app to write one.
     @discardableResult
     func tick() -> Bool {
-        now = clock()
+        advance()
         return ride?.isDone == false
     }
 }

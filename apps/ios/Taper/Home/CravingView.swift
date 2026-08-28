@@ -137,6 +137,11 @@ struct CravingView: View {
             )
         }
         .buttonStyle(.plain)
+        // An outcome action like the two beside it. The ride is presented over
+        // this screen and dismisses before `itPassed()` finishes, so without
+        // this the exposed card could start a second ride against a record
+        // that is already writing — or already spent.
+        .disabled(record.isWriting || record.isSpent)
         .accessibilityIdentifier("craving.rideItOut")
     }
 

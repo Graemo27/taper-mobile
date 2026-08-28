@@ -616,6 +616,14 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    /// "1:12 left" as seconds, or nil if the ring said something else.
+    private func secondsLeft(_ label: String) -> Int? {
+        let clock = label.replacingOccurrences(of: " left", with: "")
+        let parts = clock.split(separator: ":").compactMap { Int($0) }
+        guard parts.count == 2 else { return nil }
+        return parts[0] * 60 + parts[1]
+    }
+
     /// L8a, driven: the second card opens two minutes, and the ring runs.
     ///
     /// The one thing no model test can show. `Ride` is derived arithmetic and
@@ -638,14 +646,15 @@ final class PadRunTests: TaperRunCase {
         // `otherElements` breaks the day that fold changes shape.
         let ring = app.descendants(matching: .any)["ride.ring"].firstMatch
         XCTAssertTrue(ring.waitForExistence(timeout: 5), "the second card led nowhere")
-        // Near the full span, not exactly it. A second passes between the
-        // screen appearing and this query resolving, so pinning the opening
-        // label to "2:00" is asserting that the timer has *not* started —
-        // which is the opposite of what this test is for.
-        XCTAssertTrue(
-            ["2:00 left", "1:59 left", "1:58 left"].contains(ring.label),
-            "the ring opened at \(ring.label) rather than near the full two minutes"
-        )
+        // Near the full span, not exactly it. Time passes between the screen
+        // appearing and this query resolving, so pinning the opening label to
+        // "2:00" asserts the timer has *not* started — the opposite of what
+        // this test is for. The window has to cover the lookup above, which
+        // may itself wait five seconds on a slow simulator; a fixed list of
+        // three labels was a flake waiting for a busy machine.
+        let opening = try XCTUnwrap(secondsLeft(ring.label), "the ring said \(ring.label)")
+        XCTAssertGreaterThan(opening, 108, "the ring did not open near the full two minutes")
+        XCTAssertLessThanOrEqual(opening, 120, "the ring opened above its own span")
 
         let step = app.descendants(matching: .any)["ride.step"].firstMatch
         XCTAssertTrue(step.waitForExistence(timeout: 5), "the sequence never appeared")
