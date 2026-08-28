@@ -23,6 +23,8 @@ struct CravingView: View {
     let onLogged: (StoredCheckIn) -> Void
     /// Opens the pad, for somebody who used something else.
     let onLogSomethingElse: () -> Void
+    /// Opens L8a, the two minutes behind the second card.
+    let onRideItOut: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.l) {
@@ -120,15 +122,27 @@ struct CravingView: View {
         .accessibilityIdentifier("craving.take")
     }
 
-    /// Not a button, and deliberately so.
+    /// The board's chevron finally leads somewhere: L8a, two minutes of it.
     ///
-    /// The board draws a chevron here, implying a timer behind it. That screen
-    /// does not exist, and a card that leads nowhere is worse than one that
-    /// plainly does not move — the same call the search results made before
-    /// they were selectable. The copy is the whole of what it offers for now.
+    /// Still the second card and not the first. The evidence that demoted this
+    /// has not changed — a craving surface should end in an action, and the
+    /// product being within reach drives more lapses than the urge does — so
+    /// the lozenge stays above it and the tin stays below.
     private var rideItOut: some View {
-        card(title: "Ride it out", detail: "Find where it sits in your body. Don't fix it.")
-            .accessibilityIdentifier("craving.rideItOut")
+        Button(action: onRideItOut) {
+            card(
+                title: "Ride it out · 2 min",
+                detail: "Find where it sits in your body. Don't fix it.",
+                showsChevron: true
+            )
+        }
+        .buttonStyle(.plain)
+        // An outcome action like the two beside it. The ride is presented over
+        // this screen and dismisses before `itPassed()` finishes, so without
+        // this the exposed card could start a second ride against a record
+        // that is already writing — or already spent.
+        .disabled(record.isWriting || record.isSpent)
+        .accessibilityIdentifier("craving.rideItOut")
     }
 
     private var putItAway: some View {
@@ -139,15 +153,25 @@ struct CravingView: View {
         .accessibilityIdentifier("craving.putItAway")
     }
 
-    private func card(title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-            Text(title)
-                .font(AppFont.text(AppSize.bodyLarge, .medium))
-                .foregroundStyle(AppColor.ink)
-            Text(detail)
-                .font(AppFont.text(AppSize.caption))
-                .foregroundStyle(AppColor.inkMuted)
-                .fixedSize(horizontal: false, vertical: true)
+    private func card(
+        title: String, detail: String, showsChevron: Bool = false
+    ) -> some View {
+        HStack(spacing: AppSpacing.m) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                Text(title)
+                    .font(AppFont.text(AppSize.bodyLarge, .medium))
+                    .foregroundStyle(AppColor.ink)
+                Text(detail)
+                    .font(AppFont.text(AppSize.caption))
+                    .foregroundStyle(AppColor.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if showsChevron {
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppColor.inkMuted)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppSpacing.m)

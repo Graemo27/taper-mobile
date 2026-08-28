@@ -616,6 +616,76 @@ final class PadRunTests: TaperRunCase {
         )
     }
 
+    /// "1:12 left" as seconds, or nil if the ring said something else.
+    private func secondsLeft(_ label: String) -> Int? {
+        let clock = label.replacingOccurrences(of: " left", with: "")
+        let parts = clock.split(separator: ":").compactMap { Int($0) }
+        guard parts.count == 2 else { return nil }
+        return parts[0] * 60 + parts[1]
+    }
+
+    /// L8a, driven: the second card opens two minutes, and the ring runs.
+    ///
+    /// The one thing no model test can show. `Ride` is derived arithmetic and
+    /// `RideRecord` is a clock, both tested — and neither can say whether a
+    /// real screen starts, redraws, or ever stops. A timer that never ticks
+    /// looks identical to one that does, until you watch it.
+    func testTheSecondCardOpensTwoMinutesThatRun() throws {
+        reachTheTabs()
+
+        app.buttons["home.craving"].tap()
+        XCTAssertTrue(
+            app.buttons["craving.rideItOut"].waitForExistence(timeout: 10),
+            "the craving screen never opened"
+        )
+        app.buttons["craving.rideItOut"].tap()
+
+        // By identifier across element types, the lesson the drug-facts panel
+        // taught: `children: .ignore`/`.combine` folds a subtree into one
+        // element whose class XCUITest picks, and a query pinned to
+        // `otherElements` breaks the day that fold changes shape.
+        let ring = app.descendants(matching: .any)["ride.ring"].firstMatch
+        XCTAssertTrue(ring.waitForExistence(timeout: 5), "the second card led nowhere")
+        // Near the full span, not exactly it. Time passes between the screen
+        // appearing and this query resolving, so pinning the opening label to
+        // "2:00" asserts the timer has *not* started — the opposite of what
+        // this test is for. The window has to cover the lookup above, which
+        // may itself wait five seconds on a slow simulator; a fixed list of
+        // three labels was a flake waiting for a busy machine.
+        let opening = try XCTUnwrap(secondsLeft(ring.label), "the ring said \(ring.label)")
+        XCTAssertGreaterThan(opening, 108, "the ring did not open near the full two minutes")
+        XCTAssertLessThanOrEqual(opening, 120, "the ring opened above its own span")
+
+        let step = app.descendants(matching: .any)["ride.step"].firstMatch
+        XCTAssertTrue(step.waitForExistence(timeout: 5), "the sequence never appeared")
+        XCTAssertTrue(step.label.hasPrefix("NOTICE"), "the sequence did not start at NOTICE")
+
+        // The ring has to actually move. A timer that draws once and stops
+        // passes every assertion above.
+        let opened = ring.label
+        let deadline = Date().addingTimeInterval(15)
+        while ring.label == opened, Date() < deadline { }
+        XCTAssertNotEqual(
+            ring.label, opened,
+            "the ring drew once and never moved — a timer that does not tick"
+        )
+
+        // Nothing to count until the two minutes are up — offering it early
+        // would make the ring a thing to skip rather than sit through.
+        XCTAssertFalse(
+            app.buttons["ride.itPassed"].exists,
+            "the count was offered before the ride finished"
+        )
+
+        // Out of L8a puts them back on L8, not on home: two minutes later
+        // somebody may want the lozenge after all.
+        app.buttons["ride.close"].tap()
+        XCTAssertTrue(
+            app.buttons["craving.rideItOut"].waitForExistence(timeout: 5),
+            "closing the ride left the craving screen as well"
+        )
+    }
+
     func testAKeyCanBeTakenOffThePad() throws {
         // Until now every key was permanent. A mis-tapped "Add" stayed on the
         // pad for good, which is the thing that made this app not worth putting
