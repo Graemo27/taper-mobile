@@ -125,6 +125,23 @@ extension CheckInDraft {
             && lhs.mg == rhs.mg && lhs.quantity == rhs.quantity && lhs.day == rhs.day
     }
 
+    /// Whether this is the same *write* as another, ignoring when it was
+    /// built.
+    ///
+    /// `day` is excluded deliberately, and it is the whole point. Every path
+    /// that retries rebuilds its draft, and rebuilding reads the clock again
+    /// — so two attempts at one write are milliseconds apart and no two
+    /// drafts are ever equal. Comparing on the instant made `WriteIntent`
+    /// mint a fresh id for every retry, which is `request_id` doing nothing
+    /// at all while looking like it worked.
+    ///
+    /// Nothing else is dropped. A different key, strength, quantity or
+    /// ledger is a different write, and gets its own identity.
+    func sameWrite(as other: CheckInDraft) -> Bool {
+        padKeyID == other.padKeyID && ledger == other.ledger && label == other.label
+            && form == other.form && mg == other.mg && quantity == other.quantity
+    }
+
     /// The same write, carrying the given identity.
     func identified(by requestID: UUID) -> CheckInDraft {
         CheckInDraft(padKeyID: padKeyID, ledger: ledger, label: label, form: form,
@@ -150,22 +167,26 @@ extension CheckInDraft {
 ///   id and be handed back the first row — a real second tap swallowed as a
 ///   retry. Every success calls it.
 struct WriteIntent {
+    /// The attempt in hand, already carrying its identity.
     private var attempted: CheckInDraft?
-    private var id = UUID()
 
-    /// The draft to send: the one given, carrying this intent's id.
+    /// The draft to send.
+    ///
+    /// A retry gets the attempt it is repeating — the same id *and the same
+    /// day*. The day matters: a retry belongs to the moment the tap happened,
+    /// not to whenever the network let it through, so one that crosses
+    /// midnight still lands on the day somebody was looking at when they
+    /// pressed the key.
     mutating func stamp(_ draft: CheckInDraft) -> CheckInDraft {
-        if attempted != draft {
-            attempted = draft
-            id = UUID()
-        }
-        return draft.identified(by: id)
+        if let attempted, attempted.sameWrite(as: draft) { return attempted }
+        let stamped = draft.identified(by: UUID())
+        attempted = stamped
+        return stamped
     }
 
     /// The write landed. The next one starts a new intent.
     mutating func finish() {
         attempted = nil
-        id = UUID()
     }
 }
 

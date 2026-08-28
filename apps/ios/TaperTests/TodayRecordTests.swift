@@ -343,6 +343,58 @@ struct TodayRecordTests {
                 "the retry introduced itself as a different write")
     }
 
+    @Test("a retry keeps its identity even though the clock has moved")
+    func theInstantIsNotWhatMakesAWriteDifferent() async {
+        // The production shape of the retry test above, which freezes its
+        // clock. `day()` is `Date()` in the app, so two attempts are
+        // milliseconds apart — and if the draft's *instant* is part of what
+        // makes one write different from another, every retry introduces
+        // itself as a new one and `request_id` protects nothing.
+        let clock = Clock(day)
+        let store = FakeCheckIns()
+        store.writeFails = true
+        let record = record(store, clock: clock)
+        await record.load()
+        record.selection.tap(key(9, mg: 3))
+        await record.checkIn()
+
+        // Time passes between the failure and the retry, as it does.
+        clock.now = day.addingTimeInterval(12)
+        store.writeFails = false
+        await record.checkIn()
+
+        #expect(store.writes.count == 2, "the retry never reached the store")
+        #expect(store.writes[0].requestID == store.writes[1].requestID,
+                "a retry twelve seconds later introduced itself as a different write")
+        #expect(store.writes[1].day == store.writes[0].day,
+                "the retry moved the row to a different day than the tap it repeats")
+    }
+
+    @Test("a retry across midnight lands on the day it was tapped, not the day it landed")
+    func theRetryDoesNotDragYesterdayIntoToday() async {
+        // The far side of keeping a retry's original day. The row belongs to
+        // yesterday, so folding it on the clock would put it in today's tally
+        // — counted against a cap it was never measured by, on a day nobody
+        // logged it.
+        let clock = Clock(day)
+        let store = FakeCheckIns()
+        store.writeFails = true
+        let record = record(store, clock: clock)
+        await record.load()
+        record.selection.tap(key(9, mg: 3))
+        await record.checkIn()
+
+        // Midnight passes before the retry succeeds.
+        clock.now = day.addingTimeInterval(86_400)
+        store.writeFails = false
+        await record.checkIn()
+
+        #expect(store.writes[1].day == store.writes[0].day,
+                "the retry moved to the new day instead of repeating the tap")
+        #expect(record.tally(ceilingMg: 12).loggedMg == 0,
+                "yesterday's row was counted against today's cap")
+    }
+
     @Test("a second tap on the same key is a second row, not a retry")
     func aFinishedIntentDoesNotOutliveItsWrite() async {
         // The trap on the other side of the same mechanism. One pouch logged,

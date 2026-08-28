@@ -6,7 +6,10 @@ private final class FakeCheckInLog: CheckInWriting, @unchecked Sendable {
     private let lock = NSLock()
     private var state = State()
     private struct State {
+        /// Every attempt, landed or not — a store that fails still sent one.
         var logged: [CheckInDraft] = []
+        /// The attempts that became rows.
+        var committed: [CheckInDraft] = []
         var fails = false
     }
     var fails: Bool {
@@ -14,12 +17,17 @@ private final class FakeCheckInLog: CheckInWriting, @unchecked Sendable {
         set { lock.withLock { state.fails = newValue } }
     }
     var logged: [CheckInDraft] { lock.withLock { state.logged } }
+    var committed: [CheckInDraft] { lock.withLock { state.committed } }
 
     func log(_ draft: CheckInDraft) async throws -> StoredCheckIn {
         try lock.withLock {
-            if state.fails { throw URLError(.notConnectedToInternet) }
+            // Recorded before the refusal, because a store that fails still
+            // sent the request — and what a retry *said* is the thing these
+            // tests are about.
             state.logged.append(draft)
-            return StoredCheckIn(id: state.logged.count, ledger: draft.ledger,
+            if state.fails { throw URLError(.notConnectedToInternet) }
+            state.committed.append(draft)
+            return StoredCheckIn(id: state.committed.count, ledger: draft.ledger,
                                  label: draft.label, form: draft.form, mg: draft.mg,
                                  quantity: draft.quantity, loggedOn: "2026-08-26",
                                  createdAt: Date(timeIntervalSince1970: 0), padKeyID: nil)
@@ -89,7 +97,7 @@ struct ProductDetailRecordTests {
         #expect(await record.log() != nil, "a failed log could not be retried")
         #expect(record.status == .logged)
         #expect(await record.log() == nil, "a spent screen wrote a second row")
-        #expect(log.logged.count == 1)
+        #expect(log.committed.count == 1, "more than one row reached the store")
     }
 
     @Test("the label speaks in its own words")
@@ -151,4 +159,32 @@ struct ProductDetailRecordTests {
                                      quantity: 1, on: .testMoment) == nil,
                 "the draft boundary let a zero-milligram product through")
     }
+
+    @Test("a retry of a catalogue log is the same write, clock notwithstanding")
+    func theLabelRetryKeepsItsIdentity() async {
+        // The third path that rebuilds its draft on retry, and the one where a
+        // duplicate is a real dose counted twice against a real cap.
+        let log = FakeCheckInLog()
+        log.fails = true
+        let clock = ProductClock(Date(timeIntervalSince1970: 1_780_000_000))
+        let gum = NRTResult(brand: "Nicorette", labeler: "Haleon",
+                            form: .gum, strengths: [(mg: 2.0, ndc: "x")])
+        let record = ProductDetailRecord(product: gum, store: log, now: { clock.now })
+
+        #expect(await record.log() == nil)
+        clock.now = clock.now.addingTimeInterval(30)
+        log.fails = false
+        #expect(await record.log() != nil)
+
+        #expect(log.logged.count == 2, "the retry never reached the store")
+        #expect(log.logged[0].requestID == log.logged[1].requestID,
+                "a retry half a minute later introduced itself as a different write")
+    }
+}
+
+/// A movable clock, so a retry happens at a different instant from the attempt
+/// it repeats — which in the app it always does.
+private final class ProductClock: @unchecked Sendable {
+    var now: Date
+    init(_ now: Date) { self.now = now }
 }
