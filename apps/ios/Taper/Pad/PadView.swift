@@ -47,6 +47,42 @@ struct PadView: View {
     /// all. Held by the tabs so a long-press does not lose its mode to a
     /// glance at the plan.
     @Bindable var edit: PadEditRecord
+    /// Puts a ledger in a new order locally, returning the order it replaced.
+    /// A closure for `onKeyRemoved`'s reason: the pad's keys are owned a level
+    /// up, and this screen reports the intent rather than holding the state.
+    let onReseat: (PadKey.Ledger, [Int]) -> [Int]?
+    /// Asks for the pad to be read again, when this screen can no longer say
+    /// what it should look like.
+    let onNeedsReload: () -> Void
+
+    /// The key under the finger, where it has been dragged to, and the two
+    /// arrangements that matter: the one to put back on failure, and the one
+    /// to save on release.
+    private struct Drag {
+        let id: Int
+        let from: [Int]
+        var current: [Int]
+        /// The translation at the moment the key last changed seats.
+        ///
+        /// `DragGesture` reports translation from where the finger went down,
+        /// and it keeps growing after a swap. Measuring the next target from
+        /// it would find the key one seat along from its *new* index and swap
+        /// it straight back — the pad flickering between two arrangements
+        /// under a finger that has not moved. Everything is measured from
+        /// here instead, so a swap resets the question.
+        var rebase: CGSize = .zero
+
+        /// How far the key has moved since it last changed seats.
+        func moved(_ translation: CGSize) -> CGSize {
+            CGSize(width: translation.width - rebase.width,
+                   height: translation.height - rebase.height)
+        }
+    }
+
+    @State private var dragging: Drag?
+    /// Where the finger is, kept apart from `Drag` so the tile can follow it
+    /// without every frame rewriting the arrangement beside it.
+    @State private var dragTranslation: CGSize = .zero
     /// A removal that finished, whether or not it worked: the id when the
     /// server confirmed it, nil when it did not.
     ///
@@ -250,6 +286,7 @@ struct PadView: View {
     /// with it. The last row is left-aligned by padding it out, which keeps a
     /// row of one key under the first key above it rather than centred.
     private func rows(of keys: [StoredPadKey], canAdd: PadKey.Ledger?) -> some View {
+        let ledger = keys.first?.ledger
         // The add tile rides at the end of the run, so it lands wherever the
         // last key leaves off rather than claiming a row of its own.
         let slots = keys.count + (canAdd == nil ? 0 : 1)
@@ -293,6 +330,33 @@ struct PadView: View {
                                     edit.startEditing()
                                 }
                             )
+                            // The dragged key rides above its neighbours and
+                            // follows the finger; the rest reflow underneath
+                            // as the target changes.
+                            .offset(dragging?.id == key.id
+                                    ? dragging?.moved(dragTranslation) ?? .zero : .zero)
+                            .zIndex(dragging?.id == key.id ? 1 : 0)
+                            // High priority, and only while editing. The pad
+                            // scrolls, and a scroll view wins an ordinary
+                            // drag outright — the finger moves and the pad
+                            // pans instead of the key. Outranking it always
+                            // would cost the scroll, so the mask hands the
+                            // touch back when there is nothing to rearrange.
+                            // Attached only while editing. The gesture claims
+                            // the touch as soon as its press succeeds, and a
+                            // pad taller than the screen has to scroll the
+                            // rest of the time — leaving it armed cost exactly
+                            // that, and the run suite caught it.
+                            .simultaneousGesture(
+                                dragGesture(for: key, in: keys, ledger: ledger),
+                                including: edit.isEditing ? .all : .subviews
+                            )
+                            .accessibilityActions {
+                                if edit.isEditing {
+                                    Button("Move earlier") { move(key, in: keys, by: -1) }
+                                    Button("Move later") { move(key, in: keys, by: 1) }
+                                }
+                            }
                         } else if canAdd == .treatment {
                             AddKeyTile.treatment { isSearching = true }
                         } else {
@@ -303,6 +367,95 @@ struct PadView: View {
                 }
             }
         }
+    }
+
+    /// Moving a key one seat, for somebody who is not dragging anything.
+    ///
+    /// A drag is a gesture VoiceOver cannot perform, so reordering would
+    /// otherwise be a feature only some people have. These are the same two
+    /// steps a drag makes, offered as actions on the key itself.
+    private func move(_ key: StoredPadKey, in keys: [StoredPadKey], by offset: Int) {
+        guard let ledger = keys.first?.ledger,
+              let from = keys.firstIndex(where: { $0.id == key.id }) else { return }
+        let to = from + offset
+        guard keys.indices.contains(to) else { return }
+
+        let order = keys.map(\.id)
+        let moved = PadDrag.reordered(order, moving: key.id, to: to)
+        guard onReseat(ledger, moved) != nil else { return }
+        Task {
+            if await edit.reorder(moved) == false, onReseat(ledger, order) == nil {
+                onNeedsReload()
+            }
+        }
+    }
+
+    /// Dragging a key to a new place.
+    ///
+    /// Only while editing, and only one at a time: two arrangements in flight
+    /// would land in whichever order the network chose. `minimumDistance` is
+    /// what keeps a tap on the × from being read as the start of a drag.
+    ///
+    /// The pad reflows on every change rather than only on release, because a
+    /// key that shows where it will land is the whole of what makes this
+    /// legible — and `reseat` is local, so it costs nothing to do continuously.
+    private func dragGesture(
+        for key: StoredPadKey, in keys: [StoredPadKey], ledger: PadKey.Ledger?
+    ) -> some Gesture {
+        // A press *then* a drag, which is what the board's hint describes and
+        // the only shape that works inside a scroll view: an ordinary drag
+        // loses the touch to the scroll outright, so the press is what claims
+        // it first. The tile is a `Button`, so this has to be simultaneous —
+        // a plain `.gesture` never reaches it at all.
+        LongPressGesture(minimumDuration: 0.2)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onChanged { phase in
+                guard case let .second(true, movement) = phase,
+                      let value = movement else { return }
+                guard edit.isEditing, !edit.isReordering, let ledger else { return }
+                if dragging == nil {
+                    let order = keys.map(\.id)
+                    dragging = Drag(id: key.id, from: order, current: order)
+                }
+                dragTranslation = value.translation
+                guard let drag = dragging,
+                      let origin = drag.current.firstIndex(of: key.id) else { return }
+
+                let since = drag.moved(value.translation)
+                let target = PadDrag.target(
+                    from: origin, translation: since, count: drag.current.count
+                )
+                guard target != origin else { return }
+
+                let moved = PadDrag.reordered(drag.current, moving: key.id, to: target)
+                guard onReseat(ledger, moved) != nil else { return }
+                dragging?.current = moved
+                dragging?.rebase = value.translation
+            }
+            .onEnded { _ in
+                guard let drag = dragging, let ledger else {
+                    dragging = nil
+                    dragTranslation = .zero
+                    return
+                }
+                dragging = nil
+                dragTranslation = .zero
+                guard drag.current != drag.from else { return }
+                Task {
+                    guard await edit.reorder(drag.current) == false else { return }
+                    // Back to exactly where it started, rather than a re-read:
+                    // the failed write is still in the air, and asking the
+                    // server about a state nobody is sure of is how a wrong
+                    // answer becomes the pad.
+                    //
+                    // Unless the pad has changed underneath — a key removed
+                    // while the write was open leaves an order naming a key
+                    // that is gone, which `reseat` rightly refuses. Then the
+                    // screen genuinely does not know what the pad should look
+                    // like, and the server is the only one who does.
+                    if onReseat(ledger, drag.from) == nil { onNeedsReload() }
+                }
+            }
     }
 
     /// A line about the tap in hand, above the actions.
@@ -347,10 +500,11 @@ struct PadView: View {
 
     /// How the board says the two edits work, in the order they are reachable.
     ///
-    /// Reordering is not built yet, so the hint names only what is. A line
-    /// promising a drag that does nothing is the class of note this app has
-    /// twice had to go back and correct.
-    static let editHint = "Tap × to remove a key."
+    /// Both halves now, which is what the board always said. It named only the
+    /// first for as long as the second did nothing — a line promising a drag
+    /// that does not work is the class of note this app has twice had to go
+    /// back and correct.
+    static let editHint = "Tap × to remove · hold and drag to reorder"
 
     /// Says the list ended, and how much of it there was.
     ///
@@ -428,6 +582,8 @@ struct PadView: View {
         newSourceDraft: { NewSourceDraft(store: nil) },
         onKeyAdded: { _ in },
         edit: PadEditRecord(store: nil),
+        onReseat: { _, _ in nil },
+        onNeedsReload: {},
         onKeyRemoved: { _ in }
     )
 }

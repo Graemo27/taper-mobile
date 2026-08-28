@@ -25,6 +25,11 @@ final class PadEditRecord {
     /// says what to do rather than enumerating what went wrong.
     private(set) var failure: Failure?
 
+    /// Whether an arrangement is being written. Read by the pad so a second
+    /// drag cannot start on top of the first — two arrangements in flight
+    /// would land in whichever order the network chose.
+    private(set) var isReordering = false
+
     /// A removal that did not happen, named by the key it was for.
     struct Failure: Equatable {
         let keyID: Int
@@ -87,5 +92,51 @@ final class PadEditRecord {
         }
     }
 
+    /// Persists an arrangement, and says whether it stuck.
+    ///
+    /// The pad has already moved when this is called — a drag that waited for
+    /// the server before the key followed the finger would feel broken — so a
+    /// false here means the caller must put it back. It does not report which
+    /// key failed, because a reorder does not fail per key: the whole
+    /// arrangement lands or none of it does.
+    func reorder(_ ids: [Int]) async -> Bool {
+        // One arrangement at a time. Two whole-ledger writes in flight land in
+        // whichever order the network chose, so the older one can be the last
+        // word — the pad ending up in an arrangement nobody is looking at.
+        //
+        // Enforced here rather than trusted to the callers: the drag happens
+        // to be safe because its own gesture refuses to start a second one,
+        // but the accessibility actions beside it are two taps with nothing
+        // between them, and the record is the one thing both go through.
+        //
+        // False, so the caller puts its arrangement back — the same answer a
+        // failed write gives, because from the screen's side it is one.
+        guard !isReordering else { return false }
+        guard let store else {
+            // Its own sentence: `noBackend` says nothing can be *removed*,
+            // which is a true statement about a different button.
+            failure = Failure(keyID: ids.first ?? 0, message: Self.noBackendForOrder)
+            return false
+        }
+        isReordering = true
+        defer { isReordering = false }
+        failure = nil
+
+        do {
+            _ = try await store.reorder(ids)
+            return true
+        } catch {
+            failure = Failure(keyID: ids.first ?? 0, message: Self.orderNotSaved)
+            return false
+        }
+    }
+
     static let noBackend = "This build has no backend configured, so nothing can be removed."
+
+    /// Says the pad went back, because it did — the alternative is somebody
+    /// believing an arrangement they cannot see is saved.
+    static let orderNotSaved = "Couldn't save that order. The pad's back as it was."
+
+    static let noBackendForOrder =
+        "This build has no backend configured, so nothing can be rearranged."
 }

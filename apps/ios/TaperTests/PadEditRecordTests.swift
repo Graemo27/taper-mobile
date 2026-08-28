@@ -4,9 +4,14 @@ import Testing
 
 /// A store that records what it was asked to remove, and can refuse or stall.
 private final class FakeRemover: PadKeyWriting, @unchecked Sendable {
-    /// Unused here: this fake exists for the write under test, and the pad's
-    /// order is not it.
-    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] { [] }
+    private(set) var reordered: [[Int]] = []
+
+    func reorder(_ ids: [Int]) async throws -> [StoredPadKey] {
+        lock.withLock { reordered.append(ids) }
+        while holds { await Task.yield() }
+        if fails { throw URLError(.notConnectedToInternet) }
+        return []
+    }
 
     private let lock = NSLock()
     private var state = State()
@@ -53,6 +58,13 @@ private final class FakeRemover: PadKeyWriting, @unchecked Sendable {
 private final class Outcome {
     var decided = false
     var value: Int?
+}
+
+/// The same idea as `Outcome`, for a call that answers with a Bool.
+@MainActor
+private final class Refusal {
+    var decided = false
+    var value = true
 }
 
 /// Waits with a deadline, so a condition that never comes reports rather than
@@ -198,5 +210,82 @@ struct PadEditRecordTests {
         #expect(edit.failure == PadEditRecord.Failure(
             keyID: 7, message: PadEditRecord.noBackend
         ))
+    }
+
+    @Test("an arrangement that lands says nothing")
+    func aSavedOrderIsNotAnEvent() async {
+        // The pad already moved when this is called, so success has nothing
+        // left to report: the thing somebody wanted to see happened before
+        // the request went out.
+        let store = FakeRemover()
+        let record = PadEditRecord(store: store)
+
+        #expect(await record.reorder([3, 1, 2]))
+        #expect(store.reordered == [[3, 1, 2]], "the arrangement was not sent whole")
+        #expect(record.failure == nil)
+    }
+
+    @Test("an arrangement that fails says the pad went back")
+    func theUndoIsPartOfTheMessage() async {
+        // Because it did go back — the caller reverts on false. Saying only
+        // "couldn't save" would leave somebody believing an arrangement they
+        // can no longer see is on its way.
+        let store = FakeRemover()
+        store.fails = true
+        let record = PadEditRecord(store: store)
+
+        #expect(await record.reorder([3, 1, 2]) == false)
+        #expect(record.failure?.message == PadEditRecord.orderNotSaved)
+        #expect(record.isReordering == false, "the pad was left unable to drag again")
+    }
+
+    @Test("one arrangement at a time, however fast the second is asked for")
+    func twoWritesInFlightWouldRaceEachOther() async {
+        // Two whole-ledger writes land in whichever order the network chose,
+        // so the older one can be the last word. The drag's own gesture
+        // refuses a second drag, but the accessibility actions beside it are
+        // two taps with nothing between them — and the record is what both go
+        // through.
+        let store = FakeRemover()
+        store.holds = true
+        let record = PadEditRecord(store: store)
+
+        let first = Task { await record.reorder([2, 1]) }
+        let deadline = Date().addingTimeInterval(2)
+        while store.reordered.isEmpty, Date() < deadline { await Task.yield() }
+        #expect(record.isReordering, "the first write never started")
+
+        // Started rather than awaited: with the guard missing this reaches
+        // the held write and sits there, and a test that hangs teaches
+        // nothing. The wait ends on whichever answer arrives — refused, so
+        // the task finishes without touching the store, or accepted, so the
+        // store sees a second arrangement.
+        let outcome = Refusal()
+        let second = Task { @MainActor in
+            outcome.value = await record.reorder([1, 2])
+            outcome.decided = true
+        }
+        let secondDeadline = Date().addingTimeInterval(3)
+        while !outcome.decided, store.reordered.count < 2, Date() < secondDeadline {
+            await Task.yield()
+        }
+        #expect(outcome.decided, "the second arrangement reached the store instead of being refused")
+        #expect(outcome.value == false)
+        #expect(store.reordered == [[2, 1]], "two arrangements reached the server")
+
+        store.holds = false
+        _ = await second.value
+        #expect(await first.value)
+    }
+
+    @Test("a build with no backend cannot save an order either")
+    func nothingToArrangeInto() async {
+        let record = PadEditRecord(store: nil)
+
+        #expect(await record.reorder([1]) == false)
+        // Its own sentence: `noBackend` says nothing can be *removed*, which
+        // is a true statement about a different button.
+        #expect(record.failure?.message == PadEditRecord.noBackendForOrder)
+        #expect(record.failure?.message.contains("rearranged") == true)
     }
 }
