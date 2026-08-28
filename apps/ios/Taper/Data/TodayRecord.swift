@@ -368,7 +368,12 @@ final class TodayRecord {
             let written = try await Task { try await store.log(draft) }.value
 
             intent.finish()
-            fold(written, on: today)
+            // Folded on the *draft's* day, not on `today`. A retry keeps the
+            // day of the attempt it repeats, so one that crosses midnight
+            // writes a row belonging to yesterday — and folding it on the
+            // clock would put yesterday's row into today's tally and count it
+            // against a cap it was never measured by.
+            fold(written, on: draft.day)
             selection.clear()
         } catch {
             // No cancellation branch, because there is no longer a cancelled
