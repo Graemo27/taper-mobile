@@ -11,22 +11,30 @@ not fail the build — it produces an app that launches with no backend.
 `taper_plan_versions` / `check_ins` / `craving_ratings` schema, and the app end to end: age
 gate, onboarding, home with its craving prompt and daily check-in and tracking card and graph,
 the pad, the plan, the day's list, the licensed catalogue and the label behind it, adding a
-treatment or a source, editing the pad, the craving screen, and the logged confirmation.
+treatment or a source, editing the pad — including rearranging it — the craving screen, and
+the logged confirmation.
 
-What is left is not screens. Against the M1 board:
+**M1 is built.** One board item is left, and it is the only one:
 
-- **L3e** reordering the pad, the half of edit-pad that was deferred
 - **L8a** the ride-it-out state behind L8's second card — designed, not drawn: the design
   record keeps the ring and the NOTICE/NAME/RIDE sequence intact as L8a, but no artboard
-  exists yet, so the card ships inert. Build to the record, don't redesign
+  exists yet, so the card ships inert. Build to the record, don't redesign.
 
-Also open: a `request_id` idempotency migration — the one thing that would close the duplicate
-no client can, an insert that commits and loses its response — the non-atomic position
-allocation deferred from #126, and unsetting the dead hosted `FDC_API_KEY` secret. Every
-migration in `supabase/migrations/` is applied to the hosted project, `craving_ratings`
-included.
+Also open, none of it a screen:
 
-**Check this list against the board before trusting it.** It has been quietly wrong three
+- **User-initiated retries are not idempotent yet.** `check_ins.request_id` closes the
+  duplicate no client can see — a commit whose response was lost, retried by the transport —
+  because a draft carries one identity. A person pressing a failed button again builds a
+  *fresh* draft and still writes two rows. Closing that means holding the intent across
+  attempts, in the records rather than the store.
+- The dead hosted `FDC_API_KEY` secret still wants unsetting. Doing so is a production
+  action, so it needs authorisation like any other.
+
+Every migration in `supabase/migrations/` is applied to the hosted project. #126's
+non-atomic position allocation is closed: the seat is assigned by a trigger under an
+advisory lock, and the client no longer computes one.
+
+**Check this list against the board before trusting it.** It has been quietly wrong four
 times, each time by naming something that had stopped being missing.
 
 References to "Food Pad" under `docs/` are historical and accurate; leave them alone.
