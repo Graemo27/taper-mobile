@@ -54,6 +54,10 @@ struct TaperTabs: View {
     /// holds a write that has happened, and re-presenting a spent record would
     /// show a screen that had already counted somebody's last craving.
     @State private var craving: CravingRecord?
+    /// L8a, when the second card has been opened. Its own state rather than a
+    /// flag on the craving record: the ride is a screen with a clock, and the
+    /// record it needs is built when it opens and dropped when it closes.
+    @State private var riding: RideRecord?
 
     init(progress: PlanProgress, stores: AppStores?) {
         self.progress = progress
@@ -193,8 +197,27 @@ struct TaperTabs: View {
                     guard !record.isWriting else { return }
                     craving = nil
                     selection = .log
-                }
+                },
+                onRideItOut: { riding = RideRecord() }
             )
+            // Over the craving screen rather than replacing it: two minutes
+            // later somebody may want the lozenge after all, and closing L8a
+            // should put them back where they were rather than out on home.
+            .fullScreenCover(item: $riding) { ride in
+                RideView(
+                    record: ride,
+                    onPassed: {
+                        riding = nil
+                        Task {
+                            if let written = await record.itPassed() {
+                                today.fold(written)
+                                craving = nil
+                            }
+                        }
+                    },
+                    onClose: { riding = nil }
+                )
+            }
         }
         // L6, over everything for L8's reason: the board draws it without the
         // tab bar. One button, one way out, nothing to guard — the write
