@@ -27,7 +27,8 @@ Also open, none of it a screen:
   because a draft carries one identity. A person pressing a failed button again builds a
   *fresh* draft and still writes two rows. Closing that means holding the intent across
   attempts, in the records rather than the store.
-- Unsetting the dead hosted `FDC_API_KEY` secret, which is a production action.
+- The dead hosted `FDC_API_KEY` secret still wants unsetting. Doing so is a production
+  action, so it needs authorisation like any other.
 
 Every migration in `supabase/migrations/` is applied to the hosted project. #126's
 non-atomic position allocation is closed: the seat is assigned by a trigger under an
