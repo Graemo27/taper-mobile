@@ -43,6 +43,13 @@ private func key(_ form: PadForm, _ label: String, mg: Double, position: Int = 0
                  mg: mg, position: position, ndc: nil)
 }
 
+/// A movable clock, so a retry can happen at a different instant from the
+/// attempt it repeats — which in the app it always does.
+private final class Clock: @unchecked Sendable {
+    var now: Date
+    init(_ now: Date) { self.now = now }
+}
+
 /// Where a task reports back to the test, so a wait can end on a decision
 /// rather than on a duration.
 @MainActor
@@ -280,6 +287,27 @@ struct CravingRecordTests {
         log.holds = false
         _ = await writing.value
         #expect(record.isWriting == false, "the screen held itself shut after its row landed")
+    }
+
+    @Test("a retry of a counted craving is the same write, clock notwithstanding")
+    func theCravingRetryKeepsItsIdentity() async {
+        // `itPassed()` rebuilds its draft from `now()`, so without a
+        // day-independent comparison the retry after a failure introduces
+        // itself as a new write and the day can grow two urges for one
+        // craving.
+        let log = FakeLog()
+        log.fails = true
+        let clock = Clock(Date(timeIntervalSince1970: 1_780_000_000))
+        let record = CravingRecord(store: log, now: { clock.now })
+
+        #expect(await record.itPassed() == nil)
+        clock.now = clock.now.addingTimeInterval(20)
+        log.fails = false
+        #expect(await record.itPassed() != nil)
+
+        #expect(log.logged.count == 2, "the retry never reached the store")
+        #expect(log.logged[0].requestID == log.logged[1].requestID,
+                "a retry twenty seconds later introduced itself as a different write")
     }
 
     @Test("a build with no backend says so rather than failing quietly")
