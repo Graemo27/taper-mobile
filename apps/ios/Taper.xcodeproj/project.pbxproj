@@ -683,6 +683,9 @@
 					E68DBAA8FB8825F97AFD8BCF = {
 						TestTargetID = EE06B5AE23DD110257F93A16;
 					};
+					EE06B5AE23DD110257F93A16 = {
+						DevelopmentTeam = HLFZ55P5DR;
+					};
 				};
 			};
 			buildConfigurationList = B0E3E8BB7B0068D0A6200CC5 /* Build configuration list for PBXProject "Taper" */;
