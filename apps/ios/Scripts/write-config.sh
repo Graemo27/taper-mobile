@@ -35,6 +35,12 @@ read_key() {
 
 url=$(read_key EXPO_PUBLIC_SUPABASE_URL)
 key=$(read_key EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+# Optional, and only device builds need it. The simulator signs with nothing;
+# a phone needs a team, and `xcodegen generate` rewrites the project file — so
+# choosing the team in Xcode's UI lasts exactly until the next regeneration.
+# Putting it here means it survives, and keeps a personal team ID out of a
+# tracked file.
+team=$(read_key TAPER_DEVELOPMENT_TEAM)
 
 if [ -z "$url" ] || [ -z "$key" ]; then
   echo "write-config.sh: .env is missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY." >&2
@@ -70,6 +76,13 @@ SUPABASE_URL_SCHEME = $scheme
 SUPABASE_URL_HOST = $host
 SUPABASE_PUBLISHABLE_KEY = $key
 CONFIG
+
+# Written only when named. An empty `DEVELOPMENT_TEAM =` is not the same as an
+# absent one: it overrides whatever Xcode would otherwise resolve and leaves
+# the simulator build failing to sign for no reason anybody asked for.
+if [ -n "$team" ]; then
+  echo "DEVELOPMENT_TEAM = $team" >> "$out"
+fi
 
 # Deliberately does not echo the host or the key. Neither is secret — both ship
 # in every client build — but the repository records only the local alias for
